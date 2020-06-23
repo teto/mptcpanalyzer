@@ -13,15 +13,21 @@ TemplateHaskell for Katip :(
 module Main where
 
 import Prelude hiding (concat, init)
-import Options.Applicative hiding (value, ErrorMsg, empty)
-import qualified Options.Applicative (value)
-import Control.Monad.Trans (liftIO)
+import Options.Applicative
+-- hiding (value, ErrorMsg, empty)
+-- import qualified Options.Applicative (value)
+import Options.Applicative.Types
+import Control.Monad.Trans (liftIO, MonadIO)
 import Control.Monad.Trans.State (State, StateT, put, get,
         execStateT)
+
+-- for noCompletion
+import System.Console.Haskeline.Completion
 
 import Text.Read (readMaybe)
 -- pack
 import Data.Text ()
+import Data.List (isPrefixOf)
 
 import Control.Monad (foldM)
 import Data.Maybe (catMaybes)
@@ -119,8 +125,36 @@ loggerName = "main"
 --   | forall x . MultP (Parser (x -> a)) (Parser x)
 --   | AltP (Parser a) (Parser a)
 --   | forall x . BindP (Parser x) (x -> Parser a)
+data Sample = Sample
+  { hello      :: String
+  , quiet      :: Bool
+  , enthusiasm :: Int }
 
+sampleDemo :: Parser Sample
+sampleDemo = Sample
+      <$> strOption
+          ( long "hello"
+         <> metavar "TARGET"
+         <> help "Target for the greeting" )
+      <*> switch
+          ( long "quiet"
+         <> short 'q'
+         <> help "Whether to be quiet" )
+      <*> option auto
+          ( long "enthusiasm"
+         <> help "How enthusiastically to greet"
+         <> showDefault
+         <> value 1
+         <> metavar "INT" )
+
+-- noCompletion
+-- type CompletionFunc (m :: Type -> Type) = (String, String) -> m (String, [Completion])
+-- https://hackage.haskell.org/package/optparse-applicative-0.15.1.0/docs/Options-Applicative.html#t:Parser
 -- optparse :: MonadIO m => Parser a -> CompletionFunc m
+-- completeFilename
+-- listFiles
+generateCompleter :: MonadIO m => Parser a -> CompletionFunc m
+generateCompleter (NilP _) = noCompletion
 
 sample :: Parser CLIArguments
 sample = CLIArguments
@@ -160,10 +194,6 @@ opts = info (sample <**> helper)
   <> footer "You can report issues/contribute at https://github.com/teto/mptcpanalyzer"
   )
 
-
-
-
-
 -- |Deal with events for already registered connections
 -- Warn: MPTCP_EVENT_ESTABLISHED registers a "null" interface
 -- or a list of packets to send
@@ -202,8 +232,14 @@ options = [
 cmd :: String -> Repl ()
 cmd input = liftIO $ print input
 
+-- Tab Completion: return a completion for partial words entered
+completer :: Monad m => WordCompleter m
+completer n = do
+  let names = ["kirk", "spock", "mccoy"]
+  return $ filter (isPrefixOf n) names
+
 mainRepline :: IO ()
-mainRepline = evalRepl (pure ">>> ") cmd Main.options Nothing (Word completer) ini
+mainRepline = evalRepl (pure ">>> ") cmd Main.options Nothing (Word Main.completer) ini
 
 main :: IO ()
 main = mainRepline
