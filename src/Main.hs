@@ -111,6 +111,16 @@ loggerName :: String
 loggerName = "main"
 
 
+-- autocompletion for optparse
+-- https://github.com/sdiehl/repline/issues/32
+-- data Parser a
+--   = NilP (Maybe a)
+--   | OptP (Option a)
+--   | forall x . MultP (Parser (x -> a)) (Parser x)
+--   | AltP (Parser a) (Parser a)
+--   | forall x . BindP (Parser x) (x -> Parser a)
+
+-- optparse :: MonadIO m => Parser a -> CompletionFunc m
 
 sample :: Parser CLIArguments
 sample = CLIArguments
@@ -158,31 +168,67 @@ opts = info (sample <**> helper)
 -- Warn: MPTCP_EVENT_ESTABLISHED registers a "null" interface
 -- or a list of packets to send
 
+-- https://github.com/sdiehl/repline/issues/32
+-- data Parser a
+--   = NilP (Maybe a)
+--   | OptP (Option a)
+--   | forall x . MultP (Parser (x -> a)) (Parser x)
+--   | AltP (Parser a) (Parser a)
+--   | forall x . BindP (Parser x) (x -> Parser a)
 
+type Repl a = HaskelineT IO a
 
+ini :: Repl ()
+ini = liftIO $ putStrLn "Welcome!"
 
+-- Commands
+mainHelp :: [String] -> Repl ()
+mainHelp args = liftIO $ print $ "Help: " ++ show args
+
+say :: [String] -> Repl ()
+say args = do
+  _ <- liftIO $ system $ "cowsay" ++ " " ++ (unwords args)
+  return ()
+
+options :: [(String, [String] -> Repl ())]
+options = [
+    ("help", mainHelp)  -- :help
+  , ("say", say)    -- :say
+  ]
+-- repl :: IO ()
+-- repl = evalRepl (pure ">>> ") cmd options Nothing (Word completer) ini
+-- Evaluation : handle each line user inputs
+
+cmd :: String -> Repl ()
+cmd input = liftIO $ print input
+
+mainRepline :: IO ()
+mainRepline = evalRepl (pure ">>> ") cmd Main.options Nothing (Word completer) ini
 
 main :: IO ()
-main = do
-  let haskelineSettings = defaultSettings
-  -- SETUP LOGGING (https://gist.github.com/ijt/1052896)
-  -- streamHandler vs verboseStreamHandler
+main = mainRepline
 
-  -- logMsg "main" InfoS  "Parsing command line..."
-  options <- execParser opts
-  let logContext = mempty
-  let state = (MyState "main" logContext)
+-- mainHaskeline :: IO ()
+-- mainHaskeline = do
+--   let haskelineSettings = defaultSettings
+--   -- SETUP LOGGING (https://gist.github.com/ijt/1052896)
+--   -- streamHandler vs verboseStreamHandler
+
+--   -- logMsg "main" InfoS  "Parsing command line..."
+--   options <- execParser opts
+--   let logContext = mempty
+--   let state = (MyState "main" logContext)
 
 
-  runInputT haskelineSettings loop
-  where
-      loop :: InputT IO ()
-      loop = do
-          minput <- getInputLine "% "
-          case minput of
-              Nothing -> return ()
-              Just "quit" -> return ()
-              Just input -> do
-                    outputStrLn $ "Input was: " ++ input
-                    loop
+--   runInputT haskelineSettings loop
+--   where
+--       loop :: InputT IO ()
+--       loop = do
+--           minput <- getInputLine "% "
+--           case minput of
+--               Nothing -> return ()
+--               Just "quit" -> return ()
+--               Just input -> do
+--                     outputStrLn $ "Input was: " ++ input
+--                     loop
 
