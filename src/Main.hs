@@ -63,11 +63,8 @@ import System.IO.Temp ()
 import System.FilePath ()
 import Numeric.Natural
 import System.IO (stderr)
-import Data.Aeson
--- to merge MptcpConnection export and Metrics
-import Data.Aeson.Extra.Merge  (lodashMerge)
-
-import Data.Aeson.Encode.Pretty (encodePretty)
+import qualified Data.Aeson as JSON
+-- import Data.Aeson.Encode.Pretty (encodePretty)
 
 -- for getEnvDefault, to get TMPDIR value.
 -- we could pass it as an argument
@@ -117,14 +114,6 @@ loggerName :: String
 loggerName = "main"
 
 
--- autocompletion for optparse
--- https://github.com/sdiehl/repline/issues/32
--- data Parser a
---   = NilP (Maybe a)
---   | OptP (Option a)
---   | forall x . MultP (Parser (x -> a)) (Parser x)
---   | AltP (Parser a) (Parser a)
---   | forall x . BindP (Parser x) (x -> Parser a)
 data Sample = Sample
   { hello      :: String
   , quiet      :: Bool
@@ -153,8 +142,22 @@ sampleDemo = Sample
 -- optparse :: MonadIO m => Parser a -> CompletionFunc m
 -- completeFilename
 -- listFiles
+-- autocompletion for optparse
+-- https://github.com/sdiehl/repline/issues/32
+-- data Parser a
+--   = NilP (Maybe a)
+--   | OptP (Option a)
+--   | forall x . MultP (Parser (x -> a)) (Parser x)
+--   | AltP (Parser a) (Parser a)
+--   | forall x . BindP (Parser x) (x -> Parser a)
 generateCompleter :: MonadIO m => Parser a -> CompletionFunc m
 generateCompleter (NilP _) = noCompletion
+-- mapParser looks cool
+-- OpT should have optProps and optMain
+-- en fait c'est le optReader qui va decider de tout
+-- todo we should react depending on ParseError
+-- CompletionResult
+generateCompleter (OptP opt) = noCompletion
 
 sample :: Parser CLIArguments
 sample = CLIArguments
@@ -238,11 +241,67 @@ completer n = do
   let names = ["kirk", "spock", "mccoy"]
   return $ filter (isPrefixOf n) names
 
+-- data CompleterStyle m , I can use a Custom one
 mainRepline :: IO ()
 mainRepline = evalRepl (pure ">>> ") cmd Main.options Nothing (Word Main.completer) ini
 
 main :: IO ()
-main = mainRepline
+-- main = mainRepline
+main = do
+  let res = mainTest
+  putStrLn $ "Result " ++ show res
+  -- return
+
+-- optparse
+-- should pass the full line -> retreive the available completions
+
+data SimpleData = SimpleData {
+      mainStr :: String
+      , optionalHello      :: String
+    }
+
+simpleParser :: Parser SimpleData
+simpleParser = SimpleData
+      -- action "filepath"
+      <$> argument str (metavar "NAME" <> completeWith ["toto", "tata"])
+      <*> strOption
+          ( long "hello"
+         <> metavar "TARGET"
+         <> help "Target for the greeting" )
+
+--defaultPrefs :: ParserPrefs
+-- ParserPrefs
+-- execParserPure :: 
+-- execParserPure puis on recupere le resultat ParserResult puis on affiche la completion
+-- customExecParser
+-- handleParseResult
+
+-- execParserPure :: ParserPrefs       -- ^ Global preferences for this parser
+--                -> ParserInfo a      -- ^ Description of the program to run
+--                -> [String]          -- ^ Program arguments
+--                -> ParserResult a
+-- handleParseResult
+
+-- dealWithParseResult :: ParserResult a
+-- il faudrait qu'il me retourne le champ sur lequel il foire et comme ca je peux recuperer son completer
+-- s'il n'a pas de completer on affiche son aide
+-- on peut aussi faire un mapping entre les action bash et les completer de repline
+mainTest :: String
+mainTest = 
+    -- case result of
+      -- CompletionResult 
+      handleRes result
+    where
+        result = execParserPure parserPrefs parserInfo cmdArgs
+        parserPrefs = defaultPrefs
+        -- "test"
+        cmdArgs = [ "mama", "--hello=toto"  ]
+        parserInfo = info simpleParser fullDesc
+        handleRes :: ParserResult SimpleData -> String
+        handleRes (CompletionInvoked compl) = "toto"
+        handleRes (Failure failure) = "failed"
+        handleRes (Success x) = "Success"
+
 
 -- mainHaskeline :: IO ()
 -- mainHaskeline = do

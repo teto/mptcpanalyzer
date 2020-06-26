@@ -39,6 +39,8 @@ in
   # shellHook = "eval $(grep export ${ghc}/bin/ghc)";
   # echo "importing a custom nvim ${my_nvim}"
   # export PATH="${my_nvim}/bin:$PATH"
+  # --package-db /home/teto/netlink-hs/dist/package.conf.inplace
+  # --package-db /home/teto/mptcppm/dist/package.conf.inplace
   shellHook = ''
     # check if it's still needed ?
     export HIE_HOOGLE_DATABASE="$NIX_GHC_LIBDIR/../../share/doc/hoogle/index.html"
