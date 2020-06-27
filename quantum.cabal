@@ -63,7 +63,8 @@ common shared-properties
 executable mptcpanalyzer
     import: shared-properties
     -- for now reference mptcp-pm but later move part to a core
-    build-depends: mptcp-pm
+    build-depends:
+                mptcp-pm
                 , haskeline
     -- ghc-options: -prof
     main-is: Main.hs
