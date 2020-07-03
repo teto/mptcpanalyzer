@@ -287,7 +287,7 @@ simpleParser = SimpleData
 -- s'il n'a pas de completer on affiche son aide
 -- on peut aussi faire un mapping entre les action bash et les completer de repline
 mainTest :: String
-mainTest = 
+mainTest =
     -- case result of
       -- CompletionResult 
       handleRes result
@@ -302,6 +302,9 @@ mainTest =
         handleRes (Failure failure) = "failed"
         handleRes (Success x) = "Success"
 
+
+-- mainLoad :: String
+-- mainLoad =
 
 -- mainHaskeline :: IO ()
 -- mainHaskeline = do

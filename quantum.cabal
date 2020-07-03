@@ -36,7 +36,10 @@ common shared-properties
        , transformers
        , text
        , mtl
-       , hslogger
+       -- , hslogger
+       -- microlens taken from Frames
+       -- , microlens
+       , lens
        -- for merge
        , aeson
        , aeson-pretty
