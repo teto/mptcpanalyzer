@@ -11,7 +11,7 @@ Homepage:   https://github.com/teto/quantum
 Description:
   Multipath TCP (www.multipath-tcp.org) analyzer
 Extra-source-files:
-  headers/*.h README.md CHANGELOG
+  README.md CHANGELOG
 
 Source-repository head
   type:       git
@@ -48,6 +48,7 @@ common shared-properties
        , unordered-containers
        -- to create temp folder/files
        , temporary
+       , singletons
        , filepath
        , repline
        , Frames
@@ -65,6 +66,8 @@ common shared-properties
 -- and delegate the behavior to a monitor
 executable mptcpanalyzer
     import: shared-properties
+
+    Other-modules:     Pcap
     -- for now reference mptcp-pm but later move part to a core
     build-depends:
                 mptcp-pm
@@ -82,7 +85,7 @@ Test-Suite test
 --   -- import: shared-properties
 --   Build-tools:       hsc2hs, c2hs
 --   Includes:          tcp_states.h, linux/sock_diag.h, linux/inet_diag.h
---   Other-modules:     Net.SockDiag, Net.Mptcp, Net.IPAddress, Net.Mptcp.Constants, Net.SockDiag.Constants, 
+  Other-modules:     Pcap
 --                     Net.SockDiag.Constants, Net.Tcp.Constants
 --   autogen-modules: Net.Mptcp.Constants, Net.SockDiag.Constants
 --   include-dirs:      headers

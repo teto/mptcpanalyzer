@@ -2,8 +2,10 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE KindSignatures             #-}
-{-# LANGUAGE TypeFamilies             #-}
-module Loader
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE FlexibleInstances                      #-}
+module Pcap
 where
 
 
@@ -12,6 +14,7 @@ import System.Exit
 import Data.Vinyl
 import Control.Lens hiding (Identity)
 import Control.Lens.TH
+import Data.Singletons.TH
 
 -- Inspired by http://hackage.haskell.org/package/vinyl-0.12.3/docs/Data-Vinyl-Tutorial-Overview.html
 -- | DataType
@@ -30,11 +33,11 @@ type family ElF (f :: Fields) :: * where
 newtype Attr f = Attr { _unAttr :: ElF f }
 makeLenses ''Attr
 -- TODO retablir les singletons  certainement
--- genSingletons [ ''Fields ]
+genSingletons [ ''Fields ]
 
 instance Show (Attr Name) where show (Attr x) = "name: " ++ show x
 instance Show (Attr Fullname) where show (Attr x) = "age: " ++ show x
-instance Show (Attr Label) where show (Attr x) = "label: " ++ show x
+instance Show (Attr PlotLabel) where show (Attr x) = "label: " ++ show x
 instance Show (Attr Hash) where show (Attr x) = "hash: " ++ show x
 -- instance Show (Attr Master) where show (Attr x) = "master: " ++ show x
 
@@ -52,11 +55,10 @@ instance Show (Attr Hash) where show (Attr x) = "hash: " ++ show x
 --     } deriving (Read, Generic)
 
 data TsharkParams = TsharkParams {
-
       tsharkBinary :: String,
       tsharkOptions :: [(String, String)],
       csvDelimiter :: Char,
-      readFilter :: Maybe String
+      tsharkReadFilter :: Maybe String
     }
 
 -- |Generate the tshark command to export a pcap into a csv
@@ -71,21 +73,26 @@ generateCsvCommand fieldNames pcapFilename tsharkParams =
     -- quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
     -- single-quotes, n no quotes (the default).
     -- the -2 is important, else some mptcp parameters are not exported
-        cmd = [
+        start = [
               tsharkBinary tsharkParams,
-              "-r", inputFilename,
-              "-E", "separator=" ++ (csvDelimiter tsharkParams)
+              "-r", pcapFilename,
+              "-E", "separator=" ++ show (csvDelimiter tsharkParams)
             ]
         -- if self.profile:
         --     cmd.extend(['-C', self.profile])
 
-        opts = map (\opt val -> ["-o", opt ++ ":" ++ val]  ) tsharkOptions
+        opts :: [String]
+        opts = foldr (\(opt, val) l -> l ++ ["-o", opt ++ ":" ++ val]) [] (tsharkOptions tsharkParams)
 
-        readFilter = case readFilter tsharkParams of 
+        readFilter :: [String]
+        readFilter = case tsharkReadFilter tsharkParams of
             Just x ->["-2", "-R", x]
             Nothing -> []
 
-        fields = ["-T", "fields"] ++ map (\f -> ["-e", f]) fieldNames
+        fields :: [String]
+        fields = ["-T", "fields"] ++ (
+            foldr (\fname l -> l ++ ["-e", fname]) [] fieldNames
+            )
 
 
 -- derive from Order ?
@@ -113,10 +120,9 @@ defaultTsharkOptions = [
 defaultTsharkPrefs = TsharkParams {
       tsharkBinary = "tshark",
       tsharkOptions = defaultTsharkOptions,
-      csvDelimiter = "|",
-      readFilter = Nothing
-
-}
+      csvDelimiter = '|',
+      tsharkReadFilter = Nothing
+    }
 
 -- :->
 -- baseFields :: [TsharkField]

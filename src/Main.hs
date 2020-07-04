@@ -75,6 +75,9 @@ import qualified Data.HashMap.Strict as HM
 -- import System.Console.Haskeline
 import System.Console.Repline
 import Katip
+import Pcap
+import Cache
+import           System.Environment.Blank   (getEnvDefault)
 
 -- |Helper to pass information across functions
 data MyState = MyState {
@@ -83,13 +86,13 @@ data MyState = MyState {
   -- , connections :: Map.Map MptcpToken (ThreadId, MVar MptcpConnection)
   -- -- |Arguments passed to the program
   -- , cliArguments :: CLIArguments
+  cacheFolder :: FilePath
 
-  -- -- |Connections to accept, loaded via cli's --filter
-  -- , filteredConnections :: Maybe [TcpConnection]
-  msKNamespace :: Namespace    -- |Katip namespace
+  , msKNamespace :: Namespace    -- ^Katip namespace
+  , stateLogEnv :: LogEnv     -- ^ Katip log env
   , msKContext   :: LogContexts
 
-}
+} deriving Cache
 
 
 data CLIArguments = CLIArguments {
@@ -249,8 +252,21 @@ main :: IO ()
 -- main = mainRepline
 main = do
   let res = mainTest
+  cacheFolder <- getEnvDefault "XDG_CACHE_HOME" "~/.cache"
+
+  handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem DebugS) V2
+  katipEnv <- initLogEnv "result-store" "devel"
+  mkLogEnv <- registerScribe "stdout" handleScribe defaultScribeSettings katipEnv
+  let MyState = MyState {
+    cacheFolder = cacheFolder,
+    msKNamespace = "NameSpace",
+    logEnv = katipEnv
+    
+
+  }
   putStrLn $ "Result " ++ show res
-  -- return
+  -- check if file in cache else call tshark
+
 
 -- optparse
 -- should pass the full line -> retreive the available completions
@@ -301,6 +317,9 @@ mainTest =
         handleRes (CompletionInvoked compl) = "toto"
         handleRes (Failure failure) = "failed"
         handleRes (Success x) = "Success"
+
+
+
 
 
 -- mainLoad :: String
