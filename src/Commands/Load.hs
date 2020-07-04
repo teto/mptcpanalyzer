@@ -7,6 +7,9 @@ import           Frames.TH                      ( rowGen
                                                 , RowGen(..)
                                                 )
 
+
+-- data PcapFrame = 
+
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 -- tableTypes "Packet" "data/server_2_filtered.pcapng.csv"
 

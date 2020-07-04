@@ -67,7 +67,7 @@ common shared-properties
 executable mptcpanalyzer
     import: shared-properties
 
-    Other-modules:     Pcap
+    Other-modules:     Pcap, Cache
     -- for now reference mptcp-pm but later move part to a core
     build-depends:
                 mptcp-pm

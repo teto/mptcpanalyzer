@@ -5,23 +5,21 @@ import Data.Text
 import Net.Tcp
 
 
-instance Show TcpConnection where
-  show conn = 
-
 
 newtype MptcpStreamId = Int
 newtype TcpStreamId = Int
 
-data ListSubflows = data {
-  full :: Bool
+-- This 
+data ParserListSubflows = ParserListSubflows {
+  full :: Bool,
   streamId :: MptcpStreamId
 }
 
 -- |TODO pass the loaded pcap to have a complete filterWith
 -- listSubflowParser = 
 
-parser :: Parser ListSubflows
-parser = <$> (switch
+parser :: Parser ParserListSubflows
+parser = Parser <$> (switch
           ( long "full"
          <> help "Print details for each subflow" ))
       <*> argument (
@@ -39,11 +37,11 @@ opts = info (sample <**> helper)
   <> footer ""
   )
 
-listTcpConnections :: [TcpConnection] -> Text
-listTcpConnections conns =
-        streams = self.data.groupby("tcpstream")
-        (show len connections) ++ " tcp connection(s)" ++ map (\
-        where
+-- listTcpConnections :: [TcpConnection] -> Text
+-- listTcpConnections conns =
+--         streams = self.data.groupby("tcpstream")
+--         (show len connections) ++ " tcp connection(s)" ++ map (\
+--         where
           -- for tcpstream, group in streams:
           --     con = TcpConnection.build_from_dataframe(self.data, tcpstream)
           --     self.poutput(str(con))

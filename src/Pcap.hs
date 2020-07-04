@@ -160,6 +160,15 @@ defaultTsharkPrefs = TsharkParams {
 --             "TCP timestamp tsecr" True
 --     ]
 
+loadPcap :: TsharkParams -> Filepath -> AppM PcapFrame
+loadPcap path = 
+
+    getCache
+
+    where
+      cacheId = CacheId [path] "" ""
+
+-- loadCsv :: Filepath ->
 
 -- runTshark ::
 -- runTshark = 

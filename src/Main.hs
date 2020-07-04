@@ -92,6 +92,8 @@ data MyState = MyState {
   , stateLogEnv :: LogEnv     -- ^ Katip log env
   , msKContext   :: LogContexts
 
+  -- , loadedFile   :: Maybe  -- ^should be 
+
 } deriving Cache
 
 
@@ -241,7 +243,7 @@ cmd input = liftIO $ print input
 -- Tab Completion: return a completion for partial words entered
 completer :: Monad m => WordCompleter m
 completer n = do
-  let names = ["kirk", "spock", "mccoy"]
+  let names = ["load", "listConnections", "listMptcpConnections"]
   return $ filter (isPrefixOf n) names
 
 -- data CompleterStyle m , I can use a Custom one
@@ -261,8 +263,6 @@ main = do
     cacheFolder = cacheFolder,
     msKNamespace = "NameSpace",
     logEnv = katipEnv
-    
-
   }
   putStrLn $ "Result " ++ show res
   -- check if file in cache else call tshark
