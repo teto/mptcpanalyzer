@@ -52,6 +52,8 @@ common shared-properties
        , filepath
        , repline
        , Frames
+       , directory
+       , vinyl
        -- , bitset  -- bitset, interesting but broken
 
     default-language: Haskell2010
@@ -67,7 +69,7 @@ common shared-properties
 executable mptcpanalyzer
     import: shared-properties
 
-    Other-modules:     Pcap, Cache
+    Other-modules:     Pcap, Cache, Commands.Load
     -- for now reference mptcp-pm but later move part to a core
     build-depends:
                 mptcp-pm

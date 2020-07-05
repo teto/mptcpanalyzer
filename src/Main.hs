@@ -12,6 +12,8 @@ TemplateHaskell for Katip :(
 
 module Main where
 
+import System.Directory
+import System.IO (stdout)
 import Prelude hiding (concat, init)
 import Options.Applicative
 -- hiding (value, ErrorMsg, empty)
@@ -21,6 +23,11 @@ import Control.Monad.Trans (liftIO, MonadIO)
 import Control.Monad.Trans.State (State, StateT, put, get,
         execStateT)
 
+import           Control.Monad.Reader               (runReaderT)
+
+-- defines MonadState
+-- import Control.Monad.State.Class
+-- defines State
 -- for noCompletion
 import System.Console.Haskeline.Completion
 
@@ -77,7 +84,9 @@ import System.Console.Repline
 import Katip
 import Pcap
 import Cache
+import Commands.Load
 import           System.Environment.Blank   (getEnvDefault)
+-- import Directory
 
 -- |Helper to pass information across functions
 data MyState = MyState {
@@ -94,7 +103,22 @@ data MyState = MyState {
 
   -- , loadedFile   :: Maybe  -- ^should be 
 
-} deriving Cache
+}
+
+data AppM a = AppM {
+        unAppT :: State MyState a
+    }
+
+instance Cache AppM where
+  putCache id frame = return False
+  getCache id = Left "not implemented"
+  -- check
+  isValid = cacheCheckValidity
+
+
+cacheCheckValidity :: CacheId -> AppM Bool
+cacheCheckValidity id = return False
+
 
 
 data CLIArguments = CLIArguments {
@@ -232,6 +256,7 @@ options :: [(String, [String] -> Repl ())]
 options = [
     ("help", mainHelp)  -- :help
   , ("say", say)    -- :say
+  , ("load", cmdLoadPcap)    -- :say
   ]
 -- repl :: IO ()
 -- repl = evalRepl (pure ">>> ") cmd options Nothing (Word completer) ini
@@ -250,24 +275,60 @@ completer n = do
 mainRepline :: IO ()
 mainRepline = evalRepl (pure ">>> ") cmd Main.options Nothing (Word Main.completer) ini
 
+
+-- cmdLoadPcap :: [String] -> Repl ()
+-- cmdLoadPcap args = do
+
+
+
+-- data AppM m = StateT MyState m
+
+cmdLoadPcap :: [String] -> Repl ()
+cmdLoadPcap args = do
+  return ()
+
+-- (MonadState m) => 
+loadPcap :: TsharkParams -> FilePath -> AppM PcapFrame
+loadPcap params path = do
+    case getCache cacheId of
+        Right frame -> return frame
+        Left err -> error "could not "
+
+    where
+      cacheId = CacheId [path] "" ""
+
 main :: IO ()
 -- main = mainRepline
 main = do
   let res = mainTest
-  cacheFolder <- getEnvDefault "XDG_CACHE_HOME" "~/.cache"
+
+  cacheFolder <- getXdgDirectory XdgCache "mptcpanalyzer"
+  -- Create cache if doesn't exist
+  doesDirectoryExist cacheFolder >>= \x -> case x of
+      True -> return ()
+      False -> createDirectory cacheFolder
 
   handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem DebugS) V2
   katipEnv <- initLogEnv "result-store" "devel"
   mkLogEnv <- registerScribe "stdout" handleScribe defaultScribeSettings katipEnv
-  let MyState = MyState {
+  let myState = MyState {
     cacheFolder = cacheFolder,
     msKNamespace = "NameSpace",
-    logEnv = katipEnv
+    stateLogEnv = katipEnv,
+    msKContext = mempty
   }
   putStrLn $ "Result " ++ show res
   -- check if file in cache else call tshark
+  -- runState
+  -- unAppT myState 
+  runState
+  frame <- loadPcap defaultTsharkPrefs "data/test.csv"
+  >>= listMptcpConnections
 
-
+-- AppM PcapFrame
+listMptcpConnections :: PcapFrame -> IO ()
+listMptcpConnections frame = do
+    putStrLn "New frame"
 -- optparse
 -- should pass the full line -> retreive the available completions
 

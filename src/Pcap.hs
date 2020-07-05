@@ -5,6 +5,9 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE FlexibleInstances                      #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds, FlexibleContexts, QuasiQuotes, TemplateHaskell #-}
 module Pcap
 where
 
@@ -15,6 +18,8 @@ import Data.Vinyl
 import Control.Lens hiding (Identity)
 import Control.Lens.TH
 import Data.Singletons.TH
+import Frames.TH
+import Frames
 
 -- Inspired by http://hackage.haskell.org/package/vinyl-0.12.3/docs/Data-Vinyl-Tutorial-Overview.html
 -- | DataType
@@ -40,6 +45,20 @@ instance Show (Attr Fullname) where show (Attr x) = "age: " ++ show x
 instance Show (Attr PlotLabel) where show (Attr x) = "label: " ++ show x
 instance Show (Attr Hash) where show (Attr x) = "hash: " ++ show x
 -- instance Show (Attr Master) where show (Attr x) = "master: " ++ show x
+
+
+-- TODO we should create a RowGen
+
+-- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
+tableTypes "Packet" "data/server_2_filtered.pcapng.csv"
+type PcapFrame = Frame Packet
+
+
+-- tableTypes' (rowGen "data/server_2_filtered.pcapng.csv")
+--             { rowTypeName = "NoH"
+--             , columnNames = [ "Job", "Schooling", "Money", "Females"
+--                             , "Respect", "Census", "Category" ]
+--             , tablePrefix = "NoHead"}
 
 -- TODO DateField / List
 -- use higher kinded fields ?
@@ -160,13 +179,6 @@ defaultTsharkPrefs = TsharkParams {
 --             "TCP timestamp tsecr" True
 --     ]
 
-loadPcap :: TsharkParams -> Filepath -> AppM PcapFrame
-loadPcap path = 
-
-    getCache
-
-    where
-      cacheId = CacheId [path] "" ""
 
 -- loadCsv :: Filepath ->
 
