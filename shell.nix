@@ -9,9 +9,6 @@
 let
   compiler = pkgs.haskell.packages."${compilerName}";
   pkgs = nixpkgs.pkgs;
-  # https://github.com/hercules-ci/ghcide-nix
-  #  (import (builtins.fetchTarball "https://github.com/hercules-ci/ghcide-nix/tarball/master") {}).ghcide-ghc865
-  # ghcide-nix = import (builtins.fetchTarball "https://github.com/cachix/ghcide-nix/tarball/master") {};
 
   my_pkg = (import ./. { inherit compiler; } );
 in
@@ -44,7 +41,5 @@ in
   shellHook = ''
     # check if it's still needed ?
     export HIE_HOOGLE_DATABASE="$NIX_GHC_LIBDIR/../../share/doc/hoogle/index.html"
-    # export runghc=" "
-    # source ./run_daemon
   '';
   })

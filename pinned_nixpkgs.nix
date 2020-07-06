@@ -4,10 +4,10 @@ let
         packageOverrides = hnew: hold: with prev.haskell.lib;{
 
           ip = dontCheck hold.ip;
+          bytebuild = dontCheck hold.bytebuild;
 
           # can be released on more recent nixplks
           # wide-word = doJailbreak (hold.wide-word);
-          # quickcheck-classes = hold.quickcheck-classes_0_6_4_0;
 
           # for newer nixpkgs (March 2020)
           # base-compat = doJailbreak (hold.base-compat);
