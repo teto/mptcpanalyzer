@@ -21,7 +21,7 @@ import Options.Applicative
 import Options.Applicative.Types
 import Control.Monad.Trans (liftIO, MonadIO)
 import Control.Monad.Trans.State (State, StateT, put, get,
-        execStateT)
+        execStateT, runState)
 
 import           Control.Monad.Reader               (runReaderT)
 
@@ -319,16 +319,15 @@ main = do
   }
   putStrLn $ "Result " ++ show res
   -- check if file in cache else call tshark
-  -- runState
-  -- unAppT myState 
-  runState
-  frame <- loadPcap defaultTsharkPrefs "data/test.csv"
-  >>= listMptcpConnections
+  runState (loadPcap defaultTsharkPrefs "data/test.csv") myState
+    -- listMptcpConnections frame
+  putStrLn "finished"
 
 -- AppM PcapFrame
-listMptcpConnections :: PcapFrame -> IO ()
+listMptcpConnections :: PcapFrame -> AppM ()
 listMptcpConnections frame = do
-    putStrLn "New frame"
+    return ()
+    -- putStrLn "New frame"
 -- optparse
 -- should pass the full line -> retreive the available completions
 
