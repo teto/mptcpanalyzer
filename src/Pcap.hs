@@ -8,7 +8,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DataKinds, FlexibleContexts, QuasiQuotes, TemplateHaskell #-}
-module Pcap
+module Pcap(PcapFrame, TsharkParams(..),
+    defaultTsharkPrefs,
+    defaultTsharkOptions
+    )
 where
 
 

@@ -6,6 +6,10 @@ where
 import Pcap
 import Data.List (intercalate)
 import System.FilePath.Posix (takeBaseName)
+import Control.Monad.Reader (MonadReader)
+import Control.Monad.Trans.State (State, StateT, put, get, evalState,
+        execStateT, runState, evalStateT, runStateT, withStateT)
+import Control.Monad.Trans.Class (lift)
 
 data CacheId = CacheId {
   cacheDeps :: [FilePath]
@@ -13,6 +17,9 @@ data CacheId = CacheId {
   , cacheSuffix :: String
 }
 
+-- data Cache = Cache {
+
+-- }
 -- |Generate a cache id
 -- deps -> dependencies
 -- genCacheId :: [FilePath] -> CacheId
@@ -30,9 +37,18 @@ getFilenameFromCacheId id =
         hash = "hash"
 
 
-class Cache m where
+class Monad m => Cache m where
     putCache :: CacheId -> PcapFrame -> m Bool
-    getCache :: CacheId -> Either String PcapFrame
+    getCache :: CacheId -> m (Either String PcapFrame)
     isValid :: CacheId -> m Bool
 
+instance Cache m => Cache (StateT s m) where
+    putCache cid frame = do
+        s <- get
+        evalStateT (putCache cid frame) s
+    getCache cid = do
+        s <- get
+        evalStateT (getCache cid) s
+
+    isValid = lift . isValid
 

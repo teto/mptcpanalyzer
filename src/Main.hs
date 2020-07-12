@@ -9,6 +9,8 @@ TemplateHaskell for Katip :(
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Main where
 
@@ -84,6 +86,7 @@ import System.Console.Repline
 import Katip
 import Pcap
 import Cache
+-- (Cache,putCache,getCache, isValid, CacheId)
 import Commands.Load
 import           System.Environment.Blank   (getEnvDefault)
 -- import Directory
@@ -105,21 +108,34 @@ data MyState = MyState {
 
 }
 
-data AppM a = AppM {
-        unAppT :: State MyState a
-    }
+newtype AppM a = AppM {
+        unAppT :: StateT MyState IO a
+    } deriving (Monad, Applicative, Functor)
 
-instance Cache AppM where
-  putCache id frame = return False
-  getCache id = Left "not implemented"
-  -- check
-  isValid = cacheCheckValidity
+-- (MonadState MyState m, MonadIO m) =>
+-- instance (Cache AppM) where
+--   putCache id frame = return False
+--   getCache id = Left "not implemented"
+--   -- check
+--   isValid = cacheCheckValidity
 
 
 cacheCheckValidity :: CacheId -> AppM Bool
 cacheCheckValidity id = return False
 
 
+
+instance Cache IO where
+    getCache = doGetCache
+    putCache = doPutCache
+    isValid = isCacheValid
+
+doGetCache :: CacheId -> IO (Either String PcapFrame)
+doGetCache cid = return $ Left "not implemented yet"
+
+doPutCache = undefined
+
+isCacheValid  _ = return $ False
 
 data CLIArguments = CLIArguments {
 
@@ -288,11 +304,11 @@ cmdLoadPcap args = do
   return ()
 
 -- (MonadState m) => 
-loadPcap :: TsharkParams -> FilePath -> AppM PcapFrame
+loadPcap :: (Cache m) => TsharkParams -> FilePath -> m PcapFrame
 loadPcap params path = do
-    case getCache cacheId of
-        Right frame -> return frame
-        Left err -> error "could not "
+    getCache cacheId >>= \x -> case x of
+      Right frame -> return frame
+      Left err -> error "could not load from cache"
 
     where
       cacheId = CacheId [path] "" ""

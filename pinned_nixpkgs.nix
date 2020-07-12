@@ -15,9 +15,9 @@ let
           mptcp-pm = (overrideSrc hold.mptcp-pm {
             src = prev.fetchFromGitHub {
               owner = "teto";
-              repo = "netlink-hs";
-              rev = "090a48ebdbc35171529c7db1bd420d227c19b76d";
-              sha256 = "sha256-qopa1ED4Bqk185b1AXZ32BG2s80SHDSkCODyoZfnft0=";
+              repo = "mptcp-pm";
+              rev = "279a953421a40fb8834272344fb0adf3d5ba03f3";
+              sha256 = "sha256-qopa1ED4Bqk185b1AXZ32BG2s80SHDSkCODyoZfnft2=";
             };
           });
           netlink = (overrideSrc hold.netlink {
