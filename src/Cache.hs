@@ -10,6 +10,7 @@ import Control.Monad.Reader (MonadReader)
 import Control.Monad.Trans.State (State, StateT, put, get, evalState,
         execStateT, runState, evalStateT, runStateT, withStateT)
 import Control.Monad.Trans.Class (lift)
+import Katip
 
 data CacheId = CacheId {
   cacheDeps :: [FilePath]
@@ -42,6 +43,10 @@ class Monad m => Cache m where
     getCache :: CacheId -> m (Either String PcapFrame)
     isValid :: CacheId -> m Bool
 
+-- instance MonadTrans (Cache m) where
+--   -- lift :: Monad m => m a -> EitherT e m a
+--   lift action = EitherT $ fmap Right $ action
+
 instance Cache m => Cache (StateT s m) where
     putCache cid frame = do
         s <- get
@@ -52,3 +57,8 @@ instance Cache m => Cache (StateT s m) where
 
     isValid = lift . isValid
 
+-- https://lexi-lambda.github.io/blog/2019/09/07/demystifying-monadbasecontrol/
+-- instance Cache m => Cache (KatipContextT m) where
+--     putCache = lift putCache
+--     getCache cid = undefined
+--     isValid = return False

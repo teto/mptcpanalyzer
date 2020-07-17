@@ -25,6 +25,7 @@ in
 
       haskellPackages.cabal-install
       haskellPackages.hasktags
+      haskellPackages.hlint
       # haskellPackages.nvim-hs-ghcid # too old, won't support nvim-hs-contrib 2
 
       # haskellPackages.gutenhasktags  # taken from my overlay

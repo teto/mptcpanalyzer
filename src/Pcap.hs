@@ -9,8 +9,9 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DataKinds, FlexibleContexts, QuasiQuotes, TemplateHaskell #-}
 module Pcap(PcapFrame, TsharkParams(..),
-    defaultTsharkPrefs,
-    defaultTsharkOptions
+    defaultTsharkPrefs
+    , defaultTsharkOptions
+    , generateCsvCommand
     )
 where
 

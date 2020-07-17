@@ -44,10 +44,12 @@ common shared-properties
        , aeson
        , aeson-pretty
        , aeson-extra
+       , monad-control
        -- to help with merging json content
        , unordered-containers
        -- to create temp folder/files
        , temporary
+       , transformers-base
        , singletons
        , filepath
        , repline

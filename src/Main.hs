@@ -11,6 +11,12 @@ TemplateHaskell for Katip :(
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Main where
 
@@ -23,7 +29,7 @@ import Options.Applicative
 import Options.Applicative.Types
 import Control.Monad.Trans (liftIO, MonadIO)
 import Control.Monad.Trans.State (State, StateT, put, get,
-        execStateT, runState)
+        execStateT, runState, runStateT, withState, withStateT)
 
 import           Control.Monad.Reader               (runReaderT)
 
@@ -32,6 +38,10 @@ import           Control.Monad.Reader               (runReaderT)
 -- defines State
 -- for noCompletion
 import System.Console.Haskeline.Completion
+import           Control.Exception
+import           Control.Monad.Base
+import           Control.Monad.Reader
+import           Control.Monad.Trans.Control
 
 import Text.Read (readMaybe)
 -- pack
@@ -101,16 +111,21 @@ data MyState = MyState {
   cacheFolder :: FilePath
 
   , msKNamespace :: Namespace    -- ^Katip namespace
-  , stateLogEnv :: LogEnv     -- ^ Katip log env
+  , msLogEnv :: LogEnv     -- ^ Katip log env
   , msKContext   :: LogContexts
 
   -- , loadedFile   :: Maybe  -- ^should be 
 
 }
 
-newtype AppM a = AppM {
-        unAppT :: StateT MyState IO a
-    } deriving (Monad, Applicative, Functor)
+newtype MyStack m a = MyStack {
+    unAppT :: StateT MyState m a
+} deriving (Monad, Applicative, Functor
+    , MonadIO
+    -- , Katip, KatipContext
+    , Cache
+    -- , MonadReader MyState m
+    )
 
 -- (MonadState MyState m, MonadIO m) =>
 -- instance (Cache AppM) where
@@ -118,9 +133,43 @@ newtype AppM a = AppM {
 --   getCache id = Left "not implemented"
 --   -- check
 --   isValid = cacheCheckValidity
+-- MonadBase, MonadTransControl, and MonadBaseControl aren't strictly
+-- needed for this example, but they are commonly required and
+-- MonadTransControl/MonadBaseControl are a pain to implement, so I've
+-- included them. Note that KatipT and KatipContextT already do this work for you.
+-- instance MonadBase b m => MonadBase b (MyStack m) where
+--   liftBase = liftBaseDefault
 
 
-cacheCheckValidity :: CacheId -> AppM Bool
+-- instance MonadTransControl MyStack where
+--   -- type StT MyStack a = StT (StateT Int) a
+--   type StT MyStack a = StT (ReaderT Int) a
+
+--   liftWith = defaultLiftWith MyStack unStack
+--   restoreT = defaultRestoreT MyStack
+
+
+-- instance MonadBaseControl b m => MonadBaseControl b (MyStack m) where
+--   type StM (MyStack m) a = ComposeSt MyStack m a
+--   liftBaseWith = defaultLiftBaseWith
+--   restoreM = defaultRestoreM
+
+
+instance (MonadIO m, MonadReader MyState (MyStack m)) => Katip (MyStack m) where
+  getLogEnv = asks msLogEnv
+  -- (LogEnv -> LogEnv) -> m a -> m a 
+  localLogEnv f (MyStack m) = MyStack (withStateT (\s -> s { msLogEnv = f (msLogEnv s)}) m)
+  -- localLogEnv f (MyStack m) = MyStack (local (\s -> s { msLogEnv = f (msLogEnv s)}) m)
+
+instance (MonadReader MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
+  getKatipContext = asks msKContext
+  localKatipContext f (MyStack m) = MyStack (withStateT (\s -> s { msKContext = f (msKContext s)}) m)
+  -- local (\s -> s { msKContext = f (msKContext s)}) m)
+  getKatipNamespace = asks msKNamespace
+  localKatipNamespace f (MyStack m) = MyStack (withStateT (\s -> s { msKNamespace = f (msKNamespace s)}) m)
+
+
+cacheCheckValidity :: CacheId -> MyStack IO Bool
 cacheCheckValidity id = return False
 
 
@@ -304,14 +353,32 @@ cmdLoadPcap args = do
   return ()
 
 -- (MonadState m) => 
-loadPcap :: (Cache m) => TsharkParams -> FilePath -> m PcapFrame
+loadPcap :: (Cache m, MonadIO m, KatipContext m) => TsharkParams -> FilePath -> m PcapFrame
 loadPcap params path = do
+    $(logTM) DebugS $ logStr ("Start loading pcap " ++ path)
     getCache cacheId >>= \x -> case x of
-      Right frame -> return frame
-      Left err -> error "could not load from cache"
+      Right frame -> do
+          $(logTM) DebugS $ "Frame in cache"
+          return frame
+      Left err -> do
+          $(logTM) DebugS $ "Calling tshark"
+          -- listes
+          -- cmdSpec :: CmdSpec
+          let 
+              (RawCommand bin args) = generateCsvCommand fields path params
+          -- forkOS
+          -- shell 
+          liftIO $ callProcess bin args
+
+          -- createProcess 
+
+          error "could not load from cache"
 
     where
       cacheId = CacheId [path] "" ""
+      fields = [
+        "tcp.stream"
+        ]
 
 main :: IO ()
 -- main = mainRepline
@@ -330,17 +397,21 @@ main = do
   let myState = MyState {
     cacheFolder = cacheFolder,
     msKNamespace = "NameSpace",
-    stateLogEnv = katipEnv,
+    msLogEnv = katipEnv,
     msKContext = mempty
   }
+  -- let myStack = 
   putStrLn $ "Result " ++ show res
   -- check if file in cache else call tshark
-  runState (loadPcap defaultTsharkPrefs "data/test.csv") myState
-    -- listMptcpConnections frame
-  putStrLn "finished"
+  -- unAppT myState $ do
+  -- runKatipContextT mkLogEnv () "main" $ do
+  flip runStateT (myState) $ do
+    unAppT (loadPcap defaultTsharkPrefs "data/test.csv")
+      -- listMptcpConnections frame
+  putStrLn "Thanks for flying with mptcpanalyzer"
 
 -- AppM PcapFrame
-listMptcpConnections :: PcapFrame -> AppM ()
+listMptcpConnections :: PcapFrame -> MyStack IO ()
 listMptcpConnections frame = do
     return ()
     -- putStrLn "New frame"
