@@ -21,6 +21,7 @@ TemplateHaskell for Katip :(
 module Main where
 
 import System.Directory
+-- stderr
 import System.IO (stdout)
 import Prelude hiding (concat, init)
 import Options.Applicative
@@ -28,77 +29,30 @@ import Options.Applicative
 -- import qualified Options.Applicative (value)
 import Options.Applicative.Types
 import Control.Monad.Trans (liftIO, MonadIO)
-import Control.Monad.Trans.State (State, StateT, put, get,
+import Control.Monad.Trans.State (State, put,
         execStateT, runState, runStateT, withState, withStateT)
-
-import           Control.Monad.Reader               (runReaderT)
+import Control.Monad.State (MonadState, get, StateT)
 
 -- defines MonadState
 -- import Control.Monad.State.Class
 -- defines State
 -- for noCompletion
 import System.Console.Haskeline.Completion
-import           Control.Exception
-import           Control.Monad.Base
-import           Control.Monad.Reader
-import           Control.Monad.Trans.Control
-
-import Text.Read (readMaybe)
--- pack
-import Data.Text ()
 import Data.List (isPrefixOf)
-
-import Control.Monad (foldM)
-import Data.Maybe (catMaybes)
-import Foreign.C.Types (CInt)
--- for eOK, ePERM
-import Foreign.C.Error
-import System.Linux.Netlink.GeNetlink.Control
-import qualified System.Linux.Netlink.Simple as NLS
-import qualified System.Linux.Netlink.Route as NLR
-
 import System.Process
-import System.Exit
-import Data.Word (Word32)
--- import qualified Data.Bits as Bits -- (shiftL, )
--- import Data.Bits ((.|.))
-import Data.Serialize.Get (runGet)
-import Data.Serialize.Put
--- import Data.Either (fromRight)
-import Data.ByteString (ByteString)
-import Data.ByteString.Lazy (writeFile, readFile)
+-- import System.Exit
+-- import Data.Word (Word32)
+-- import Debug.Trace
 
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-
-import qualified Data.Text
-import Data.Bits (Bits(..))
-
-import Debug.Trace
-
-import Control.Concurrent
-import System.IO.Unsafe
-import System.IO.Temp ()
-import System.FilePath ()
-import Numeric.Natural
-import System.IO (stderr)
-import qualified Data.Aeson as JSON
--- import Data.Aeson.Encode.Pretty (encodePretty)
-
--- for getEnvDefault, to get TMPDIR value.
--- we could pass it as an argument
--- import System.Environment.Blank(getEnvDefault)
-
--- STM = State Thread Monad ST monad
-import qualified Data.HashMap.Strict as HM
 -- import System.Console.Haskeline
 import System.Console.Repline
 import Katip
 import Pcap
 import Cache
 -- (Cache,putCache,getCache, isValid, CacheId)
-import Commands.Load
-import           System.Environment.Blank   (getEnvDefault)
+import Commands.Load ()
+import System.Environment.Blank   (getEnvDefault)
+import Distribution.Simple.Utils (withTempFile)
 -- import Directory
 
 -- |Helper to pass information across functions
@@ -108,7 +62,7 @@ data MyState = MyState {
   -- , connections :: Map.Map MptcpToken (ThreadId, MVar MptcpConnection)
   -- -- |Arguments passed to the program
   -- , cliArguments :: CLIArguments
-  cacheFolder :: FilePath
+  _cacheFolder :: FilePath
 
   , msKNamespace :: Namespace    -- ^Katip namespace
   , msLogEnv :: LogEnv     -- ^ Katip log env
@@ -125,6 +79,7 @@ newtype MyStack m a = MyStack {
     -- , Katip, KatipContext
     , Cache
     -- , MonadReader MyState m
+    , MonadState MyState
     )
 
 -- (MonadState MyState m, MonadIO m) =>
@@ -155,17 +110,21 @@ newtype MyStack m a = MyStack {
 --   restoreM = defaultRestoreM
 
 
-instance (MonadIO m, MonadReader MyState (MyStack m)) => Katip (MyStack m) where
-  getLogEnv = asks msLogEnv
+instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
+  getLogEnv = do
+      s <- get
+      return $ msLogEnv s
   -- (LogEnv -> LogEnv) -> m a -> m a 
   localLogEnv f (MyStack m) = MyStack (withStateT (\s -> s { msLogEnv = f (msLogEnv s)}) m)
   -- localLogEnv f (MyStack m) = MyStack (local (\s -> s { msLogEnv = f (msLogEnv s)}) m)
 
-instance (MonadReader MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
-  getKatipContext = asks msKContext
+instance (MonadState MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
+  getKatipContext = do
+      s <- get
+      return $ msKContext s
   localKatipContext f (MyStack m) = MyStack (withStateT (\s -> s { msKContext = f (msKContext s)}) m)
   -- local (\s -> s { msKContext = f (msKContext s)}) m)
-  getKatipNamespace = asks msKNamespace
+  getKatipNamespace = get >>= \x -> return $ msKNamespace x
   localKatipNamespace f (MyStack m) = MyStack (withStateT (\s -> s { msKNamespace = f (msKNamespace s)}) m)
 
 
@@ -182,8 +141,10 @@ instance Cache IO where
 doGetCache :: CacheId -> IO (Either String PcapFrame)
 doGetCache cid = return $ Left "not implemented yet"
 
+doPutCache :: CacheId -> FilePath -> IO Bool
 doPutCache = undefined
 
+isCacheValid :: CacheId -> IO Bool
 isCacheValid  _ = return $ False
 
 data CLIArguments = CLIArguments {
@@ -192,7 +153,7 @@ data CLIArguments = CLIArguments {
   -- per path basis
   -- The program will be called with a json file as input and must echo on stdout
   -- an array of the form [ 10, 30, 40]
-  input :: Maybe FilePath
+  _input :: Maybe FilePath
 
   -- | to filter
   , version    :: Bool
@@ -352,33 +313,45 @@ cmdLoadPcap :: [String] -> Repl ()
 cmdLoadPcap args = do
   return ()
 
--- (MonadState m) => 
+-- TODO return an Either or Maybe ?
 loadPcap :: (Cache m, MonadIO m, KatipContext m) => TsharkParams -> FilePath -> m PcapFrame
 loadPcap params path = do
-    $(logTM) DebugS $ logStr ("Start loading pcap " ++ path)
-    getCache cacheId >>= \x -> case x of
+    $(logTM) DebugS $ logStr ("Start loading pcap " ++ show path)
+    x <- liftIO $ getCache cacheId
+    case x of
       Right frame -> do
           $(logTM) DebugS $ "Frame in cache"
           return frame
       Left err -> do
+          liftIO $ putStrLn $ "error: " ++ show err
           $(logTM) DebugS $ "Calling tshark"
-          -- listes
-          -- cmdSpec :: CmdSpec
-          let 
-              (RawCommand bin args) = generateCsvCommand fields path params
-          -- forkOS
-          -- shell 
-          liftIO $ callProcess bin args
+          -- TODO need to create a temporary file
+          (exitCode, stdOut, stdErr) <- liftIO $ withTempFile "/tmp" "mptcp.csv" (exportToCsv params path)
+          undefined
+          -- loadRows 
+          -- return frame
+          -- and then the handle can be used via "export_to_csv"
+          -- mkstemp
+          -- withCreateProcess createProc
+          -- if exitCode == 0 then
+          --   putCache cacheId
+          -- else
 
-          -- createProcess 
-
-          error "could not load from cache"
+            -- createProcess 
+            error "could not load from cache"
 
     where
       cacheId = CacheId [path] "" ""
       fields = [
         "tcp.stream"
         ]
+
+runApp :: MyStack IO ()
+runApp = do
+    frame <- (loadPcap defaultTsharkPrefs "data/test.csv")
+    liftIO $ putStrLn "hello"
+
+   -- liftIO $ (putStrLn $ "Result " ++ show res) >> 
 
 main :: IO ()
 -- main = mainRepline
@@ -388,14 +361,14 @@ main = do
   cacheFolder <- getXdgDirectory XdgCache "mptcpanalyzer"
   -- Create cache if doesn't exist
   doesDirectoryExist cacheFolder >>= \x -> case x of
-      True -> return ()
+      True -> putStrLn ("cache folder already exists" ++ show cacheFolder)
       False -> createDirectory cacheFolder
 
   handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem DebugS) V2
   katipEnv <- initLogEnv "result-store" "devel"
   mkLogEnv <- registerScribe "stdout" handleScribe defaultScribeSettings katipEnv
   let myState = MyState {
-    cacheFolder = cacheFolder,
+    _cacheFolder = cacheFolder,
     msKNamespace = "NameSpace",
     msLogEnv = katipEnv,
     msKContext = mempty
@@ -405,9 +378,12 @@ main = do
   -- check if file in cache else call tshark
   -- unAppT myState $ do
   -- runKatipContextT mkLogEnv () "main" $ do
-  flip runStateT (myState) $ do
+  flip runStateT myState $ do
     unAppT (loadPcap defaultTsharkPrefs "data/test.csv")
       -- listMptcpConnections frame
+  -- flip withStateT myState $ do
+    -- (loadPcap defaultTsharkPrefs "data/test.csv")
+  putStrLn "show frame"
   putStrLn "Thanks for flying with mptcpanalyzer"
 
 -- AppM PcapFrame

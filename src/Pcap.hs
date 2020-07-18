@@ -12,15 +12,17 @@ module Pcap(PcapFrame, TsharkParams(..),
     defaultTsharkPrefs
     , defaultTsharkOptions
     , generateCsvCommand
+    , exportToCsv
     )
 where
 
 
+import System.IO (Handle)
 import System.Process
 import System.Exit
-import Data.Vinyl
+import Data.Vinyl ()
 import Control.Lens hiding (Identity)
-import Control.Lens.TH
+-- import Control.Lens.TH
 import Data.Singletons.TH
 import Frames.TH
 import Frames
@@ -44,10 +46,10 @@ makeLenses ''Attr
 -- TODO retablir les singletons  certainement
 genSingletons [ ''Fields ]
 
-instance Show (Attr Name) where show (Attr x) = "name: " ++ show x
-instance Show (Attr Fullname) where show (Attr x) = "age: " ++ show x
-instance Show (Attr PlotLabel) where show (Attr x) = "label: " ++ show x
-instance Show (Attr Hash) where show (Attr x) = "hash: " ++ show x
+instance Show (Attr 'Name) where show (Attr x) = "name: " ++ show x
+instance Show (Attr 'Fullname) where show (Attr x) = "age: " ++ show x
+instance Show (Attr 'PlotLabel) where show (Attr x) = "label: " ++ show x
+instance Show (Attr 'Hash) where show (Attr x) = "hash: " ++ show x
 -- instance Show (Attr Master) where show (Attr x) = "master: " ++ show x
 
 
@@ -117,6 +119,38 @@ generateCsvCommand fieldNames pcapFilename tsharkParams =
             foldr (\fname l -> l ++ ["-e", fname]) [] fieldNames
             )
 
+-- TODO pass a list of options too
+exportToCsv :: TsharkParams ->
+                FilePath  -- ^Path to the pcap
+                -> FilePath -> Handle -- ^ temporary file
+              -- ^See haskell:readCreateProcessWithExitCode
+                -> IO (ExitCode, String, String)
+exportToCsv params pcapPath path fd = do
+    -- custom_env['WIRESHARK_CONFIG_DIR'] = tempfile.gettempdir()
+    --
+    let
+        (RawCommand bin args) = generateCsvCommand fields pcapPath params
+        createProc :: CreateProcess
+        createProc = proc bin args
+      -- (exitCode, stdOut, stdErr) <-
+    readCreateProcessWithExitCode createProc ""
+    -- liftIO $ callProcess bin args
+    -- if exitCode == 0 then
+    --   putCache cacheId
+    -- else
+    where
+      fields = [
+        "tcp.stream"
+        ]
+
+-- custom data
+data PcapCustom = PcapCustom {
+
+}
+-- "data/server_2_filtered.pcapng.csv"
+loadRows :: FilePath -> IO (PcapFrame)
+loadRows path = inCoreAoS (readTable path)
+
 
 -- derive from Order ?
 -- define as a set ?
@@ -140,6 +174,7 @@ defaultTsharkOptions = [
 --     , analyzeMptcp :: Bool
 --   } deriving Show
 
+defaultTsharkPrefs :: TsharkParams
 defaultTsharkPrefs = TsharkParams {
       tsharkBinary = "tshark",
       tsharkOptions = defaultTsharkOptions,

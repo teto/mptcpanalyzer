@@ -6,11 +6,11 @@ where
 import Pcap
 import Data.List (intercalate)
 import System.FilePath.Posix (takeBaseName)
-import Control.Monad.Reader (MonadReader)
-import Control.Monad.Trans.State (State, StateT, put, get, evalState,
-        execStateT, runState, evalStateT, runStateT, withStateT)
+import Control.Monad.Trans.State 
+-- (StateT , put, get, evalState, evalStateT,
+    -- , execStateT, runState runStateT, withStateT
+    -- )
 import Control.Monad.Trans.Class (lift)
-import Katip
 
 data CacheId = CacheId {
   cacheDeps :: [FilePath]
@@ -18,28 +18,20 @@ data CacheId = CacheId {
   , cacheSuffix :: String
 }
 
--- data Cache = Cache {
-
--- }
--- |Generate a cache id
--- deps -> dependencies
--- genCacheId :: [FilePath] -> CacheId
--- genCacheId deps = 
-
-
 
 getFilenameFromCacheId :: CacheId -> FilePath
-getFilenameFromCacheId id =
-    cachePrefix id ++ intercalate "_" basenames ++ hash ++ cacheSuffix id
+getFilenameFromCacheId cid =
+    cachePrefix cid ++ intercalate "_" basenames ++ hash ++ cacheSuffix cid
     where
         -- takeBaseName
-        basenames = (map takeBaseName $ cacheDeps id)
+        basenames = (map takeBaseName $ cacheDeps cid)
         -- TODO
         hash = "hash"
 
 
 class Monad m => Cache m where
-    putCache :: CacheId -> PcapFrame -> m Bool
+    -- should maybe be a filepath
+    putCache :: CacheId -> FilePath -> m Bool
     getCache :: CacheId -> m (Either String PcapFrame)
     isValid :: CacheId -> m Bool
 
