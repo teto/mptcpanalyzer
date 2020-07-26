@@ -34,17 +34,21 @@ common shared-properties
       , bytestring, process, cereal, ip,
        netlink >= 1.1.1.0, bytestring-conversion
        , transformers
+       , ghc-prim
+       , foldl
        , text
        , mtl
        -- , hslogger
        -- microlens taken from Frames
-       -- , microlens
-       , lens
+       , microlens
+       , mptcp-pm
+       -- , lens
        -- for merge
        , aeson
        , aeson-pretty
        , aeson-extra
        , monad-control
+       , pipes
        -- to help with merging json content
        , unordered-containers
        -- to create temp folder/files
@@ -54,6 +58,7 @@ common shared-properties
        , filepath
        , repline
        , Frames
+       , Cabal
        , directory
        , vinyl
        -- , bitset  -- bitset, interesting but broken
@@ -89,7 +94,7 @@ Test-Suite test
 --   -- import: shared-properties
 --   Build-tools:       hsc2hs, c2hs
 --   Includes:          tcp_states.h, linux/sock_diag.h, linux/inet_diag.h
-  Other-modules:     Pcap
+  Other-modules:     Pcap, Types
 --                     Net.SockDiag.Constants, Net.Tcp.Constants
 --   autogen-modules: Net.Mptcp.Constants, Net.SockDiag.Constants
 --   include-dirs:      headers
