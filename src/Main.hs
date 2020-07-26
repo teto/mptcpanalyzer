@@ -10,6 +10,7 @@ TemplateHaskell for Katip :(
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
@@ -29,10 +30,14 @@ import Options.Applicative
 -- import qualified Options.Applicative (value)
 -- import Options.Applicative.Types
 import Control.Monad.Trans (liftIO, MonadIO)
+-- .Strict
 import Control.Monad.Trans.State (State, put,
-        execStateT, runStateT, evalStateT, withStateT
+      StateT(..),
+      execStateT, runStateT, evalStateT, withStateT
         )
-import Control.Monad.State (MonadState, get, StateT)
+import Control.Monad.State (MonadState, get
+    -- , StateT
+    )
 
 -- defines MonadState
 -- import Control.Monad.State.Class
@@ -46,12 +51,14 @@ import Data.Singletons.TH
 import Data.Word
 import Frames.TH
 -- import Control.Lens hiding (Identity, argument)
-
 -- import Data.Word (Word32)
 -- import Debug.Trace
 
--- import System.Console.Haskeline
-import System.Console.Repline
+import System.Console.Haskeline
+import System.Console.Haskeline.MonadException
+-- Repline is a wrapper (suppposedly more advanced) around haskeline
+-- for now we focus on the simple usecase with repline
+-- import System.Console.Repline
 import Katip
 import Pcap
 import Cache
@@ -79,7 +86,7 @@ data MyState = MyState {
   , msLogEnv :: LogEnv     -- ^ Katip log env
   , msKContext   :: LogContexts
 
-  -- , loadedFile   :: Maybe  -- ^should be 
+  , loadedFile   :: Maybe PcapFrame  -- ^ cached loaded pcap
 
 }
 
@@ -91,6 +98,7 @@ newtype MyStack m a = MyStack {
     , Cache
     -- , MonadReader MyState m
     , MonadState MyState
+    -- , MonadException
     )
 
 -- (MonadState MyState m, MonadIO m) =>
@@ -125,9 +133,8 @@ instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
   getLogEnv = do
       s <- get
       return $ msLogEnv s
-  -- (LogEnv -> LogEnv) -> m a -> m a 
+  -- (LogEnv -> LogEnv) -> m a -> m a
   localLogEnv f (MyStack m) = MyStack (withStateT (\s -> s { msLogEnv = f (msLogEnv s)}) m)
-  -- localLogEnv f (MyStack m) = MyStack (local (\s -> s { msLogEnv = f (msLogEnv s)}) m)
 
 instance (MonadState MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
   getKatipContext = do
@@ -275,54 +282,54 @@ opts = info (sample <**> helper)
 --   | AltP (Parser a) (Parser a)
 --   | forall x . BindP (Parser x) (x -> Parser a)
 
-type Repl a = HaskelineT IO a
+-- TODO change
+-- type Repl a = HaskelineT IO a
 
-ini :: Repl ()
-ini = liftIO $ putStrLn "Welcome!"
+-- ini :: Repl ()
+-- ini = liftIO $ putStrLn "Welcome!"
 
--- Commands
-mainHelp :: [String] -> Repl ()
-mainHelp args = liftIO $ print $ "Help: " ++ show args
+-- -- Commands
+-- mainHelp :: [String] -> Repl ()
+-- mainHelp args = liftIO $ print $ "Help: " ++ show args
 
-say :: [String] -> Repl ()
-say args = do
-  _ <- liftIO $ system $ "cowsay" ++ " " ++ (unwords args)
-  return ()
+-- say :: [String] -> Repl ()
+-- say args = do
+--   _ <- liftIO $ system $ "cowsay" ++ " " ++ (unwords args)
+--   return ()
 
-options :: [(String, [String] -> Repl ())]
-options = [
-    ("help", mainHelp)  -- :help
-  , ("say", say)    -- :say
-  , ("load", cmdLoadPcap)    -- :say
-  ]
+-- options :: [(String, [String] -> Repl ())]
+-- options = [
+--     ("help", mainHelp)  -- :help
+--   , ("say", say)    -- :say
+--   , ("load", cmdLoadPcap)    -- :say
+--   ]
 -- repl :: IO ()
 -- repl = evalRepl (pure ">>> ") cmd options Nothing (Word completer) ini
 -- Evaluation : handle each line user inputs
 
-cmd :: String -> Repl ()
-cmd input = liftIO $ print input
+-- cmd :: String -> Repl ()
+-- cmd input = liftIO $ print input
 
--- Tab Completion: return a completion for partial words entered
-completer :: Monad m => WordCompleter m
-completer n = do
-  let names = ["load", "listConnections", "listMptcpConnections"]
-  return $ filter (isPrefixOf n) names
+-- -- Tab Completion: return a completion for partial words entered
+-- completer :: Monad m => WordCompleter m
+-- completer n = do
+--   let names = ["load", "listConnections", "listMptcpConnections"]
+--   return $ filter (isPrefixOf n) names
 
 -- data CompleterStyle m , I can use a Custom one
-mainRepline :: IO ()
-mainRepline = evalRepl (pure ">>> ") cmd Main.options Nothing (Word Main.completer) ini
+-- mainRepline :: IO ()
+-- mainRepline = evalRepl (pure ">>> ") cmd Main.options Nothing (Word Main.completer) ini
+
 
 
 -- cmdLoadPcap :: [String] -> Repl ()
 -- cmdLoadPcap args = do
+--   return ()
 
-
-
--- data AppM m = StateT MyState m
-
-cmdLoadPcap :: [String] -> Repl ()
-cmdLoadPcap args = do
-  return ()
+loadCsv :: (Cache m, MonadIO m, KatipContext m) => FilePath -> m PcapFrame
+loadCsv csvFile = do
+    frame <- liftIO $ loadRows csvFile
+    return frame
 
 -- TODO return an Either or Maybe ?
 loadPcap :: (Cache m, MonadIO m, KatipContext m) => TsharkParams -> FilePath -> m (Maybe PcapFrame)
@@ -379,18 +386,13 @@ loadPcap params path = do
 defaultPcap :: FilePath
 defaultPcap = "examples/client_2_filtered.pcapng"
 
-runApp :: MyStack IO ()
-runApp = do
-    -- data/test.csv
-    frame <- (loadPcap defaultTsharkPrefs "")
-    liftIO $ putStrLn "hello"
-
-   -- liftIO $ (putStrLn $ "Result " ++ show res) >> 
+instance MonadException m => MonadException (StateT s m) where
+    controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
+                    run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
+                    in fmap (flip runStateT s) $ f run'
 
 main :: IO ()
--- main = mainRepline
 main = do
-  let res = mainTest
 
   cacheFolder <- getXdgDirectory XdgCache "mptcpanalyzer"
   -- Create cache if doesn't exist
@@ -405,25 +407,55 @@ main = do
     _cacheFolder = cacheFolder,
     msKNamespace = "devel",
     msLogEnv = mkLogEnv,
-    msKContext = mempty
+    msKContext = mempty,
+    loadedFile = Nothing
   }
-  putStrLn $ "Result " ++ show res
+
+  -- putStrLn $ "Result " ++ show res
+  -- TODO preload the pcap file if passed on
+  options <- execParser opts
+
   -- check if file in cache else call tshark
-  -- unAppT myState $ do
-  -- runKatipContextT mkLogEnv () "main" $ do
-  mFrame <- flip evalStateT myState $ do
-    unAppT (loadPcap defaultTsharkPrefs defaultPcap)
-      -- listMptcpConnections frame
-  -- flip withStateT myState $ do
-    -- (loadPcap defaultTsharkPrefs "data/test.csv")
-  case mFrame of
-    --  ++ show frame
-    Just frame ->  do
-        putStrLn $ "show frame" 
-        listTcpConnections frame
-    Nothing -> putStrLn "frame not loaded"
+
+  void $ flip evalStateT myState $ do
+    (runInputT defaultSettings inputLoop)
+
+
+  -- mFrame <- flip evalStateT myState $ do
+  --   unAppT (loadPcap defaultTsharkPrefs defaultPcap)
+
+  -- case mFrame of
+  --   --  ++ show frame
+  --   Just frame ->  do
+  --       putStrLn $ "show frame"
+  --       listTcpConnections frame
+  --   Nothing -> putStrLn "frame not loaded"
 
   putStrLn "Thanks for flying with mptcpanalyzer"
+
+-- 
+type MptcpAnalyzer m = (Cache m, MonadIO m, KatipContext m, MonadException m, MonadState MyState m)
+
+-- TODO retourner un code d'erreur plutot ?
+-- see haskeline ExitCode
+inputLoop :: (MptcpAnalyzer m) => InputT m ()
+inputLoop = do
+    minput <- getInputLine "% "
+    case minput of
+        Nothing -> return ()
+        -- TODO parse first item
+        Just "load" -> lift $ cmdLoad defaultPcap
+        Just "quit" -> return ()
+        Just input -> do
+              outputStrLn $ "Input was: " ++ input
+              inputLoop
+
+-- TODO move commands to their own module
+-- TODO it should update the loadedFile in State !
+cmdLoad :: (MptcpAnalyzer m) => FilePath -> m ()
+cmdLoad pcapFile = do
+    mFrame <- loadPcap defaultTsharkPrefs pcapFile
+    return ()
 
 -- type TcpStreamT = "tcpstream" :-> Word32
 
@@ -477,28 +509,21 @@ simpleParser = SimpleData
 -- il faudrait qu'il me retourne le champ sur lequel il foire et comme ca je peux recuperer son completer
 -- s'il n'a pas de completer on affiche son aide
 -- on peut aussi faire un mapping entre les action bash et les completer de repline
-mainTest :: String
-mainTest =
-    -- case result of
-      -- CompletionResult 
-      handleRes result
-    where
-        result = execParserPure parserPrefs parserInfo cmdArgs
-        parserPrefs = defaultPrefs
-        -- "test"
-        cmdArgs = [ "mama", "--hello=toto"  ]
-        parserInfo = info simpleParser fullDesc
-        handleRes :: ParserResult SimpleData -> String
-        handleRes (CompletionInvoked compl) = "toto"
-        handleRes (Failure failure) = "failed"
-        handleRes (Success x) = "Success"
 
+-- mainTest :: String
+-- mainTest =
+--       handleRes result
+--     where
+--         result = execParserPure parserPrefs parserInfo cmdArgs
+--         parserPrefs = defaultPrefs
+--         -- "test"
+--         cmdArgs = [ "mama", "--hello=toto"  ]
+--         parserInfo = info simpleParser fullDesc
+--         handleRes :: ParserResult SimpleData -> String
+--         handleRes (CompletionInvoked compl) = "toto"
+--         handleRes (Failure failure) = "failed"
+--         handleRes (Success x) = "Success"
 
-
-
-
--- mainLoad :: String
--- mainLoad =
 
 -- mainHaskeline :: IO ()
 -- mainHaskeline = do
@@ -525,5 +550,3 @@ mainTest =
 --                     loop
 
 
-
---test

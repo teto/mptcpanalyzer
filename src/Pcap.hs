@@ -37,6 +37,7 @@ import qualified Pipes.Prelude as P
 import Frames.TH
 import Frames
 import Frames.CSV
+import Columns
 import qualified Data.Text as T
 -- for Record
 import Frames.Rec (Record(..))
@@ -131,6 +132,7 @@ import qualified Data.Vector as V
   -- type FrameMerged = FrameRec
 
 -- TODO support TcpFlags / IPAddress and list of XXX
+type MyColumns = IP ': CommonColumns
 
 -- this declares Tcpstream = "tcpstrean" :-> Int for instance
 tableTypes' (rowGen "data/simple.csv" )
@@ -138,7 +140,7 @@ tableTypes' (rowGen "data/simple.csv" )
             , separator = "|"
             -- pass specific columns such as tcpflags, lists, ipsrc
             -- , columnUniverse
-            , columnUniverse = $(colQ ''MyColumns)
+            -- , columnUniverse = $(colQ ''MyColumns)
             , columnNames = ["tcpstream", "tcpflags", "ipsrc"]
             -- , tablePrefix = "NoHead"
             }
