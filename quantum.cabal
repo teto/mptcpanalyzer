@@ -68,6 +68,7 @@ common shared-properties
     -- -fno-warn-unused-imports 
     -- -fforce-recomp  makes it build twice
     ghc-options: -Wall -fno-warn-unused-binds -fno-warn-unused-matches -threaded -fprof-auto -rtsopts
+    extensions: 
     Other-modules:     
 
 

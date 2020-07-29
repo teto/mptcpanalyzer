@@ -391,6 +391,11 @@ instance MonadException m => MonadException (StateT s m) where
                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
                     in fmap (flip runStateT s) $ f run'
 
+-- instance KatipContext (StateT s m), MonadException m) => MonadException (StateT s m) where
+--     controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
+--                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
+--                     in fmap (flip runStateT s) $ f run'
+
 main :: IO ()
 main = do
 
@@ -417,9 +422,16 @@ main = do
 
   -- check if file in cache else call tshark
 
-  void $ flip evalStateT myState $ do
-    (runInputT defaultSettings inputLoop)
+  -- pb dans l'implementation de inputT
+  -- void $ runKatipContextT mkLogEnv () "dev" $ do
+  -- withStateT
+  runInputT defaultSettings $ do
+      -- flip runStateT myState inputLoop
+      flip runStateT myState inputLoop
 
+
+  -- runInputT defaultSettings $ do
+  --   flip runStateT myState inputLoop
 
   -- mFrame <- flip evalStateT myState $ do
   --   unAppT (loadPcap defaultTsharkPrefs defaultPcap)
@@ -433,21 +445,34 @@ main = do
 
   putStrLn "Thanks for flying with mptcpanalyzer"
 
--- 
 type MptcpAnalyzer m = (Cache m, MonadIO m, KatipContext m, MonadException m, MonadState MyState m)
+
+-- instance Cache m  => Cache (InputT (StateT s m)) where
+--     putCache cid frame = lift putCache
+--     getCache cid = do
+--         s <- get
+--         evalStateT (getCache cid) s
+
+--     isValid = undefined
 
 -- TODO retourner un code d'erreur plutot ?
 -- see haskeline ExitCode
-inputLoop :: (MptcpAnalyzer m) => InputT m ()
+-- inputLoop :: (MptcpAnalyzer m) => InputT m ()
+-- (StateT MyState m)
+inputLoop :: StateT MyState (InputT IO) ()
+-- inputLoop :: (MptcpAnalyzer m) => InputT m ()
 inputLoop = do
-    minput <- getInputLine "% "
+    -- s <- lift $ get
+    -- void $ runKatipContextT mkLogEnv () "dev" $ do
+
+    minput <- lift $ getInputLine "% "
     case minput of
         Nothing -> return ()
         -- TODO parse first item
-        Just "load" -> lift $ cmdLoad defaultPcap
+        -- Just "load" -> cmdLoad defaultPcap
         Just "quit" -> return ()
         Just input -> do
-              outputStrLn $ "Input was: " ++ input
+              lift $ outputStrLn $ "Input was: " ++ input
               inputLoop
 
 -- TODO move commands to their own module
@@ -550,3 +575,6 @@ simpleParser = SimpleData
 --                     loop
 
 
+ 
+-- odasd
+-- toto
