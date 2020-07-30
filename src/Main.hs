@@ -98,7 +98,7 @@ newtype MyStack m a = MyStack {
     , Cache
     -- , MonadReader MyState m
     , MonadState MyState
-    -- , MonadException
+    , MonadException
     )
 
 -- (MonadState MyState m, MonadIO m) =>
@@ -425,9 +425,9 @@ main = do
   -- pb dans l'implementation de inputT
   -- void $ runKatipContextT mkLogEnv () "dev" $ do
   -- withStateT
-  runInputT defaultSettings $ do
       -- flip runStateT myState inputLoop
-      flip runStateT myState inputLoop
+  flip runStateT myState $ do
+      unAppT (runInputT defaultSettings inputLoop)
 
 
   -- runInputT defaultSettings $ do
@@ -459,20 +459,22 @@ type MptcpAnalyzer m = (Cache m, MonadIO m, KatipContext m, MonadException m, Mo
 -- see haskeline ExitCode
 -- inputLoop :: (MptcpAnalyzer m) => InputT m ()
 -- (StateT MyState m)
-inputLoop :: StateT MyState (InputT IO) ()
+-- inputLoop :: InputT (StateT MyState IO) ()
+inputLoop :: InputT (MyStack IO ) ()
+-- inputLoop :: StateT MyState (InputT IO) ()
 -- inputLoop :: (MptcpAnalyzer m) => InputT m ()
 inputLoop = do
     -- s <- lift $ get
     -- void $ runKatipContextT mkLogEnv () "dev" $ do
 
-    minput <- lift $ getInputLine "% "
+    minput <- getInputLine "% "
     case minput of
         Nothing -> return ()
         -- TODO parse first item
-        -- Just "load" -> cmdLoad defaultPcap
+        Just "load" -> lift $ cmdLoad defaultPcap
         Just "quit" -> return ()
         Just input -> do
-              lift $ outputStrLn $ "Input was: " ++ input
+              outputStrLn $ "Input was: " ++ input
               inputLoop
 
 -- TODO move commands to their own module
