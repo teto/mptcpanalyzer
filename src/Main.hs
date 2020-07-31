@@ -26,11 +26,7 @@ import System.Directory
 import System.IO (stdout)
 import Prelude hiding (concat, init)
 import Options.Applicative
--- hiding (value, ErrorMsg, empty)
--- import qualified Options.Applicative (value)
--- import Options.Applicative.Types
 import Control.Monad.Trans (liftIO, MonadIO)
--- .Strict
 import Control.Monad.Trans.State (State, put,
       StateT(..),
       execStateT, runStateT, evalStateT, withStateT
@@ -39,9 +35,6 @@ import Control.Monad.State (MonadState, get
     -- , StateT
     )
 
--- defines MonadState
--- import Control.Monad.State.Class
--- defines State
 -- for noCompletion
 -- import System.Console.Haskeline.Completion
 import Data.List (isPrefixOf)
@@ -50,9 +43,6 @@ import System.Exit
 import Data.Singletons.TH
 import Data.Word
 import Frames.TH
--- import Control.Lens hiding (Identity, argument)
--- import Data.Word (Word32)
--- import Debug.Trace
 
 import System.Console.Haskeline
 import System.Console.Haskeline.MonadException
@@ -63,10 +53,9 @@ import Katip
 import Pcap
 import Cache
 -- (Cache,putCache,getCache, isValid, CacheId)
-import Commands.Load ()
+import Commands.Load
 -- import System.Environment.Blank   (getEnvDefault)
 import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
--- import Directory
 import           Frames
 import Pipes hiding (Proxy)
 import qualified Pipes.Prelude as P
@@ -75,11 +64,6 @@ import qualified Data.Foldable as F
 
 -- |Helper to pass information across functions
 data MyState = MyState {
-  -- socket :: MptcpSocket -- ^Socket
-  -- -- ThreadId/MVar
-  -- , connections :: Map.Map MptcpToken (ThreadId, MVar MptcpConnection)
-  -- -- |Arguments passed to the program
-  -- , cliArguments :: CLIArguments
   _cacheFolder :: FilePath
 
   , msKNamespace :: Namespace    -- ^Katip namespace
@@ -87,7 +71,7 @@ data MyState = MyState {
   , msKContext   :: LogContexts
 
   , loadedFile   :: Maybe PcapFrame  -- ^ cached loaded pcap
-
+  , prompt   :: String  -- ^ cached loaded pcap
 }
 
 newtype MyStack m a = MyStack {
@@ -166,20 +150,10 @@ isCacheValid :: CacheId -> IO Bool
 isCacheValid  _ = return $ False
 
 data CLIArguments = CLIArguments {
-
-  -- | Path to a program in charge of generating congestion window limits on a 
-  -- per path basis
-  -- The program will be called with a json file as input and must echo on stdout
-  -- an array of the form [ 10, 30, 40]
   _input :: Maybe FilePath
-
-  -- | to filter
-  , version    :: Bool
-
-  -- | Folder where to log files
-  , cacheDir    :: Maybe FilePath
-
-  , logLevel :: Severity
+  , version    :: Bool  -- ^ to show version
+  , cacheDir    :: Maybe FilePath -- ^ Folder where to log files
+  , logLevel :: Severity   -- ^ what level to use to parse
   }
 
 
@@ -192,22 +166,6 @@ data Sample = Sample
   , quiet      :: Bool
   , enthusiasm :: Int }
 
-sampleDemo :: Parser Sample
-sampleDemo = Sample
-      <$> strOption
-          ( long "hello"
-         <> metavar "TARGET"
-         <> help "Target for the greeting" )
-      <*> switch
-          ( long "quiet"
-         <> short 'q'
-         <> help "Whether to be quiet" )
-      <*> option auto
-          ( long "enthusiasm"
-         <> help "How enthusiastically to greet"
-         <> showDefault
-         <> value 1
-         <> metavar "INT" )
 
 -- noCompletion
 -- type CompletionFunc (m :: Type -> Type) = (String, String) -> m (String, [Completion])
@@ -269,10 +227,6 @@ opts = info (sample <**> helper)
   <> header "hello - a test for optparse-applicative"
   <> footer "You can report issues/contribute at https://github.com/teto/mptcpanalyzer"
   )
-
--- |Deal with events for already registered connections
--- Warn: MPTCP_EVENT_ESTABLISHED registers a "null" interface
--- or a list of packets to send
 
 -- https://github.com/sdiehl/repline/issues/32
 -- data Parser a
@@ -391,10 +345,6 @@ instance MonadException m => MonadException (StateT s m) where
                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
                     in fmap (flip runStateT s) $ f run'
 
--- instance KatipContext (StateT s m), MonadException m) => MonadException (StateT s m) where
---     controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
---                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
---                     in fmap (flip runStateT s) $ f run'
 
 main :: IO ()
 main = do
@@ -413,25 +363,17 @@ main = do
     msKNamespace = "devel",
     msLogEnv = mkLogEnv,
     msKContext = mempty,
-    loadedFile = Nothing
+    loadedFile = Nothing,
+    prompt = "> "
   }
 
   -- putStrLn $ "Result " ++ show res
   -- TODO preload the pcap file if passed on
   options <- execParser opts
 
-  -- check if file in cache else call tshark
-
-  -- pb dans l'implementation de inputT
-  -- void $ runKatipContextT mkLogEnv () "dev" $ do
-  -- withStateT
-      -- flip runStateT myState inputLoop
   flip runStateT myState $ do
       unAppT (runInputT defaultSettings inputLoop)
 
-
-  -- runInputT defaultSettings $ do
-  --   flip runStateT myState inputLoop
 
   -- mFrame <- flip evalStateT myState $ do
   --   unAppT (loadPcap defaultTsharkPrefs defaultPcap)
@@ -447,42 +389,29 @@ main = do
 
 type MptcpAnalyzer m = (Cache m, MonadIO m, KatipContext m, MonadException m, MonadState MyState m)
 
--- instance Cache m  => Cache (InputT (StateT s m)) where
---     putCache cid frame = lift putCache
---     getCache cid = do
---         s <- get
---         evalStateT (getCache cid) s
 
---     isValid = undefined
 
--- TODO retourner un code d'erreur plutot ?
--- see haskeline ExitCode
--- inputLoop :: (MptcpAnalyzer m) => InputT m ()
--- (StateT MyState m)
--- inputLoop :: InputT (StateT MyState IO) ()
-inputLoop :: InputT (MyStack IO ) ()
--- inputLoop :: StateT MyState (InputT IO) ()
--- inputLoop :: (MptcpAnalyzer m) => InputT m ()
+commands :: HM.Map
+commands = HM.fromList [
+  ("load", loadPcap),
+]
+-- | Main loop of the program, will run commands in turn
+-- TODO pass a dict of command ? that will parse
+inputLoop :: InputT (MyStack IO) ()
 inputLoop = do
-    -- s <- lift $ get
-    -- void $ runKatipContextT mkLogEnv () "dev" $ do
+    s <- lift $ get
 
-    minput <- getInputLine "% "
+    minput <- getInputLine (prompt s)
     case minput of
         Nothing -> return ()
-        -- TODO parse first item
-        Just "load" -> lift $ cmdLoad defaultPcap
-        Just "quit" -> return ()
-        Just input -> do
-              outputStrLn $ "Input was: " ++ input
-              inputLoop
-
--- TODO move commands to their own module
--- TODO it should update the loadedFile in State !
-cmdLoad :: (MptcpAnalyzer m) => FilePath -> m ()
-cmdLoad pcapFile = do
-    mFrame <- loadPcap defaultTsharkPrefs pcapFile
-    return ()
+        -- TODO parse first item then dispatch across commands
+        -- look into a 
+        Just line -> case head $ words line of
+            Just "load" -> lift $ cmdLoad defaultPcap
+            Just "quit" -> return ()
+            Just input -> do
+                  outputStrLn $ "Input was: " ++ input
+                  inputLoop
 
 -- type TcpStreamT = "tcpstream" :-> Word32
 
@@ -519,64 +448,3 @@ simpleParser = SimpleData
          <> metavar "TARGET"
          <> help "Target for the greeting" )
 
---defaultPrefs :: ParserPrefs
--- ParserPrefs
--- execParserPure :: 
--- execParserPure puis on recupere le resultat ParserResult puis on affiche la completion
--- customExecParser
--- handleParseResult
-
--- execParserPure :: ParserPrefs       -- ^ Global preferences for this parser
---                -> ParserInfo a      -- ^ Description of the program to run
---                -> [String]          -- ^ Program arguments
---                -> ParserResult a
--- handleParseResult
-
--- dealWithParseResult :: ParserResult a
--- il faudrait qu'il me retourne le champ sur lequel il foire et comme ca je peux recuperer son completer
--- s'il n'a pas de completer on affiche son aide
--- on peut aussi faire un mapping entre les action bash et les completer de repline
-
--- mainTest :: String
--- mainTest =
---       handleRes result
---     where
---         result = execParserPure parserPrefs parserInfo cmdArgs
---         parserPrefs = defaultPrefs
---         -- "test"
---         cmdArgs = [ "mama", "--hello=toto"  ]
---         parserInfo = info simpleParser fullDesc
---         handleRes :: ParserResult SimpleData -> String
---         handleRes (CompletionInvoked compl) = "toto"
---         handleRes (Failure failure) = "failed"
---         handleRes (Success x) = "Success"
-
-
--- mainHaskeline :: IO ()
--- mainHaskeline = do
---   let haskelineSettings = defaultSettings
---   -- SETUP LOGGING (https://gist.github.com/ijt/1052896)
---   -- streamHandler vs verboseStreamHandler
-
---   -- logMsg "main" InfoS  "Parsing command line..."
---   options <- execParser opts
---   let logContext = mempty
---   let state = (MyState "main" logContext)
-
-
---   runInputT haskelineSettings loop
---   where
---       loop :: InputT IO ()
---       loop = do
---           minput <- getInputLine "% "
---           case minput of
---               Nothing -> return ()
---               Just "quit" -> return ()
---               Just input -> do
---                     outputStrLn $ "Input was: " ++ input
---                     loop
-
-
- 
--- odasd
--- toto
