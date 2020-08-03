@@ -12,35 +12,32 @@ let
 
   my_pkg = (import ./. { inherit compiler; } );
 in
-  (my_pkg.envFunc { withHoogle = true; }).overrideAttrs (oa: {
+    pkgs.mkShell {
+    name = "quantum";
+    buildInputs = with pkgs; [
+      ghc haskellPackages.cabal-install haskellPackages.ghcide
+    ];
+  }
 
-    nativeBuildInputs = oa.nativeBuildInputs ++ (with pkgs; [
+  # (my_pkg.envFunc { withHoogle = true; }).overrideAttrs (oa: {
+  #   nativeBuildInputs = oa.nativeBuildInputs ++ (with pkgs; [
+  #     haskellPackages.ghcide
+  #     haskellPackages.cabal-install
+  #     haskellPackages.hasktags
+  #     haskellPackages.hlint
+  #     # haskellPackages.nvim-hs-ghcid # too old, won't support nvim-hs-contrib 2
+  #     # haskellPackages.gutenhasktags  # taken from my overlay
+  #     # haskellPackages.haskdogs # seems to build on hasktags/ recursively import things
+  #   ]);
 
-      # HASKELL IDE ENGINE
-      # haskellPackages.all-hies.versions."${compilerName}"
-
-      # or ghcide
-      # ghcide-nix."ghcide-${compilerName}"
-      haskellPackages.ghcide
-
-      haskellPackages.cabal-install
-      haskellPackages.hasktags
-      haskellPackages.hlint
-      # haskellPackages.nvim-hs-ghcid # too old, won't support nvim-hs-contrib 2
-
-      # haskellPackages.gutenhasktags  # taken from my overlay
-      # haskellPackages.haskdogs # seems to build on hasktags/ recursively import things
-    ]);
-
-  # export HIE_HOOGLE_DATABASE=$NIX_GHC_DOCDIR as DOCDIR doesn't exist it won't work
-  # or an interesting
-  # shellHook = "eval $(grep export ${ghc}/bin/ghc)";
-  # echo "importing a custom nvim ${my_nvim}"
-  # export PATH="${my_nvim}/bin:$PATH"
-  # --package-db /home/teto/netlink-hs/dist/package.conf.inplace
-  # --package-db /home/teto/mptcppm/dist/package.conf.inplace
-  shellHook = ''
-    # check if it's still needed ?
-    export HIE_HOOGLE_DATABASE="$NIX_GHC_LIBDIR/../../share/doc/hoogle/index.html"
-  '';
-  })
+  # # export HIE_HOOGLE_DATABASE=$NIX_GHC_DOCDIR as DOCDIR doesn't exist it won't work
+  # # shellHook = "eval $(grep export ${ghc}/bin/ghc)";
+  # # echo "importing a custom nvim ${my_nvim}"
+  # # export PATH="${my_nvim}/bin:$PATH"
+  # # --package-db /home/teto/netlink-hs/dist/package.conf.inplace
+  # # --package-db /home/teto/mptcppm/dist/package.conf.inplace
+  # shellHook = ''
+  #   # check if it's still needed ?
+  #   export HIE_HOOGLE_DATABASE="$NIX_GHC_LIBDIR/../../share/doc/hoogle/index.html"
+  # '';
+  # })

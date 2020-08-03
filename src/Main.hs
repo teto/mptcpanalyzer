@@ -19,6 +19,7 @@ TemplateHaskell for Katip :(
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE LambdaCase             #-}
 
 module Main where
 
@@ -26,26 +27,23 @@ import System.Directory
 import System.IO (stdout)
 import Prelude hiding (concat, init)
 import Options.Applicative
-import Control.Monad.Trans (liftIO, MonadIO)
+-- import Control.Monad.Trans (liftIO, MonadIO)
 import Control.Monad.Trans.State (State, put,
       StateT(..),
       execStateT, runStateT, evalStateT, withStateT
         )
-import Control.Monad.State (MonadState, get
-    -- , StateT
-    )
+import Control.Monad.State (MonadState, get)
+import qualified Data.HashMap.Strict         as HM
+import qualified Commands.Utils         as CMD
 
 -- for noCompletion
--- import System.Console.Haskeline.Completion
-import Data.List (isPrefixOf)
-import System.Process
-import System.Exit
-import Data.Singletons.TH
-import Data.Word
-import Frames.TH
-
 import System.Console.Haskeline
-import System.Console.Haskeline.MonadException
+-- import Data.List (isPrefixOf)
+-- import Data.Singletons.TH
+import Utils
+
+-- import System.Console.Haskeline (MonadException)
+-- import System.Console.Haskeline.MonadException
 -- Repline is a wrapper (suppposedly more advanced) around haskeline
 -- for now we focus on the simple usecase with repline
 -- import System.Console.Repline
@@ -55,24 +53,13 @@ import Cache
 -- (Cache,putCache,getCache, isValid, CacheId)
 import Commands.Load
 -- import System.Environment.Blank   (getEnvDefault)
-import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
-import           Frames
+-- import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
+-- import           Frames
 import Pipes hiding (Proxy)
-import qualified Pipes.Prelude as P
-import qualified Control.Foldl as L
-import qualified Data.Foldable as F
+-- import qualified Pipes.Prelude as P
+-- import qualified Control.Foldl as L
+-- import qualified Data.Foldable as F
 
--- |Helper to pass information across functions
-data MyState = MyState {
-  _cacheFolder :: FilePath
-
-  , msKNamespace :: Namespace    -- ^Katip namespace
-  , msLogEnv :: LogEnv     -- ^ Katip log env
-  , msKContext   :: LogContexts
-
-  , loadedFile   :: Maybe PcapFrame  -- ^ cached loaded pcap
-  , prompt   :: String  -- ^ cached loaded pcap
-}
 
 newtype MyStack m a = MyStack {
     unAppT :: StateT MyState m a
@@ -82,7 +69,7 @@ newtype MyStack m a = MyStack {
     , Cache
     -- , MonadReader MyState m
     , MonadState MyState
-    , MonadException
+    -- , MonadException
     )
 
 -- (MonadState MyState m, MonadIO m) =>
@@ -134,20 +121,6 @@ cacheCheckValidity :: CacheId -> MyStack IO Bool
 cacheCheckValidity cid = return False
 
 
-
-instance Cache IO where
-    getCache = doGetCache
-    putCache = doPutCache
-    isValid = isCacheValid
-
-doGetCache :: CacheId -> IO (Either String PcapFrame)
-doGetCache cid = return $ Left "getCache not implemented yet"
-
-doPutCache :: CacheId -> FilePath -> IO Bool
-doPutCache = undefined
-
-isCacheValid :: CacheId -> IO Bool
-isCacheValid  _ = return $ False
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -285,65 +258,15 @@ loadCsv csvFile = do
     frame <- liftIO $ loadRows csvFile
     return frame
 
--- TODO return an Either or Maybe ?
-loadPcap :: (Cache m, MonadIO m, KatipContext m) => TsharkParams -> FilePath -> m (Maybe PcapFrame)
-loadPcap params path = do
-    $(logTM) DebugS $ logStr ("Start loading pcap " ++ show path)
-    x <- liftIO $ getCache cacheId
-    case x of
-      Right frame -> do
-          $(logTM) DebugS $ "Frame in cache"
-          return $ Just frame
-      Left err -> do
-          liftIO $ putStrLn $ "getCache error: " ++ show err
-          $(logTM) InfoS $ "Calling tshark"
-          -- TODO need to create a temporary file
-          -- mkstemps
-          -- TODO use showCommandForUser to display the run command to the user
-          -- , stdOut, stdErr)
-          (tempPath , exitCode, stdErr) <- liftIO $ withTempFileEx opts "/tmp" "mptcp.csv" (exportToCsv params path)
-          if exitCode == ExitSuccess
-              then do
-                $(logTM) InfoS $ logStr $ "exported to file " ++ show tempPath
-                frame <- liftIO $ loadRows tempPath
-                liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
-                return $ Just frame
-                -- putCache cacheId
-                -- TODO update the state too
-                -- pass
-              else do
-                let msg = "Error happened: " ++ show exitCode
-                $(logTM) InfoS $ logStr msg
-                -- let stdErr = "TODO"
-                $(logTM) WarningS $ logStr (stdErr :: String)
-                -- liftIO $ putStrLn $ "error happened: exitCode" 
-                -- ++ show stderr >>
-                return Nothing
-
-          -- and then the handle can be used via "export_to_csv"
-          -- mkstemp
-          -- withCreateProcess createProc
-
-            -- createProcess 
-            -- error "could not load pcap"
-
-    where
-      cacheId = CacheId [path] "" ""
-      fields :: [String]
-      fields = [
-        "tcp.stream"
-        ]
-      opts :: TempFileOptions
-      opts = TempFileOptions True
 
 -- just for testing, to remove afterwards
 defaultPcap :: FilePath
 defaultPcap = "examples/client_2_filtered.pcapng"
 
-instance MonadException m => MonadException (StateT s m) where
-    controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
-                    run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
-                    in fmap (flip runStateT s) $ f run'
+-- instance MonadException m => MonadException (StateT s m) where
+--     controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
+--                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
+--                     in fmap (flip runStateT s) $ f run'
 
 
 main :: IO ()
@@ -387,14 +310,20 @@ main = do
 
   putStrLn "Thanks for flying with mptcpanalyzer"
 
-type MptcpAnalyzer m = (Cache m, MonadIO m, KatipContext m, MonadException m, MonadState MyState m)
+-- type MptcpAnalyzer m = (Cache m, MonadIO m, KatipContext m, MonadException m, MonadState MyState m)
 
 
 
-commands :: HM.Map
+-- type CommandCb = (CMD.CommandConstraint m) => [String] -> m ()
+type CommandCb m = [String] -> m ()
+
+commands :: HM.HashMap String (CommandCb (MyStack IO))
 commands = HM.fromList [
-  ("load", loadPcap),
-]
+    ("load", loadPcap),
+    ("list_tcp", listTcpConnections)
+    -- ("list_mptcp", listMpTcpConnections)
+    ]
+
 -- | Main loop of the program, will run commands in turn
 -- TODO pass a dict of command ? that will parse
 inputLoop :: InputT (MyStack IO) ()
@@ -402,49 +331,36 @@ inputLoop = do
     s <- lift $ get
 
     minput <- getInputLine (prompt s)
-    case minput of
-        Nothing -> return ()
-        -- TODO parse first item then dispatch across commands
-        -- look into a 
-        Just line -> case head $ words line of
-            Just "load" -> lift $ cmdLoad defaultPcap
-            Just "quit" -> return ()
-            Just input -> do
-                  outputStrLn $ "Input was: " ++ input
-                  inputLoop
+    cmdCode <- case minput of
+        Nothing -> do
+          liftIO $ putStrLn "please enter a valid command"
+          return CMD.Continue
+        Just fullCmd -> do
+          let commandStr = head $ words fullCmd
+          HM.lookup commandStr commands >>= \case
+              Nothing -> putStrLn "Unknown command" >> return CMD.Continue
+          -- fmap commandCb strings
+          return CMD.Continue
+
+    case cmdCode of
+        CMD.Exit -> return ()
+        _behavior -> inputLoop
+
 
 -- type TcpStreamT = "tcpstream" :-> Word32
 
-listTcpConnections :: PcapFrame -> IO ()
-listTcpConnections frame = do
-  putStrLn "Listing tcp connections"
-  let streamIds = getTcpStream frame
-  mapM_ (\x -> putStrLn $ show x) streamIds
-  -- L.fold L.minimum (view age <$> ms)
-  -- L.fold
-  -- putStrLn $ show $ rcast @'[TcpStream] $ frameRow frame 0
-  -- let l =  L.fold L.nub (view tcpstream <$> frame)
-  return ()
-
--- AppM PcapFrame
-listMptcpConnections :: PcapFrame -> MyStack IO ()
-listMptcpConnections frame = do
-    return ()
-    -- putStrLn "New frame"
--- optparse
--- should pass the full line -> retreive the available completions
 
 data SimpleData = SimpleData {
       mainStr :: String
       , optionalHello      :: String
     }
 
-simpleParser :: Parser SimpleData
-simpleParser = SimpleData
-      -- action "filepath"
-      <$> argument str (metavar "NAME" <> completeWith ["toto", "tata"])
-      <*> strOption
-          ( long "hello"
-         <> metavar "TARGET"
-         <> help "Target for the greeting" )
+-- simpleParser :: Parser SimpleData
+-- simpleParser = SimpleData
+--       -- action "filepath"
+--       <$> argument str (metavar "NAME" <> completeWith ["toto", "tata"])
+--       <*> strOption
+--           ( long "hello"
+--          <> metavar "TARGET"
+--          <> help "Target for the greeting" )
 

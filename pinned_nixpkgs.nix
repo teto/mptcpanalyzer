@@ -16,8 +16,8 @@ let
             src = prev.fetchFromGitHub {
               owner = "teto";
               repo = "mptcp-pm";
-              rev = "279a953421a40fb8834272344fb0adf3d5ba03f3";
-              sha256 = "sha256-qopa1ED4Bqk185b1AXZ32BG2s80SHDSkCODyoZfnft2=";
+              rev = "4087bd580dcb08919e8e3bc78ec3b25d42ee020d";
+              sha256 = "sha256-MiXbj2G7XSRCcM0rnLrbO9L5ZFyh6Z3sPtnH+ddInI8=";
             };
           });
           netlink = (overrideSrc hold.netlink {

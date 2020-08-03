@@ -54,3 +54,18 @@ instance Cache m => Cache (StateT s m) where
 --     putCache = lift putCache
 --     getCache cid = undefined
 --     isValid = return False
+
+instance Cache IO where
+    getCache = doGetCache
+    putCache = doPutCache
+    isValid = isCacheValid
+
+doGetCache :: CacheId -> IO (Either String PcapFrame)
+doGetCache cid = return $ Left "getCache not implemented yet"
+
+doPutCache :: CacheId -> FilePath -> IO Bool
+doPutCache = undefined
+
+isCacheValid :: CacheId -> IO Bool
+isCacheValid  _ = return $ False
+
