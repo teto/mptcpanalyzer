@@ -5,17 +5,19 @@ where
 import Frames
 -- import Frames.CSV
 import Pcap
-import           Frames.TH                      ( rowGen
-                                                , RowGen(..)
-                                                )
 -- import qualified Data.HashMap.Strict         as HM
 import qualified Commands.Utils         as CMD
 import Options.Applicative
 import Katip
 import Control.Monad.Trans (MonadIO, liftIO)
+import Control.Monad.State (get, put)
+import Control.Lens hiding (argument)
+
 import Cache
 import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
 import System.Exit
+import Utils
+-- import System.Environment (withProgName)
 
 
 data LoadPcap = LoadPcap {
@@ -39,16 +41,36 @@ loadOpts = info (loadPcapParser <**> helper)
   <> footer "You can report issues/contribute at https://github.com/teto/mptcpanalyzer"
   )
 
+
+-- myHandleParseResult :: ParserResult a -> m CMD.RetCode
+-- myHandleParseResult (Success a) = 
+
 -- TODO move commands to their own module
 -- TODO it should update the loadedFile in State !
-loadPcap :: (CMD.CommandConstraint m) => [String] -> m ()
-loadPcap pcapFile = do
+-- handleParseResult
+loadPcap :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
+loadPcap args = do
     $(logTM) DebugS $ logStr "starting"
-    args <- liftIO $ execParser loadOpts
-    mFrame <- loadPcapIntoFrame defaultTsharkPrefs (pcap args)
-    _ <- liftIO $ putStrLn "Frame loaded"
+    -- s <- gets
+    -- liftIO $ withProgName "load" (
+    -- TODO fix the name of the program, by "load"
+    let parserResult = execParserPure defaultParserPrefs loadOpts args
+    _ <- case parserResult of
+      (Failure failure) -> liftIO $ print failure >> return CMD.Error
+      -- TODO here we should complete autocompletion
+      (CompletionInvoked compl) -> return CMD.Continue
+      (Success parsedArgs) -> do
+          -- parsedArgs <- liftIO $ myHandleParseResult parserResult
+          mFrame <- loadPcapIntoFrame defaultTsharkPrefs (pcap parsedArgs)
+          -- fmap onSuccess mFrame
+          case mFrame of
+            Nothing -> return CMD.Continue
+            Just frame -> do
+              prompt .= pcap parsedArgs
+              loadedFile .= mFrame
 
-    return ()
+              liftIO $ putStrLn "Frame loaded" >> return CMD.Continue
+    return CMD.Continue
 
 -- TODO return an Either or Maybe ?
 loadPcapIntoFrame :: (Cache m, MonadIO m, KatipContext m) => TsharkParams -> FilePath -> m (Maybe PcapFrame)
@@ -81,8 +103,7 @@ loadPcapIntoFrame params path = do
                 $(logTM) InfoS $ logStr msg
                 -- let stdErr = "TODO"
                 $(logTM) WarningS $ logStr (stdErr :: String)
-                -- liftIO $ putStrLn $ "error happened: exitCode" 
-                -- ++ show stderr >>
+                liftIO $ putStrLn $ "error happened: exitCode" 
                 return Nothing
 
           -- and then the handle can be used via "export_to_csv"

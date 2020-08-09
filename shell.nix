@@ -15,7 +15,11 @@ in
     pkgs.mkShell {
     name = "quantum";
     buildInputs = with pkgs; [
-      ghc haskellPackages.cabal-install haskellPackages.ghcide
+      ghc
+      haskellPackages.cabal-install
+      haskellPackages.ghcide
+      haskellPackages.stylish-haskell
+      haskellPackages.hlint
     ];
   }
 

@@ -8,7 +8,9 @@ where
 import qualified Commands.Utils         as CMD
 import Options.Applicative
 import Pcap
-import Control.Monad.Trans (liftIO, MonadIO)
+import Control.Lens
+import Control.Monad.Trans (liftIO)
+import Control.Monad.State (get)
 
 
 
@@ -24,20 +26,18 @@ data ParserListSubflows = ParserListSubflows {
 -- |TODO pass the loaded pcap to have a complete filterWith
 -- listSubflowParser = 
 
-parser :: Parser ParserListSubflows
-parser = Parser <$> (switch
+parserSubflow :: Parser ParserListSubflows
+parserSubflow = ParserListSubflows <$> (switch
           ( long "full"
          <> help "Print details for each subflow" ))
-      <*> argument str (
-          long "version"
-          <> help "Show version"
+      <*> argument auto (
+          help "Show version"
           -- TODO pass a default
           )
 
 optsListSubflows :: ParserInfo ParserListSubflows
-optsListSubflows = info (sample <**> helper)
+optsListSubflows = info (parserSubflow <**> helper)
   ( fullDesc
-
   <> progDesc "List subflows of an MPTCP connection"
   <> header ""
   <> footer ""
@@ -51,10 +51,11 @@ optsListSubflows = info (sample <**> helper)
           -- for tcpstream, group in streams:
           --     con = TcpConnection.build_from_dataframe(self.data, tcpstream)
           --     self.poutput(str(con))
-listTcpConnections :: CMD.CommandConstraint m => [String] -> m ()
+listTcpConnections :: CMD.CommandConstraint m => [String] -> m CMD.RetCode
 listTcpConnections frame = do
-    loaded <- asks loadedFile
-    liftIO $ putStrLn "TODO display"
+    state <- get
+    loadedPcap <- view loadedFile state
+    liftIO $ putStrLn "TODO display" >> return CMD.Continue
   
 
 listTcpConnectionsInFrame :: PcapFrame -> IO ()

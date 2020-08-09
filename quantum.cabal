@@ -34,13 +34,14 @@ common shared-properties
       , bytestring, process, ip,
        netlink >= 1.1.1.0, bytestring-conversion
        , transformers
+       , exceptions
        , ghc-prim
        , foldl
        , text
        , mtl
        -- microlens taken from Frames
-       , microlens
-       -- , lens
+       -- , microlens
+       , lens
        -- for merge
        , aeson
        , aeson-pretty
@@ -48,7 +49,7 @@ common shared-properties
        , monad-control
        , pipes
        -- to help with merging json content
-       , unordered-containers
+       -- , unordered-containers
        -- to create temp folder/files
        , temporary
        , transformers-base
@@ -60,15 +61,15 @@ common shared-properties
        , directory
        , vinyl
        , vector
-       , haskeline
+       , haskeline >= 0.8.0.0
        -- , bitset  -- bitset, interesting but broken
-
+       , mptcp-pm >= 0.0.3
     default-language: Haskell2010
     -- -fno-warn-unused-imports 
     -- -fforce-recomp  makes it build twice
     ghc-options: -Wall -fno-warn-unused-binds -fno-warn-unused-matches -threaded -fprof-auto -rtsopts
     default-extensions:  FlexibleContexts           
-        -- Other-modules:     
+    -- Other-modules:     
 
 
 
@@ -78,9 +79,7 @@ executable mptcpanalyzer
     import: shared-properties
     Other-modules:     Pcap, Cache, Commands.Load, Columns, Commands.Utils, Commands.List, Utils, Connection
     -- for now reference mptcp-pm but later move part to a core
-    build-depends:
-            -- :mptcp-lib
-                mptcp-pm >= 0.0.3
+    -- build-depends: mptcp-pm >= 0.0.3
     -- ghc-options: -prof
     main-is: Main.hs
     hs-source-dirs: src/

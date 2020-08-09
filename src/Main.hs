@@ -28,22 +28,21 @@ import System.IO (stdout)
 import Prelude hiding (concat, init)
 import Options.Applicative
 -- import Control.Monad.Trans (liftIO, MonadIO)
-import Control.Monad.Trans.State (State, put,
-      StateT(..),
-      execStateT, runStateT, evalStateT, withStateT
-        )
+-- import Control.Monad.Trans.State (StateT(..), runStateT, withStateT)
+import Control.Monad.Catch
+import Control.Monad.State (StateT(..), runStateT, withStateT)
 import Control.Monad.State (MonadState, get)
-import qualified Data.HashMap.Strict         as HM
+import qualified Data.Map         as HM
 import qualified Commands.Utils         as CMD
+import Commands.List
 
 -- for noCompletion
 import System.Console.Haskeline
 -- import Data.List (isPrefixOf)
 -- import Data.Singletons.TH
 import Utils
+import Control.Lens
 
--- import System.Console.Haskeline (MonadException)
--- import System.Console.Haskeline.MonadException
 -- Repline is a wrapper (suppposedly more advanced) around haskeline
 -- for now we focus on the simple usecase with repline
 -- import System.Console.Repline
@@ -69,7 +68,9 @@ newtype MyStack m a = MyStack {
     , Cache
     -- , MonadReader MyState m
     , MonadState MyState
-    -- , MonadException
+    , MonadThrow
+    , MonadCatch
+    , MonadMask
     )
 
 -- (MonadState MyState m, MonadIO m) =>
@@ -103,23 +104,22 @@ newtype MyStack m a = MyStack {
 instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
   getLogEnv = do
       s <- get
-      return $ msLogEnv s
+      return $ s ^. msLogEnv
   -- (LogEnv -> LogEnv) -> m a -> m a
-  localLogEnv f (MyStack m) = MyStack (withStateT (\s -> s { msLogEnv = f (msLogEnv s)}) m)
+  localLogEnv f (MyStack m) = MyStack (withStateT (\s -> set msLogEnv (f (s ^. msLogEnv)) s) m)
 
 instance (MonadState MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
   getKatipContext = do
       s <- get
-      return $ msKContext s
-  localKatipContext f (MyStack m) = MyStack (withStateT (\s -> s { msKContext = f (msKContext s)}) m)
+      return $ view msKContext s
+  localKatipContext f (MyStack m) = MyStack (withStateT (\s -> set msKContext (f (s ^. msKContext )) s) m)
   -- local (\s -> s { msKContext = f (msKContext s)}) m)
-  getKatipNamespace = get >>= \x -> return $ msKNamespace x
-  localKatipNamespace f (MyStack m) = MyStack (withStateT (\s -> s { msKNamespace = f (msKNamespace s)}) m)
+  getKatipNamespace = get >>= \x -> return $ x ^. msKNamespace
+  localKatipNamespace f (MyStack m) = MyStack (withStateT (\s -> set msKNamespace (f (view msKNamespace s)) s) m)
 
 
 cacheCheckValidity :: CacheId -> MyStack IO Bool
 cacheCheckValidity cid = return False
-
 
 
 data CLIArguments = CLIArguments {
@@ -263,7 +263,7 @@ loadCsv csvFile = do
 defaultPcap :: FilePath
 defaultPcap = "examples/client_2_filtered.pcapng"
 
--- instance MonadException m => MonadException (StateT s m) where
+-- instance MonadMask m => MonadMask (StateT s m) where
 --     controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
 --                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
 --                     in fmap (flip runStateT s) $ f run'
@@ -272,22 +272,23 @@ defaultPcap = "examples/client_2_filtered.pcapng"
 main :: IO ()
 main = do
 
-  cacheFolder <- getXdgDirectory XdgCache "mptcpanalyzer"
+  cacheFolderXdg <- getXdgDirectory XdgCache "mptcpanalyzer"
   -- Create cache if doesn't exist
-  doesDirectoryExist cacheFolder >>= \x -> case x of
-      True -> putStrLn ("cache folder already exists" ++ show cacheFolder)
-      False -> createDirectory cacheFolder
+  doesDirectoryExist cacheFolderXdg >>= \x -> case x of
+      True -> putStrLn ("cache folder already exists" ++ show cacheFolderXdg)
+      False -> createDirectory cacheFolderXdg
 
-  handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem DebugS) V1
+  handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem DebugS) V0
   katipEnv <- initLogEnv "mptcpanalyzer" "devel"
   mkLogEnv <- registerScribe "stdout" handleScribe defaultScribeSettings katipEnv
+
   let myState = MyState {
-    _cacheFolder = cacheFolder,
-    msKNamespace = "devel",
-    msLogEnv = mkLogEnv,
-    msKContext = mempty,
-    loadedFile = Nothing,
-    prompt = "> "
+    _cacheFolder = cacheFolderXdg,
+    _msKNamespace = "devel",
+    _msLogEnv = mkLogEnv,
+    _msKContext = mempty,
+    _loadedFile = Nothing,
+    _prompt = "> "
   }
 
   -- putStrLn $ "Result " ++ show res
@@ -297,50 +298,56 @@ main = do
   flip runStateT myState $ do
       unAppT (runInputT defaultSettings inputLoop)
 
-
-  -- mFrame <- flip evalStateT myState $ do
-  --   unAppT (loadPcap defaultTsharkPrefs defaultPcap)
-
-  -- case mFrame of
-  --   --  ++ show frame
-  --   Just frame ->  do
-  --       putStrLn $ "show frame"
-  --       listTcpConnections frame
-  --   Nothing -> putStrLn "frame not loaded"
-
   putStrLn "Thanks for flying with mptcpanalyzer"
-
--- type MptcpAnalyzer m = (Cache m, MonadIO m, KatipContext m, MonadException m, MonadState MyState m)
-
 
 
 -- type CommandCb = (CMD.CommandConstraint m) => [String] -> m ()
-type CommandCb m = [String] -> m ()
 
-commands :: HM.HashMap String (CommandCb (MyStack IO))
+-- TODO associate parser ?
+commands :: HM.Map String (CMD.CommandCb (MyStack IO))
 commands = HM.fromList [
-    ("load", loadPcap),
-    ("list_tcp", listTcpConnections)
-    -- ("list_mptcp", listMpTcpConnections)
+    ("load", loadPcap)
+    , ("list_tcp", listTcpConnections)
+    , ("help", printHelp)
+    -- , ("list_mptcp", listMpTcpConnections)
     ]
+
+
+printHelp :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
+printHelp _ = liftIO $ putStrLn getHelp >> return CMD.Continue
+
+getHelp :: String
+getHelp =
+    HM.foldrWithKey printCmdHelp "Available commands:\n" commands
+    -- foldr printCmdHelp "Available commands:\n" commands
+    -- foldMap
+  where
+    printCmdHelp k v accum = accum ++ "\n- " ++ k
+
+-- liftIO $ putStrLn doPrintHelp >> 
 
 -- | Main loop of the program, will run commands in turn
 -- TODO pass a dict of command ? that will parse
+-- TODO turn it into a library
 inputLoop :: InputT (MyStack IO) ()
 inputLoop = do
+  -- todo use forever ?
     s <- lift $ get
 
-    minput <- getInputLine (prompt s)
-    cmdCode <- case minput of
+    minput <- getInputLine (view prompt s)
+    -- cmdCode :: CMD.RetCode
+    cmdCode <- case fmap words minput of
         Nothing -> do
-          liftIO $ putStrLn "please enter a valid command"
+          liftIO $ putStrLn "please enter a valid command, see help"
           return CMD.Continue
+        Just [] -> return CMD.Continue
         Just fullCmd -> do
-          let commandStr = head $ words fullCmd
-          HM.lookup commandStr commands >>= \case
-              Nothing -> putStrLn "Unknown command" >> return CMD.Continue
-          -- fmap commandCb strings
-          return CMD.Continue
+          let commandStr = head fullCmd
+          let cmd = HM.lookup commandStr commands
+          case cmd of
+              -- putStrLn "Unknown command" >>
+              Nothing -> return CMD.Continue
+              Just callback -> lift $ callback $ tail fullCmd
 
     case cmdCode of
         CMD.Exit -> return ()

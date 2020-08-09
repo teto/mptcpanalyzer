@@ -20,36 +20,34 @@ module Pcap(PcapFrame, TsharkParams(..),
 where
 
 
-import Frames.InCore (VectorFor)
+-- import Frames.InCore (VectorFor)
 import Net.IP
-import Control.Monad.Trans (liftIO, MonadIO)
 import System.IO (Handle, hGetContents)
 import System.Process
 import System.Exit
-import Katip
+-- import Katip
 import Data.Vinyl ()
 -- import Control.Lens hiding (Identity)
 -- import Control.Lens.TH
-import Data.Singletons.TH
-import Data.Word
-import Pipes hiding (Proxy)
-import qualified Pipes.Prelude as P
+-- import Data.Word
+-- import Pipes hiding (Proxy)
+-- import qualified Pipes.Prelude as P
 import Frames.TH
 import Frames
-import Frames.CSV
-import Columns
-import qualified Data.Text as T
+-- import Frames.CSV
+-- import Columns
 -- for Record
-import Frames.Rec (Record(..))
-import Frames.ColumnTypeable
+-- import Frames.Rec (Record(..))
+-- import Frames.ColumnTypeable
 import Data.List (intercalate)
 -- for symbol
-import GHC.Types
+-- import GHC.Types
 import qualified Control.Foldl as L
 
-import Lens.Micro
-import Lens.Micro.Extras
-import qualified Data.Vector as V
+-- import Lens.Micro
+-- import Lens.Micro.Extras
+import Control.Lens
+-- import qualified Data.Vector as V
 
 -- Inspired by http://hackage.haskell.org/package/vinyl-0.12.3/docs/Data-Vinyl-Tutorial-Overview.html
 -- | DataType

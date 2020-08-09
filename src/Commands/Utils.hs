@@ -10,8 +10,9 @@ import Control.Monad.Trans (MonadIO)
 -- import System.Console.Haskeline.MonadException
 import Utils
 
-data CommandRetCode = Exit | Error | Continue
+data RetCode = Exit | Error | Continue
 
 -- MonadException m,
 type CommandConstraint m = (Cache m, MonadIO m, KatipContext m, MonadState MyState m)
 
+type CommandCb m = [String] -> m RetCode
