@@ -8,10 +8,11 @@ where
 import qualified Commands.Utils         as CMD
 import Options.Applicative
 import Pcap
-import Control.Lens
+import Frames
+import Control.Lens hiding (argument)
 import Control.Monad.Trans (liftIO)
 import Control.Monad.State (get)
-
+import Utils
 
 
 type MptcpStreamId = Int
@@ -51,11 +52,22 @@ optsListSubflows = info (parserSubflow <**> helper)
           -- for tcpstream, group in streams:
           --     con = TcpConnection.build_from_dataframe(self.data, tcpstream)
           --     self.poutput(str(con))
+-- checkIfLoaded :: CMD.CommandConstraint m => [String] -> m CMD.RetCode
+-- checkIfLoaded = 
+    -- putStrLn "not loaded"
+
 listTcpConnections :: CMD.CommandConstraint m => [String] -> m CMD.RetCode
-listTcpConnections frame = do
+listTcpConnections params = do
     state <- get
-    loadedPcap <- view loadedFile state
-    liftIO $ putStrLn "TODO display" >> return CMD.Continue
+    let loadedPcap = view loadedFile state
+    case loadedPcap of
+      Nothing -> liftIO $ putStrLn "please load a pcap first" >> return CMD.Continue
+      Just frame -> do
+                    liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
+                    >> return CMD.Continue
+                    -- liftIO $ listTcpConnectionsInFrame frame >> return CMD.Continue
+
+    -- liftIO $ putStrLn "list tcp connections:" >> return CMD.Continue
   
 
 listTcpConnectionsInFrame :: PcapFrame -> IO ()
@@ -63,12 +75,12 @@ listTcpConnectionsInFrame frame = do
   putStrLn "Listing tcp connections"
   let streamIds = getTcpStream frame
   mapM_ (\x -> putStrLn $ show x) streamIds
+  return ()
+
   -- L.fold L.minimum (view age <$> ms)
   -- L.fold
   -- putStrLn $ show $ rcast @'[TcpStream] $ frameRow frame 0
   -- let l =  L.fold L.nub (view tcpstream <$> frame)
-  return ()
-
 -- listMptcpConnections :: PcapFrame -> MyStack IO ()
 -- listMptcpConnections frame = do
 --     return ()

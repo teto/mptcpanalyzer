@@ -23,6 +23,7 @@ TemplateHaskell for Katip :(
 
 module Main where
 
+import System.FilePath
 import System.Directory
 import System.IO (stdout)
 import Prelude hiding (concat, init)
@@ -273,6 +274,7 @@ main :: IO ()
 main = do
 
   cacheFolderXdg <- getXdgDirectory XdgCache "mptcpanalyzer"
+  -- TODO check if creation fails ?
   -- Create cache if doesn't exist
   doesDirectoryExist cacheFolderXdg >>= \x -> case x of
       True -> putStrLn ("cache folder already exists" ++ show cacheFolderXdg)
@@ -296,7 +298,8 @@ main = do
   options <- execParser opts
 
   flip runStateT myState $ do
-      unAppT (runInputT defaultSettings inputLoop)
+      let haskelineSettings = defaultSettings { historyFile = Just $ cacheFolderXdg </> "history" }
+      unAppT (runInputT haskelineSettings inputLoop)
 
   putStrLn "Thanks for flying with mptcpanalyzer"
 
@@ -345,8 +348,7 @@ inputLoop = do
           let commandStr = head fullCmd
           let cmd = HM.lookup commandStr commands
           case cmd of
-              -- putStrLn "Unknown command" >>
-              Nothing -> return CMD.Continue
+              Nothing -> liftIO $ putStrLn ("Unknown command " ++ commandStr) >> return CMD.Continue
               Just callback -> lift $ callback $ tail fullCmd
 
     case cmdCode of

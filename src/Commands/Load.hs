@@ -10,7 +10,7 @@ import qualified Commands.Utils         as CMD
 import Options.Applicative
 import Katip
 import Control.Monad.Trans (MonadIO, liftIO)
-import Control.Monad.State (get, put)
+-- import Control.Monad.State (get, put)
 import Control.Lens hiding (argument)
 
 import Cache
@@ -66,7 +66,7 @@ loadPcap args = do
           case mFrame of
             Nothing -> return CMD.Continue
             Just frame -> do
-              prompt .= pcap parsedArgs
+              prompt .= pcap parsedArgs ++ "> "
               loadedFile .= mFrame
 
               liftIO $ putStrLn "Frame loaded" >> return CMD.Continue
