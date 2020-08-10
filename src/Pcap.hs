@@ -199,6 +199,7 @@ generateCsvCommand fieldNames pcapFilename tsharkParams =
             )
 
 -- TODO pass a list of options too
+-- TODO need to override 'WIRESHARK_CONFIG_DIR' = tempfile.gettempdir()
 -- (MonadIO m, KatipContext m) =>
 exportToCsv ::  TsharkParams ->
                 FilePath  -- ^Path to the pcap
@@ -206,8 +207,6 @@ exportToCsv ::  TsharkParams ->
               -- ^See haskell:readCreateProcessWithExitCode
                 -> IO (FilePath, ExitCode, String)
 exportToCsv params pcapPath path fd = do
-    -- custom_env['WIRESHARK_CONFIG_DIR'] = tempfile.gettempdir()
-    --
     let
         (RawCommand bin args) = generateCsvCommand fields pcapPath params
         createProc :: CreateProcess
@@ -236,7 +235,8 @@ exportToCsv params pcapPath path fd = do
     where
       fields :: [String]
       fields = [
-        "tcp.stream"
+        "tcp.stream",
+        "mptcp.stream"
         ]
 
 -- custom data
@@ -287,23 +287,23 @@ defaultTsharkPrefs = TsharkParams {
     }
 
 -- :->
--- baseFields :: [(Symbol, TsharkFieldDesc)]
--- baseFields = [
---     -- 'UInt64'
---     -- SFullName "frame.number" :& (SName "packetid") :&  False False
---     -- " "interface"
---     ("packetid", TsharkFieldDesc "frame.interface_name"  FrameInterface Nothing False),
---     ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" IpSource (Just "source ip") False),
---     ("ipdst", TsharkFieldDesc "_ws.col.ipdst" IpDestination Nothing False)
---     -- Field "ip.src_host" "ipsrc_host" str False False,
---     -- Field "ip.dst_host" "ipdst_host" str False False,
---     -- Field "tcp.stream" "tcpstream" 'UInt64' False False,
---     -- Field "tcp.srcport" "sport" 'UInt16' False False,
---     -- Field "tcp.dstport" "dport" 'UInt16' False False,
---     -- Field "tcp.dstport" "dport" 'UInt16' False False,
---     -- Field "frame.time_relative" "reltime" str "Relative time" False False
---     -- Field "frame.time_epoch" "abstime" str "seconds+Nanoseconds time since epoch" False False
---     ]
+baseFields :: [(String, TsharkFieldDesc)]
+baseFields = [
+    -- 'UInt64'
+    -- SFullName "frame.number" :& (SName "packetid") :&  False False
+    -- " "interface"
+    ("packetid", TsharkFieldDesc "frame.interface_name"  Nothing False),
+    ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" (Just "source ip") False),
+    ("ipdst", TsharkFieldDesc "_ws.col.ipdst" Nothing False),
+    -- Field "ip.src_host" "ipsrc_host" str False False,
+    -- Field "ip.dst_host" "ipdst_host" str False False,
+    ("tcpstream", TsharkFieldDesc "tcp.stream" Nothing False),
+    ("sport", TsharkFieldDesc "tcp.srcport" Nothing False)
+    -- Field "tcp.dstport" "dport" 'UInt16' False False,
+    -- Field "tcp.dstport" "dport" 'UInt16' False False,
+    -- Field "frame.time_relative" "reltime" str "Relative time" False False
+    -- Field "frame.time_epoch" "abstime" str "seconds+Nanoseconds time since epoch" False False
+    ]
 
 -- packetParser :: ParserOptions
 -- packetParser = ParserOptions (Just (map T.pack ["tcpstream"
@@ -321,6 +321,8 @@ defaultTsharkPrefs = TsharkParams {
 -- ps = packet stream
 -- nub :: Ord a => Fold a [a]
 -- Fold a b
+
+-- nub => remove duplicates
 getTcpStream :: PcapFrame -> [Int]
 getTcpStream ps =
     L.fold L.nub (view tcpstream <$> ps)
@@ -342,15 +344,3 @@ getTcpStream ps =
 --         Field "tcp.options.timestamp.tsecr" "tcptsecr" 'Int64'
 --             "TCP timestamp tsecr" True
 --     ]
-
-
--- loadCsv :: Filepath ->
-
--- runTshark ::
--- runTshark = 
-    -- (exitCode, stdout, stderrContent) <- readProcessWithExitCode program [filename, show subflowCount] ""
-
-
--- tsharkPrefsToString :: TsharkPrefs -> String
--- tsharkPrefsToString = 
-

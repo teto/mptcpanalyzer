@@ -269,11 +269,13 @@ defaultPcap = "examples/client_2_filtered.pcapng"
 --                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
 --                     in fmap (flip runStateT s) $ f run'
 
+promptSuffix :: String
+promptSuffix = "> "
 
 main :: IO ()
 main = do
 
-  cacheFolderXdg <- getXdgDirectory XdgCache "mptcpanalyzer"
+  cacheFolderXdg <- getXdgDirectory XdgCache "mptcpanalyzer2"
   -- TODO check if creation fails ?
   -- Create cache if doesn't exist
   doesDirectoryExist cacheFolderXdg >>= \x -> case x of
@@ -290,7 +292,7 @@ main = do
     _msLogEnv = mkLogEnv,
     _msKContext = mempty,
     _loadedFile = Nothing,
-    _prompt = "> "
+    _prompt = promptSuffix
   }
 
   -- putStrLn $ "Result " ++ show res

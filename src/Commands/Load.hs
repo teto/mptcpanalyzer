@@ -94,8 +94,14 @@ loadPcapIntoFrame params path = do
                 $(logTM) InfoS $ logStr $ "exported to file " ++ show tempPath
                 frame <- liftIO $ loadRows tempPath
                 liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
+                cacheRes <- putCache cacheId tempPath
+                if cacheRes then
+                  $(logTM) InfoS $ logStr "Saved into cache"
+                else
+                  -- TODO do nothing
+                  void
+
                 return $ Just frame
-                -- putCache cacheId
                 -- TODO update the state too
                 -- pass
               else do
@@ -116,8 +122,13 @@ loadPcapIntoFrame params path = do
     where
       cacheId = CacheId [path] "" ""
       fields :: [String]
+      -- TODO check baseFields
       fields = [
-        "tcp.stream"
+        "frame.interface_name",
+        "_ws.col.ipsrc",
+        "_ws.col.ipdst",
+        "tcp.stream",
+        "mptcp.stream"
         ]
       opts :: TempFileOptions
       opts = TempFileOptions True
