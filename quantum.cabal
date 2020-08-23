@@ -31,9 +31,11 @@ common shared-properties
     build-depends: base >= 4.12 && < 4.20, optparse-applicative,
       containers
       , katip
-      , bytestring, process, ip,
-       netlink >= 1.1.1.0, bytestring-conversion
+      , bytestring, process
+      , ip
+      , netlink >= 1.1.1.0, bytestring-conversion
        , transformers
+       , template-haskell
        , exceptions
        , ghc-prim
        , foldl
@@ -77,7 +79,8 @@ common shared-properties
 -- and delegate the behavior to a monitor
 executable mptcpanalyzer
     import: shared-properties
-    Other-modules:     Pcap, Cache, Commands.Load, Columns, Commands.Utils, Commands.List, Utils, Connection
+    Other-modules:     Pcap, Cache, Commands.Load, Columns, Commands.Utils, Commands.List, Utils, Connection,
+        Plots.Stream
     -- for now reference mptcp-pm but later move part to a core
     -- build-depends: mptcp-pm >= 0.0.3
     -- ghc-options: -prof

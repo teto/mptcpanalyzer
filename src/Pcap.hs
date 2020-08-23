@@ -15,7 +15,7 @@ module Pcap(PcapFrame, TsharkParams(..),
     , generateCsvCommand
     , exportToCsv
     , loadRows
-    , getTcpStream
+    , getTcpStreams
     )
 where
 
@@ -43,6 +43,8 @@ import Data.List (intercalate)
 -- for symbol
 -- import GHC.Types
 import qualified Control.Foldl as L
+import Language.Haskell.TH
+-- import Language.Haskell.TH.Syntax
 
 -- import Lens.Micro
 -- import Lens.Micro.Extras
@@ -132,14 +134,17 @@ import Control.Lens
 -- TODO support TcpFlags / IPAddress and list of XXX
 type MyColumns = IP ': CommonColumns
 
+-- type MyColumns =  SkillLevel ': NumericalAnswer ': CommonColumns
+
 -- this declares Tcpstream = "tcpstrean" :-> Int for instance
+-- TODO use explicit one !
 tableTypes' (rowGen "data/simple.csv" )
             { rowTypeName = "Packet"
             , separator = "|"
             -- pass specific columns such as tcpflags, lists, ipsrc
             -- , columnUniverse
             -- , columnUniverse = $(colQ ''MyColumns)
-            , columnNames = ["tcpstream", "tcpflags", "ipsrc"]
+            -- , columnNames = ["tcpstream", "tcpflags", "ipsrc", "ipdst", "mptcpstream"]
             -- , tablePrefix = "NoHead"
             }
 
@@ -150,7 +155,7 @@ type PcapFrame = Frame Packet
 data TsharkFieldDesc = TsharkFieldDesc {
         fullname :: String
         -- ^Test
-        -- , colType :: Symbol
+        , colType :: Q Type
         -- , colType :: TsharkField
         -- ^How to reference it in plot
         , label :: Maybe String
@@ -234,10 +239,7 @@ exportToCsv params pcapPath path fd = do
     -- else
     where
       fields :: [String]
-      fields = [
-        "tcp.stream",
-        "mptcp.stream"
-        ]
+      fields = map (\(_, desc) -> (fullname desc)) baseFields
 
 -- custom data
 -- data PcapCustom = PcapCustom {
@@ -249,7 +251,16 @@ exportToCsv params pcapPath path fd = do
 -- "data/server_2_filtered.pcapng.csv"
 loadRows :: FilePath -> IO (PcapFrame)
 loadRows path = inCoreAoS (
-    readTable path
+    -- readTableExplicit path
+    -- first arg is [Q Type]
+    tableTypesExplicit'
+  -- [[t|Ident Int|], [t|Happiness|]]
+  [e| map (\x -> colType x) baseFields|]
+
+  rowGen
+    { rowTypeName = "Person"
+    }
+    path
     )
 
 -- http://acowley.github.io/Frames/#orgf328b25
@@ -292,13 +303,14 @@ baseFields = [
     -- 'UInt64'
     -- SFullName "frame.number" :& (SName "packetid") :&  False False
     -- " "interface"
-    ("packetid", TsharkFieldDesc "frame.interface_name"  Nothing False),
-    ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" (Just "source ip") False),
-    ("ipdst", TsharkFieldDesc "_ws.col.ipdst" Nothing False),
+    ("packetid", TsharkFieldDesc "frame.interface_name" [t|String|] Nothing False),
+    ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" [t|IP|](Just "source ip") False),
+    ("ipdst", TsharkFieldDesc "_ws.col.ipdst" [t|IP|] Nothing False),
     -- Field "ip.src_host" "ipsrc_host" str False False,
     -- Field "ip.dst_host" "ipdst_host" str False False,
-    ("tcpstream", TsharkFieldDesc "tcp.stream" Nothing False),
-    ("sport", TsharkFieldDesc "tcp.srcport" Nothing False)
+    ("tcpstream", TsharkFieldDesc "tcp.stream" [t|Int|] Nothing False),
+    -- TODO use Word32 instead
+    ("sport", TsharkFieldDesc "tcp.srcport" [t|Int|] Nothing False)
     -- Field "tcp.dstport" "dport" 'UInt16' False False,
     -- Field "tcp.dstport" "dport" 'UInt16' False False,
     -- Field "frame.time_relative" "reltime" str "Relative time" False False
@@ -323,9 +335,9 @@ baseFields = [
 -- Fold a b
 
 -- nub => remove duplicates
-getTcpStream :: PcapFrame -> [Int]
-getTcpStream ps =
-    L.fold L.nub (view tcpstream <$> ps)
+getTcpStreams :: PcapFrame -> [Int]
+getTcpStreams ps =
+    L.fold L.nub (view tcpStream <$> ps)
 
 -- mptcpFields :: [TsharkField]
 -- mptcpFields = [

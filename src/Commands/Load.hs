@@ -95,11 +95,12 @@ loadPcapIntoFrame params path = do
                 frame <- liftIO $ loadRows tempPath
                 liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
                 cacheRes <- putCache cacheId tempPath
+                -- use ifThenElse instead
                 if cacheRes then
                   $(logTM) InfoS $ logStr "Saved into cache"
                 else
                   -- TODO do nothing
-                  void
+                  pure ()
 
                 return $ Just frame
                 -- TODO update the state too

@@ -14,14 +14,19 @@ import Control.Monad.Trans (liftIO)
 import Control.Monad.State (get)
 import Utils
 
+-- for TcpConnection
+-- import Net.Tcp
 
-type MptcpStreamId = Int
-type TcpStreamId = Int
+
+-- Phantom types
+data Mptcp
+data Tcp
+data StreamId a = StreamId Int deriving (Show, Read, Eq, Ord)
 
 -- This 
 data ParserListSubflows = ParserListSubflows {
   full :: Bool,
-  streamId :: MptcpStreamId
+  tcpStreamId :: StreamId Tcp
 }
 
 -- |TODO pass the loaded pcap to have a complete filterWith
@@ -56,6 +61,13 @@ optsListSubflows = info (parserSubflow <**> helper)
 -- checkIfLoaded = 
     -- putStrLn "not loaded"
 
+
+-- |
+-- buildConnectionFromTcpStreamId :: PcapFrame -> StreamId Tcp -> Maybe TcpConnection
+-- buildConnectionFromTcpStreamId frame streamId =
+    -- Search for SYN flags
+    -- (view tcpstream <$> frame)
+
 listTcpConnections :: CMD.CommandConstraint m => [String] -> m CMD.RetCode
 listTcpConnections params = do
     state <- get
@@ -63,17 +75,17 @@ listTcpConnections params = do
     case loadedPcap of
       Nothing -> liftIO $ putStrLn "please load a pcap first" >> return CMD.Continue
       Just frame -> do
-                    liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
-                    >> return CMD.Continue
+        let tcpstreams = getTcpStreams frame
+        liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
+        >> return CMD.Continue
                     -- liftIO $ listTcpConnectionsInFrame frame >> return CMD.Continue
 
     -- liftIO $ putStrLn "list tcp connections:" >> return CMD.Continue
-  
 
 listTcpConnectionsInFrame :: PcapFrame -> IO ()
 listTcpConnectionsInFrame frame = do
   putStrLn "Listing tcp connections"
-  let streamIds = getTcpStream frame
+  let streamIds = getTcpStreams frame
   mapM_ (\x -> putStrLn $ show x) streamIds
   return ()
 
