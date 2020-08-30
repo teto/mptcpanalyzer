@@ -21,6 +21,8 @@ where
 
 
 -- import Frames.InCore (VectorFor)
+import qualified Data.Text as T
+import Tshark.TH
 import Net.IP
 import System.IO (Handle, hGetContents)
 import System.Process
@@ -130,30 +132,11 @@ import Control.Lens
 -- type FrameRec rs = Frame (Record rs)
 -- type PcapFrame = Frame SimpleRecord
   -- type FrameMerged = FrameRec
-
--- TODO support TcpFlags / IPAddress and list of XXX
-type MyColumns = IP ': CommonColumns
-
--- type MyColumns =  SkillLevel ': NumericalAnswer ': CommonColumns
-
--- this declares Tcpstream = "tcpstrean" :-> Int for instance
--- TODO use explicit one !
-tableTypes' (rowGen "data/simple.csv" )
-            { rowTypeName = "Packet"
-            , separator = "|"
-            -- pass specific columns such as tcpflags, lists, ipsrc
-            -- , columnUniverse
-            -- , columnUniverse = $(colQ ''MyColumns)
-            -- , columnNames = ["tcpstream", "tcpflags", "ipsrc", "ipdst", "mptcpstream"]
-            -- , tablePrefix = "NoHead"
-            }
-
-type PcapFrame = Frame Packet
-
 -- TODO DateField / List
 -- use higher kinded fields ?
+-- tableTypes'
 data TsharkFieldDesc = TsharkFieldDesc {
-        fullname :: String
+        fullname :: T.Text
         -- ^Test
         , colType :: Q Type
         -- , colType :: TsharkField
@@ -164,12 +147,119 @@ data TsharkFieldDesc = TsharkFieldDesc {
     }
     -- deriving (Read, Generic)
 
+-- TODO support TcpFlags / IPAddress and list of XXX
+type MyColumns = IP ': CommonColumns
+
+-- packetParser :: ParserOptions
+-- packetParser = ParserOptions (Just (map T.pack ["tcpstream"
+--                                              -- , "age"
+--                                              -- , "gender"
+--                                              -- , "occupation"
+--                                              -- , "zip code"
+--                               ]))
+--                            (T.pack "|")
+--                            (Frames.CSV.RFC4180Quoting '"')
+-- packetStream :: MonadSafe m => Producer SimpleRecord m ()
+-- packetStream = readTableOpt packetParser "data/ml-100k/u.user"
+
+-- F.Foldl 
+-- ps = packet stream
+-- nub :: Ord a => Fold a [a]
+-- Fold a b
+
+-- mptcpFields :: [TsharkField]
+-- mptcpFields = [
+--         -- # TODO use 'category'
+--         -- # rawvalue is tcp.window_size_value
+--         -- # tcp.window_size takes into account scaling factor !
+--         Field "tcp.window_size" "rwnd" 'Int64' True True
+--         Field "tcp.flags" "tcpflags" 'UInt8' False True _convert_flags
+--         Field "tcp.option_kind" "tcpoptions" None False False
+--             -- functools.partial(_load_list field="option_kind") )
+--         Field "tcp.seq" "tcpseq" 'UInt32' "TCP sequence number" True
+--         Field "tcp.len" "tcplen" 'UInt16' "TCP segment length" True
+--         Field "tcp.ack" "tcpack" 'UInt32' "TCP segment acknowledgment" True
+--         Field "tcp.options.timestamp.tsval" "tcptsval" 'Int64'
+--             "TCP timestamp tsval" True
+--         Field "tcp.options.timestamp.tsecr" "tcptsecr" 'Int64'
+--             "TCP timestamp tsecr" True
+--     ]
+
+-- this declares Tcpstream = "tcpstrean" :-> Int for instance
+-- TODO use explicit one !
+-- tableTypes' (rowGen "data/simple.csv" )
+--             { rowTypeName = "Packet"
+--             , separator = "|"
+--             -- pass specific columns such as tcpflags, lists, ipsrc
+--             -- , columnUniverse
+--             -- , columnUniverse = $(colQ ''MyColumns)
+--             -- , columnNames = ["tcpstream", "tcpflags", "ipsrc", "ipdst", "mptcpstream"]
+--             -- , tablePrefix = "NoHead"
+--             }
+
+-- RowGen [] "" defaultSep "Row" Proxy . produceTokens
+-- data RowGen (a :: [GHC.Type]) =
+--   RowGen { columnNames    :: [String]
+--            -- ^ Use these column names. If empty, expect a
+--            -- header row in the data file to provide
+--            -- column names.
+--          , tablePrefix    :: String
+--            -- ^ A common prefix to use for every generated
+--            -- declaration.
+--          , separator      :: Separator
+--            -- ^ The string that separates the columns on a
+--            -- row.
+--          , rowTypeName    :: String
+--            -- ^ The row type that enumerates all
+--            -- columns.
+--          , columnUniverse :: Proxy a
+--            -- ^ A record field that mentions the phantom type list of
+--            -- possible column types. Having this field prevents record
+--            -- update syntax from losing track of the type argument.
+--          , lineReader :: Separator -> P.Producer [T.Text] (P.SafeT IO) ()
+--            -- ^ A producer of rows of ’T.Text’ values that were
+--            -- separated by a 'Separator' value.
+--          }
+-- colDec
+-- colDec prefix rowName colName colTypeGen = do
+-- rowGenFromFields :: [TsharkFieldDesc] -> RowGen a
+-- rowGenFromFields fields = RowGen
+--       (map (T.unpack fullname) fields) -- column names
+--       "" -- table prefix
+--       "|" -- separator
+--       "Packet" -- packet name (rowTypeName)
+--       Proxy .       -- column universe
+--       produceTokens -- line reader
+
+--   (map (\(shortName, desc) -> declareColumn x) baseFields)
+-- [Q Type]
+
+
+-- [[t|Ident Int|], [t|Happiness|]]
+tableTypesExplicit'
+  getTypes
+  (rowGen "data/simple.csv" )
+  { rowTypeName = "Packet"
+        , separator = "|"
+    }
+    -- path
+    "data/simple.csv"
+
+type PcapFrame = Frame Packet
+
+
 data TsharkParams = TsharkParams {
       tsharkBinary :: String,
       tsharkOptions :: [(String, String)],
       csvDelimiter :: Char,
       tsharkReadFilter :: Maybe String
     }
+
+-- nub => remove duplicates
+getTcpStreams :: PcapFrame -> [Int]
+getTcpStreams ps =
+    L.fold L.nub (view tcpStream <$> ps)
+
 
 -- |Generate the tshark command to export a pcap into a csv
 generateCsvCommand :: [String] -- ^Fields to exports e.g., "mptcp.stream"
@@ -249,18 +339,18 @@ exportToCsv params pcapPath path fd = do
 
 -- No instance for (Parseable Word32)
 -- "data/server_2_filtered.pcapng.csv"
-loadRows :: FilePath -> IO (PcapFrame)
+loadRows :: FilePath -> IO PcapFrame
 loadRows path = inCoreAoS (
     -- readTableExplicit path
     -- first arg is [Q Type]
-    tableTypesExplicit'
-  -- [[t|Ident Int|], [t|Happiness|]]
-  [e| map (\x -> colType x) baseFields|]
+    -- tableTypesExplicit'
+  -- -- [[t|Ident Int|], [t|Happiness|]]
+  -- [e| map (\x -> colType x) baseFields|]
 
-  rowGen
-    { rowTypeName = "Person"
-    }
-    path
+  -- rowGen
+    -- { rowTypeName = "Person"
+    -- }
+    -- path
     )
 
 -- http://acowley.github.io/Frames/#orgf328b25
@@ -297,62 +387,3 @@ defaultTsharkPrefs = TsharkParams {
       tsharkReadFilter = Just "mptcp or tcp and not icmp"
     }
 
--- :->
-baseFields :: [(String, TsharkFieldDesc)]
-baseFields = [
-    -- 'UInt64'
-    -- SFullName "frame.number" :& (SName "packetid") :&  False False
-    -- " "interface"
-    ("packetid", TsharkFieldDesc "frame.interface_name" [t|String|] Nothing False),
-    ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" [t|IP|](Just "source ip") False),
-    ("ipdst", TsharkFieldDesc "_ws.col.ipdst" [t|IP|] Nothing False),
-    -- Field "ip.src_host" "ipsrc_host" str False False,
-    -- Field "ip.dst_host" "ipdst_host" str False False,
-    ("tcpstream", TsharkFieldDesc "tcp.stream" [t|Int|] Nothing False),
-    -- TODO use Word32 instead
-    ("sport", TsharkFieldDesc "tcp.srcport" [t|Int|] Nothing False)
-    -- Field "tcp.dstport" "dport" 'UInt16' False False,
-    -- Field "tcp.dstport" "dport" 'UInt16' False False,
-    -- Field "frame.time_relative" "reltime" str "Relative time" False False
-    -- Field "frame.time_epoch" "abstime" str "seconds+Nanoseconds time since epoch" False False
-    ]
-
--- packetParser :: ParserOptions
--- packetParser = ParserOptions (Just (map T.pack ["tcpstream"
---                                              -- , "age"
---                                              -- , "gender"
---                                              -- , "occupation"
---                                              -- , "zip code"
---                               ]))
---                            (T.pack "|")
---                            (Frames.CSV.RFC4180Quoting '"')
--- packetStream :: MonadSafe m => Producer SimpleRecord m ()
--- packetStream = readTableOpt packetParser "data/ml-100k/u.user"
-
--- F.Foldl 
--- ps = packet stream
--- nub :: Ord a => Fold a [a]
--- Fold a b
-
--- nub => remove duplicates
-getTcpStreams :: PcapFrame -> [Int]
-getTcpStreams ps =
-    L.fold L.nub (view tcpStream <$> ps)
-
--- mptcpFields :: [TsharkField]
--- mptcpFields = [
---         -- # TODO use 'category'
---         -- # rawvalue is tcp.window_size_value
---         -- # tcp.window_size takes into account scaling factor !
---         Field "tcp.window_size" "rwnd" 'Int64' True True
---         Field "tcp.flags" "tcpflags" 'UInt8' False True _convert_flags
---         Field "tcp.option_kind" "tcpoptions" None False False
---             -- functools.partial(_load_list field="option_kind") )
---         Field "tcp.seq" "tcpseq" 'UInt32' "TCP sequence number" True
---         Field "tcp.len" "tcplen" 'UInt16' "TCP segment length" True
---         Field "tcp.ack" "tcpack" 'UInt32' "TCP segment acknowledgment" True
---         Field "tcp.options.timestamp.tsval" "tcptsval" 'Int64'
---             "TCP timestamp tsval" True
---         Field "tcp.options.timestamp.tsecr" "tcptsecr" 'Int64'
---             "TCP timestamp tsecr" True
---     ]
