@@ -135,20 +135,9 @@ import Control.Lens
 -- TODO DateField / List
 -- use higher kinded fields ?
 -- tableTypes'
-data TsharkFieldDesc = TsharkFieldDesc {
-        fullname :: T.Text
-        -- ^Test
-        , colType :: Q Type
-        -- , colType :: TsharkField
-        -- ^How to reference it in plot
-        , label :: Maybe String
-        -- ^Wether to take into account this field when creating a hash of a packet
-        , hash :: Bool
-    }
-    -- deriving (Read, Generic)
 
 -- TODO support TcpFlags / IPAddress and list of XXX
-type MyColumns = IP ': CommonColumns
+-- type MyColumns = IP ': CommonColumns
 
 -- packetParser :: ParserOptions
 -- packetParser = ParserOptions (Just (map T.pack ["tcpstream"
@@ -235,9 +224,10 @@ type MyColumns = IP ': CommonColumns
 -- [Q Type]
 
 
+-- on veut la generer
 -- [[t|Ident Int|], [t|Happiness|]]
 tableTypesExplicit'
-  getTypes
+  (getTypes baseFields)
   (rowGen "data/simple.csv" )
   { rowTypeName = "Packet"
         , separator = "|"

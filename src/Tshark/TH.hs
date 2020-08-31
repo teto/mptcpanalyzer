@@ -1,29 +1,48 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell            #-}
 module Tshark.TH
 where
+
+import qualified Data.Text as T
+import Language.Haskell.TH
+import Net.IP
+import Data.Word (Word8, Word16, Word32, Word64)
+-- import Language.Haskell.TH.Syntax
+
+data TsharkFieldDesc = TsharkFieldDesc {
+        fullname :: T.Text
+        -- ^Test
+        , colType :: Q Type
+        -- , colType :: TsharkField
+        -- ^How to reference it in plot
+        , label :: Maybe String
+        -- ^Wether to take into account this field when creating a hash of a packet
+        , hash :: Bool
+    }
+    -- deriving (Read, Generic)
 
 -- baseFields :: [(String, TsharkFieldDesc)]
 -- type MyColumns =  SkillLevel ': NumericalAnswer ': CommonColumns
 baseFields :: [(String, TsharkFieldDesc)]
 baseFields = [
     -- 'UInt64'
-    -- SFullName "frame.number" :& (SName "packetid") :&  False False
     -- " "interface"
-    ("packetid", TsharkFieldDesc "frame.interface_name" [t|String|] Nothing False),
-    ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" [t|IP|](Just "source ip") False),
+    ("packetid", TsharkFieldDesc "frame.number" [t|Word64|] Nothing False),
+    ("ifname", TsharkFieldDesc "frame.interface_name" [t|String|] Nothing False),
+    ("abstime", TsharkFieldDesc "frame.time_epoch" [t|String|] Nothing False),
+    ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" [t|IP|] (Just "source ip") False),
     ("ipdst", TsharkFieldDesc "_ws.col.ipdst" [t|IP|] Nothing False),
-    -- Field "ip.src_host" "ipsrc_host" str False False,
-    -- Field "ip.dst_host" "ipdst_host" str False False,
     ("tcpstream", TsharkFieldDesc "tcp.stream" [t|Int|] Nothing False),
     -- TODO use Word32 instead
-    ("sport", TsharkFieldDesc "tcp.srcport" [t|Int|] Nothing False)
-    -- Field "tcp.dstport" "dport" 'UInt16' False False,
-    -- Field "tcp.dstport" "dport" 'UInt16' False False,
-    -- Field "frame.time_relative" "reltime" str "Relative time" False False
-    -- Field "frame.time_epoch" "abstime" str "seconds+Nanoseconds time since epoch" False False
+    ("sport", TsharkFieldDesc "tcp.srcport" [t|Word16|] Nothing False),
+    ("dport", TsharkFieldDesc "tcp.dstport" [t|Word16|] Nothing False),
+    -- TODO read as a list
+    ("tcpflags", TsharkFieldDesc "tcp.dstport" [t|String|] Nothing False),
+    ("tcpoptionkind", TsharkFieldDesc "tcp.dstport" [t|Word32|] Nothing False),
+    ("tcpseq", TsharkFieldDesc "tcp.seq" [t|Word32|] (Just "Sequence number") False),
+    ("tcpack", TsharkFieldDesc "tcp.ack" [t|Word32|] (Just "Acknowledgement") False)
     ]
 
 
-getTypes :: [Tshark] -> [Q Type]
-getTypes = do 
-  [| map (\x -> colType x) baseFields |]
+getTypes :: [(String, TsharkFieldDesc)] -> [Q Type]
+getTypes = map (\(_, x) -> colType x)

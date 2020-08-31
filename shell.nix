@@ -10,16 +10,26 @@ let
   compiler = pkgs.haskell.packages."${compilerName}";
   pkgs = nixpkgs.pkgs;
 
+  hsEnv = pkgs.haskellPackages.ghcWithPackages(hs: [
+    # hs.cairo
+    hs.diagrams
+  ]);
   my_pkg = (import ./. { inherit compiler; } );
 in
     pkgs.mkShell {
     name = "quantum";
     buildInputs = with pkgs; [
-      ghc
+      # cairo
+      glib
+      hsEnv
+      pkg-config
+      zlib
+      zlib.dev
       haskellPackages.cabal-install
       haskellPackages.ghcide
       haskellPackages.stylish-haskell
       haskellPackages.hlint
+      # haskellPackages.stan  # broken
     ];
   }
 
