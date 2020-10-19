@@ -32,7 +32,9 @@ common shared-properties
       , containers
       , diagrams
       , katip
-      , katip
+      , readable
+      , polysemy
+      , polysemy-plugin
       , bytestring, process
       , ip
       , netlink >= 1.1.1.0, bytestring-conversion
@@ -69,11 +71,23 @@ common shared-properties
        -- , bitset  -- bitset, interesting but broken
        , mptcp-pm >= 0.0.3
     default-language: Haskell2010
-    -- -fno-warn-unused-imports 
+    -- -fno-warn-unused-imports
     -- -fforce-recomp  makes it build twice
-    ghc-options: -Wall -fno-warn-unused-binds -fno-warn-unused-matches -threaded -fprof-auto -rtsopts
-    default-extensions:  FlexibleContexts           
-    -- Other-modules:     
+    ghc-options: -Wall -fno-warn-unused-binds -fno-warn-unused-matches -threaded -fprof-auto -rtsopts -fplugin=Polysemy.Plugin
+    default-extensions:
+        FlexibleContexts
+        , DataKinds
+        , FlexibleContexts
+        , GADTs
+        , LambdaCase
+        , PolyKinds
+        , RankNTypes
+        , ScopedTypeVariables
+        , TemplateHaskell
+        , TypeApplications
+        , TypeOperators
+        , TypeFamilies
+    -- Other-modules:
 
 
 

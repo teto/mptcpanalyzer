@@ -26,9 +26,10 @@ in
       zlib
       zlib.dev
       haskellPackages.cabal-install
-      haskellPackages.ghcide
+      # haskellPackages.ghcide
       haskellPackages.stylish-haskell
       haskellPackages.hlint
+      haskellPackages.haskell-language-server
       # haskellPackages.stan  # broken
     ];
   }

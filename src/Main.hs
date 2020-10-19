@@ -37,6 +37,8 @@ import qualified Data.Map         as HM
 import qualified Commands.Utils         as CMD
 import Commands.List
 
+import Polysemy
+
 -- for noCompletion
 import System.Console.Haskeline
 -- import Data.List (isPrefixOf)

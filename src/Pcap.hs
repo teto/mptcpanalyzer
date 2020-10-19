@@ -228,12 +228,12 @@ import Control.Lens
 -- [[t|Ident Int|], [t|Happiness|]]
 tableTypesExplicit'
   (getTypes baseFields)
-  (rowGen "data/simple.csv" )
+  (rowGen "data/test-simple.csv" )
   { rowTypeName = "Packet"
         , separator = "|"
     }
     -- path
-    "data/simple.csv"
+    "data/test-simple.csv"
 
 type PcapFrame = Frame Packet
 
