@@ -103,6 +103,9 @@ newtype MyStack m a = MyStack {
 --   liftBaseWith = defaultLiftBaseWith
 --   restoreM = defaultRestoreM
 
+data Log m a where
+  LogInfo :: String -> Log m ()
+makeSem ''Log
 
 instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
   getLogEnv = do
