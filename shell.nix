@@ -49,9 +49,12 @@ in
   # # --package-db /home/teto/netlink-hs/dist/package.conf.inplace
   # # --package-db /home/teto/mptcppm/dist/package.conf.inplace
   #     export HIE_HOOGLE_DATABASE="$NIX_GHC_LIBDIR/../../share/doc/hoogle/index.html"
+
+  # ASAN_OPTIONS=abort_on_error=1
+  # halt_on_error=0"
   shellHook = ''
     # check if it's still needed ?
-    export ASAN_OPTIONS="log_path=./test.log:halt_on_error=0"
+    export ASAN_OPTIONS="log_path=./test.log:abort_on_error=1"
     export UBSAN_OPTIONS=print_stacktrace=1
     export VIMRUNTIME=/home/teto/neovim2/runtime
   '';
