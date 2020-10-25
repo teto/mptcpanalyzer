@@ -54,6 +54,8 @@ in
   # halt_on_error=0"
   shellHook = ''
     # check if it's still needed ?
+    export NVIM_LOG_FILE=/tmp/log
+
     export ASAN_OPTIONS="log_path=./test.log:abort_on_error=1"
     export UBSAN_OPTIONS=print_stacktrace=1
     export VIMRUNTIME=/home/teto/neovim2/runtime

@@ -38,6 +38,7 @@ import qualified Commands.Utils         as CMD
 import Commands.List
 
 import Polysemy
+import Polysemy.Reader
 
 -- for noCompletion
 import System.Console.Haskeline
