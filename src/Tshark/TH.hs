@@ -28,6 +28,13 @@ data TsharkFieldDesc = TsharkFieldDesc {
     }
     -- deriving (Read, Generic)
 
+-- genRow :: [ TsharkFieldDesc ] -> Q Type
+-- genRow fields = rowTy
+--   where f field = fullname field :-> colType field
+--         rowTy = TySynD (mkName rowTypeName) [] (recDec colTypes)
+
+-- mkColSynDec
+
 -- baseFields :: [(String, TsharkFieldDesc)]
 -- type MyColumns =  SkillLevel ': NumericalAnswer ': CommonColumns
 -- frame.number,frame.interface_name,frame.time_epoch,_ws.col.ipsrc,_ws.col.ipdst,ip.src_host,ip.dst_host,tcp.stream,tcp.srcport,tcp.dstport,tcp.flags,tcp.option_kind,tcp.seq,tcp.len,tcp.ack

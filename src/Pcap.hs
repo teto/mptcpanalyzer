@@ -9,6 +9,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts, QuasiQuotes #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Pcap(PcapFrame, TsharkParams(..),
     defaultTsharkPrefs
     , defaultTsharkOptions
@@ -19,7 +20,8 @@ module Pcap(PcapFrame, TsharkParams(..),
     )
 where
 
-
+import Frames.InCore (VectorFor)
+import qualified Data.Vector as V
 -- import Frames.InCore (VectorFor)
 import qualified Data.Text as T
 import Tshark.TH
@@ -36,18 +38,18 @@ import Frames
 -- import Frames.CSV
 -- for Record
 -- import Frames.Rec (Record(..))
--- import Frames.ColumnTypeable
+import Frames.ColumnTypeable
 import Data.List (intercalate)
 -- for symbol
 -- import GHC.Types
 import qualified Control.Foldl as L
-import Language.Haskell.TH
+-- import Language.Haskell.TH
 -- import Language.Haskell.TH.Syntax
 -- import Lens.Micro
 -- import Lens.Micro.Extras
 import Control.Lens
 -- import qualified Data.Vector as V
-import Data.Word (Word16, Word32, Word64)
+import Data.Word (Word16, Word64)
 
 -- instance Parseable TsharkField where
 --   representableAsType
@@ -82,25 +84,17 @@ import Data.Word (Word16, Word32, Word64)
 --     ]
 
 
--- colDec prefix rowName colName colTypeGen = do
--- rowGenFromFields :: [TsharkFieldDesc] -> RowGen a
--- rowGenFromFields fields = RowGen
---       (map (T.unpack fullname) fields) -- column names
---       "" -- table prefix
---       "|" -- separator
---       "Packet" -- packet name (rowTypeName)
---       Proxy .       -- column universe
---       produceTokens -- line reader
-
 --   (map (\(shortName, desc) -> declareColumn x) baseFields)
 -- [Q Type]
+
+
+-- tableTypes "Packet" "data/test-simple.csv"
 
 
 -- on veut la generer
 -- [[t|Ident Int|], [t|Happiness|]]
 -- tableTypesExplicit' :: [Q Type] -> RowGen a -> FilePath -> DecsQ
 -- tableTypesExplicit'
-tableTypes "Packet" "data/test-simple.csv"
 
 -- tableTypesExplicit'
 --   (getTypes baseFields)
@@ -115,7 +109,31 @@ tableTypes "Packet" "data/test-simple.csv"
 --     -- path
 --     "data/test-simple.csv"
 
-type PcapFrame = Frame Packet
+instance Frames.ColumnTypeable.Parseable Word16 where
+  parse = parseIntish
+
+instance Frames.ColumnTypeable.Parseable Word64 where
+  parse = parseIntish
+
+declareColumn "frameNumber" ''Word64
+declareColumn "tcpStream" '' Word64
+declareColumn "tcpSrcPort" ''Word16
+declareColumn "tcpDestPort" ''Word16
+
+type ManColumns = '["frame.number" :-> Word64
+                    , "tcp.stream" :-> Word64
+                    , "tcp.srcport" :-> Word16
+                    , "tcp.dstport" :-> Word16
+                    ]
+
+-- type ManRowPacket = Record ManColumns
+type ManRowPacket = Record [FrameNumber, TcpStream, TcpSrcPort, TcpDestPort]
+type ManMaybe = Rec (Maybe :. ElField) ManColumns
+type instance VectorFor Word16 = V.Vector
+type instance VectorFor Word64 = V.Vector
+
+-- type PcapFrame = Frame Packet
+type PcapFrame = Frame ManRowPacket
 
 
 data TsharkParams = TsharkParams {
@@ -126,7 +144,7 @@ data TsharkParams = TsharkParams {
     }
 
 -- nub => remove duplicates
-getTcpStreams :: PcapFrame -> [Int]
+getTcpStreams :: PcapFrame -> [Word64]
 getTcpStreams ps =
     L.fold L.nub (view tcpStream <$> ps)
 
@@ -206,26 +224,16 @@ exportToCsv params pcapPath path fd = do
 -- No instance for (Parseable Word32)
 -- "data/server_2_filtered.pcapng.csv"
 loadRows :: FilePath -> IO PcapFrame
-loadRows _path = undefined
--- inCoreAoS (
-    -- readTableExplicit path
-    -- first arg is [Q Type]
-    -- tableTypesExplicit'
-  -- -- [[t|Ident Int|], [t|Happiness|]]
-  -- [e| map (\x -> colType x) baseFields|]
-
-  -- rowGen
-    -- { rowTypeName = "Person"
-    -- }
-    -- path
-    -- )
+loadRows path = inCoreAoS (
+  readTable path
+  )
 
 -- http://acowley.github.io/Frames/#orgf328b25
 -- movieStream :: MonadSafe m => Producer User m ()
 -- movieStream = readTableOpt userParser "data/ml-100k/u.user"
 
+-- todo pass as text ?
 -- derive from Order ?
--- define as a set ?
 defaultTsharkOptions :: [(String, String)]
 defaultTsharkOptions = [
       -- TODO join these

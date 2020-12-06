@@ -132,7 +132,7 @@ instance (MonadState MyState (MyStack m), Katip (MyStack m)) => KatipContext (My
 
 
 cacheCheckValidity :: CacheId -> MyStack IO Bool
-cacheCheckValidity cid = return False
+cacheCheckValidity _cid = return False
 
 
 data CLIArguments = CLIArguments {
@@ -178,7 +178,7 @@ data Sample = Sample
 
 sample :: Parser CLIArguments
 sample = CLIArguments
-      <$> (optional $ strOption
+      <$> optional ( strOption
           ( long "load"
           <> short 'l'
          <> help "Either a pcap or a csv file (in good format).\
@@ -368,9 +368,6 @@ inputLoop = do
     case cmdCode of
         CMD.Exit -> return ()
         _behavior -> inputLoop
-
-
--- type TcpStreamT = "tcpstream" :-> Word32
 
 
 data SimpleData = SimpleData {
