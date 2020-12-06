@@ -1,1 +1,35 @@
+source-repository-package
+  type: git
+  location: https://github.com/Ongy/netlink-hs
+
+-- source-repository-package
+--     type: git
+--     location: https://github.com/sjakobi/svg-builder
+--     tag: ff3a4b0fdfcdf8cfa0d08564733024b63121bd65
+-- 
+-- source-repository-package
+--     type: git
+--     location: https://github.com/diagrams/monoid-extras
+--     tag: 216a82109c38bf0c692b32db11a424bcb0b54f8e
+-- 
+-- source-repository-package
+--     type: git
+--     location: https://github.com/TravisWhitaker/active
+--     tag:8e5f8d7ebf12970dbe65c5df36e44c12f9b221ab
+-- 
+-- source-repository-package
+--     type: git
+--     location: https://github.com/thielema/diagrams-lib
+--     tag: 2d06dfca86292b454cc0041aef6e68b646237f3d
+-- 
+-- source-repository-package
+--     type: git
+--     location: https://github.com/TravisWhitaker/dual-tree
+--     tag: bd8e5b75f7e117420ade237e62a025a511361061
+-- 
+-- source-repository-package
+--     type: git
+--     location: https://github.com/TravisWhitaker/diagrams-core
+--     tag: a9456cf1c6cd3aff2c4dbf095df6dec6e51fa21c
+
 packages: ../mptcppm/  ./*.cabal ../Frames

@@ -3,17 +3,17 @@
   nixpkgs ? import ./pinned_nixpkgs.nix
   # nixpkgs ? import <nixpkgs> {}
   # , compilerName ? "ghc8101" # not supported yet
-  , compilerName ? "ghc884"
+  , compilerName ? "ghc8102"
 }:
 
 let
   compiler = pkgs.haskell.packages."${compilerName}";
   pkgs = nixpkgs.pkgs;
 
-  hsEnv = pkgs.haskellPackages.ghcWithPackages(hs: [
-    # hs.cairo
-    hs.diagrams
-  ]);
+  # hsEnv = pkgs.haskellPackages.ghcWithPackages(hs: [
+  #   # hs.cairo
+  #   hs.diagrams
+  # ]);
   my_pkg = (import ./. { inherit compiler; } );
 in
     pkgs.mkShell {
@@ -21,14 +21,14 @@ in
     buildInputs = with pkgs; [
       # cairo
       glib
-      hsEnv
+      # hsEnv
       pkg-config
       zlib
       zlib.dev
       haskellPackages.cabal-install
-      # haskellPackages.ghcide
       haskellPackages.stylish-haskell
-      haskellPackages.hlint
+      haskellPackages.hasktags
+      # haskellPackages.hlint
       haskellPackages.haskell-language-server
 
       pkgs.llvm_11  # for llvm-symbolizer
@@ -58,6 +58,6 @@ in
 
     export ASAN_OPTIONS="log_path=./test.log:abort_on_error=1"
     export UBSAN_OPTIONS=print_stacktrace=1
-    export VIMRUNTIME=/home/teto/neovim2/runtime
+    export VIMRUNTIME=/home/teto/neovim3/runtime
   '';
   }

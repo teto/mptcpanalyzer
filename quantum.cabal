@@ -18,11 +18,6 @@ Source-repository head
   location:   https://github.com/teto/quantum
 
 
-Flag Dev {
-  Description: Develop with a local netlink library
-  Default:     True
-}
-
 
 -- aeson to (de)serialize to json
 -- text is used to convert from string and in aeson
@@ -30,14 +25,16 @@ Flag Dev {
 common shared-properties
     build-depends: base >= 4.12 && < 4.20, optparse-applicative
       , containers
-      , diagrams
+      -- diagrams is not ready for 8.10
+      -- , diagrams
       , katip
       , readable
       , polysemy
       , polysemy-plugin
       , bytestring, process
       , ip
-      , netlink >= 1.1.1.0, bytestring-conversion
+      -- , netlink >= 1.1.1.0
+      -- , bytestring-conversion
        , transformers
        , template-haskell
        , exceptions
@@ -73,7 +70,11 @@ common shared-properties
     default-language: Haskell2010
     -- -fno-warn-unused-imports
     -- -fforce-recomp  makes it build twice
-    ghc-options: -Wall -fno-warn-unused-binds -fno-warn-unused-matches -threaded -fprof-auto -rtsopts -fplugin=Polysemy.Plugin
+
+    -- -ddump-splices to dump TH code
+    ghc-options:
+        -Wall -fno-warn-unused-binds -fno-warn-unused-matches -threaded -fprof-auto -rtsopts -fplugin=Polysemy.Plugin
+        -ddump-splices -ddump-to-file -dth-dec-file
     default-extensions:
         FlexibleContexts
         , DataKinds

@@ -37,7 +37,7 @@ import qualified Data.Map         as HM
 import qualified Commands.Utils         as CMD
 import Commands.List
 
-import Polysemy
+import Polysemy as SEM
 import Polysemy.Reader
 
 -- for noCompletion
@@ -110,10 +110,9 @@ makeSem ''Log
 
 -- data Cache m a where
 --   LogInfo :: String -> Log m ()
-makeSem ''Log
 
 logToIO :: Member (Embed IO) r => Sem (Log ': r) a -> Sem r a
-logToIO = interpret (\(LogInfo stringToLog) -> embed $ putStrLn stringToLog)
+logToIO = interpret (\(LogInfo stringToLog) -> SEM.embed $ putStrLn stringToLog)
 
 instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
   getLogEnv = do

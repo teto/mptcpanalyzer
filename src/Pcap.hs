@@ -23,21 +23,17 @@ where
 -- import Frames.InCore (VectorFor)
 import qualified Data.Text as T
 import Tshark.TH
-import Net.IP
+-- import Net.IP
 import System.IO (Handle, hGetContents)
 import System.Process
 import System.Exit
 -- import Katip
-import Data.Vinyl ()
+-- import Data.Vinyl (ElField(..))
 -- import Control.Lens hiding (Identity)
 -- import Control.Lens.TH
--- import Data.Word
--- import Pipes hiding (Proxy)
--- import qualified Pipes.Prelude as P
 import Frames.TH
 import Frames
 -- import Frames.CSV
--- import Columns
 -- for Record
 -- import Frames.Rec (Record(..))
 -- import Frames.ColumnTypeable
@@ -47,61 +43,17 @@ import Data.List (intercalate)
 import qualified Control.Foldl as L
 import Language.Haskell.TH
 -- import Language.Haskell.TH.Syntax
-
 -- import Lens.Micro
 -- import Lens.Micro.Extras
 import Control.Lens
 -- import qualified Data.Vector as V
-
--- Inspired by http://hackage.haskell.org/package/vinyl-0.12.3/docs/Data-Vinyl-Tutorial-Overview.html
--- | DataType
-    -- SFullName "frame.number" :& (SName "packetid") :&  False False
-    -- Field "frame.interface_name" "interface" 'category' False False,
-    -- Field "_ws.col.ipsrc"  "ipsrc" str False False,
-    -- Field "_ws.col.ipdst" "ipdst" str False False,
-    -- Field "ip.src_host" "ipsrc_host" str False False,
-    -- Field "ip.dst_host" "ipdst_host" str False False,
-    -- Field "tcp.stream" "tcpstream" 'UInt64' False False,
-    -- Field "tcp.srcport" "sport" 'UInt16' False False,
-    -- Field "tcp.dstport" "dport" 'UInt16' False False,
-    -- Field "tcp.dstport" "dport" 'UInt16' False False,
-    -- Field "frame.time_relative" "reltime" str "Relative time" False False
-    -- Field "frame.time_epoch" "abstime" str "seconds+Nanoseconds time since epoch" False False
-
--- data TsharkField = FrameInterface | IpSource | IpDestination | TcpStream | TcpSrcPort | TcpDestPort deriving Show
-
+import Data.Word (Word16, Word32, Word64)
 
 -- instance Parseable TsharkField where
 --   representableAsType
 -- parse :: MonadPlus m => Text -> m (Parsed a) 
     -- parse text = return $ Definitely
 
--- , DataType
--- type TsharkFieldRow = ['FrameInterface, 'IpSource, 'IpDestination, 'TcpStream, 'TcpSrcPort, 'TcpDestPort]
-
--- type family ElF (f :: TsharkField) :: * where
---   ElF FrameInterface = Int
---   ElF IpSource = String
---   ElF IpDestination = String
---   ElF TcpStream = Word32
---   ElF TcpSrcPort = Word16
---   ElF TcpDestPort = Word16
---   -- ElF DataType = Type
---   -- ElF 'Hash = Bool
---   -- ElF Master = Rec Attr LifeForm
-
-
--- newtype Attr f = Attr { _unAttr :: ElF f }
--- makeLenses ''Attr
--- -- TODO retablir les singletons  certainement
--- genSingletons [ ''TsharkField ]
-
--- instance Show (Attr 'FrameInterface) where show (Attr x) = "FrameInterface: " ++ show x
--- instance Show (Attr 'IpSource) where show (Attr x) = "ip source: " ++ show x
--- instance Show (Attr 'IpDestination) where show (Attr x) = "ipDest: " ++ show x
--- instance Show (Attr 'TcpStream) where show (Attr x) = "tcpStream: " ++ show x
--- instance Show (Attr 'TcpSrcPort) where show (Attr x) = "tcpSrcPort: " ++ show x
--- instance Show (Attr 'TcpDestPort) where show (Attr x) = "destport: " ++ show x
 
 
 -- TODO we should create a RowGen
@@ -110,51 +62,6 @@ import Control.Lens
 -- tableTypes "Packet" "data/server_2_filtered.pcapng.csv"
 -- type PcapFrame = Frame Packet
 
--- simpleRecord :: 
--- alias of Rec ElField
--- RecordColumns
--- &:
--- toNamedField
--- , "mptcpstream" :->
-
--- or Packet
--- ElF FrameInterface
--- type TcpStreamT = "tcpstream" :-> Word32
-
--- Word32
--- type Packet = Record '[ "tcpstream" :-> Int ]
-
--- type (:->) (a :: Symbol) b = '(a, b)
--- type Age = "age" :-> Int
-
--- RecordColumns (Record ts) = ts
--- A Frame whose rows are Record values.
--- type FrameRec rs = Frame (Record rs)
--- type PcapFrame = Frame SimpleRecord
-  -- type FrameMerged = FrameRec
--- TODO DateField / List
--- use higher kinded fields ?
--- tableTypes'
-
--- TODO support TcpFlags / IPAddress and list of XXX
--- type MyColumns = IP ': CommonColumns
-
--- packetParser :: ParserOptions
--- packetParser = ParserOptions (Just (map T.pack ["tcpstream"
---                                              -- , "age"
---                                              -- , "gender"
---                                              -- , "occupation"
---                                              -- , "zip code"
---                               ]))
---                            (T.pack "|")
---                            (Frames.CSV.RFC4180Quoting '"')
--- packetStream :: MonadSafe m => Producer SimpleRecord m ()
--- packetStream = readTableOpt packetParser "data/ml-100k/u.user"
-
--- F.Foldl 
--- ps = packet stream
--- nub :: Ord a => Fold a [a]
--- Fold a b
 
 -- mptcpFields :: [TsharkField]
 -- mptcpFields = [
@@ -174,42 +81,7 @@ import Control.Lens
 --             "TCP timestamp tsecr" True
 --     ]
 
--- this declares Tcpstream = "tcpstrean" :-> Int for instance
--- TODO use explicit one !
--- tableTypes' (rowGen "data/simple.csv" )
---             { rowTypeName = "Packet"
---             , separator = "|"
---             -- pass specific columns such as tcpflags, lists, ipsrc
---             -- , columnUniverse
---             -- , columnUniverse = $(colQ ''MyColumns)
---             -- , columnNames = ["tcpstream", "tcpflags", "ipsrc", "ipdst", "mptcpstream"]
---             -- , tablePrefix = "NoHead"
---             }
 
--- RowGen [] "" defaultSep "Row" Proxy . produceTokens
--- data RowGen (a :: [GHC.Type]) =
---   RowGen { columnNames    :: [String]
---            -- ^ Use these column names. If empty, expect a
---            -- header row in the data file to provide
---            -- column names.
---          , tablePrefix    :: String
---            -- ^ A common prefix to use for every generated
---            -- declaration.
---          , separator      :: Separator
---            -- ^ The string that separates the columns on a
---            -- row.
---          , rowTypeName    :: String
---            -- ^ The row type that enumerates all
---            -- columns.
---          , columnUniverse :: Proxy a
---            -- ^ A record field that mentions the phantom type list of
---            -- possible column types. Having this field prevents record
---            -- update syntax from losing track of the type argument.
---          , lineReader :: Separator -> P.Producer [T.Text] (P.SafeT IO) ()
---            -- ^ A producer of rows of ’T.Text’ values that were
---            -- separated by a 'Separator' value.
---          }
--- colDec
 -- colDec prefix rowName colName colTypeGen = do
 -- rowGenFromFields :: [TsharkFieldDesc] -> RowGen a
 -- rowGenFromFields fields = RowGen
@@ -226,14 +98,22 @@ import Control.Lens
 
 -- on veut la generer
 -- [[t|Ident Int|], [t|Happiness|]]
-tableTypesExplicit'
-  (getTypes baseFields)
-  (rowGen "data/test-simple.csv" )
-  { rowTypeName = "Packet"
-        , separator = "|"
-    }
-    -- path
-    "data/test-simple.csv"
+-- tableTypesExplicit' :: [Q Type] -> RowGen a -> FilePath -> DecsQ
+-- tableTypesExplicit'
+tableTypes "Packet" "data/test-simple.csv"
+
+-- tableTypesExplicit'
+--   (getTypes baseFields)
+--   -- [ Field Word64 ]
+--   -- [[t| Word64|]]
+--   ((rowGen "data/test-1col.csv")
+--   { rowTypeName = "Packet"
+--         , separator = ","
+--         -- TODO I could generate it as well
+--         -- , columnNames
+--     })
+--     -- path
+--     "data/test-simple.csv"
 
 type PcapFrame = Frame Packet
 
@@ -252,23 +132,25 @@ getTcpStreams ps =
 
 
 -- |Generate the tshark command to export a pcap into a csv
-generateCsvCommand :: [String] -- ^Fields to exports e.g., "mptcp.stream"
+generateCsvCommand :: [T.Text] -- ^Fields to exports e.g., "mptcp.stream"
           -> FilePath    -- ^ path towards the pcap file
           -> TsharkParams
           -> CmdSpec
 generateCsvCommand fieldNames pcapFilename tsharkParams =
-    RawCommand (tsharkBinary tsharkParams) (start ++ opts ++ readFilter ++ fields)
+    RawCommand (tsharkBinary tsharkParams) args
     where
     -- for some reasons, -Y does not work so I use -2 -R instead
     -- quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
     -- single-quotes, n no quotes (the default).
     -- the -2 is important, else some mptcp parameters are not exported
         start = [
-              "-r", pcapFilename,
+              "-r", show pcapFilename,
               "-E", "separator=" ++ show (csvDelimiter tsharkParams)
             ]
         -- if self.profile:
         --     cmd.extend(['-C', self.profile])
+        args :: [String]
+        args = (start ++ opts ++ readFilter ) ++ map T.unpack  fields
 
         opts :: [String]
         opts = foldr (\(opt, val) l -> l ++ ["-o", opt ++ ":" ++ val]) [] (tsharkOptions tsharkParams)
@@ -278,10 +160,8 @@ generateCsvCommand fieldNames pcapFilename tsharkParams =
             Just x ->["-2", "-R", x]
             Nothing -> []
 
-        fields :: [String]
-        fields = ["-T", "fields"] ++ (
-            Prelude.foldr (\fname l -> l ++ ["-e", fname]) [] fieldNames
-            )
+        fields :: [T.Text]
+        fields = ["-T", "fields"] ++ Prelude.foldr (\fname l -> l ++ ["-e", fname]) [] fieldNames
 
 -- TODO pass a list of options too
 -- TODO need to override 'WIRESHARK_CONFIG_DIR' = tempfile.gettempdir()
@@ -318,19 +198,16 @@ exportToCsv params pcapPath path fd = do
     --   putCache cacheId
     -- else
     where
-      fields :: [String]
-      fields = map (\(_, desc) -> (fullname desc)) baseFields
-
--- custom data
--- data PcapCustom = PcapCustom {
---     }
+      fields :: [T.Text]
+      fields = map (\(_, desc) -> fullname desc) baseFields
 
 -- No instance for (Vector (VectorFor Word32) Word32
 
 -- No instance for (Parseable Word32)
 -- "data/server_2_filtered.pcapng.csv"
 loadRows :: FilePath -> IO PcapFrame
-loadRows path = inCoreAoS (
+loadRows _path = undefined
+-- inCoreAoS (
     -- readTableExplicit path
     -- first arg is [Q Type]
     -- tableTypesExplicit'
@@ -341,7 +218,7 @@ loadRows path = inCoreAoS (
     -- { rowTypeName = "Person"
     -- }
     -- path
-    )
+    -- )
 
 -- http://acowley.github.io/Frames/#orgf328b25
 -- movieStream :: MonadSafe m => Producer User m ()
