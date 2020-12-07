@@ -20,7 +20,7 @@ import Utils
 -- import System.Environment (withProgName)
 
 
-data LoadPcap = LoadPcap {
+newtype LoadPcap = LoadPcap {
   pcap :: FilePath
 }
 
@@ -58,14 +58,14 @@ loadPcap args = do
     _ <- case parserResult of
       (Failure failure) -> liftIO $ print failure >> return CMD.Error
       -- TODO here we should complete autocompletion
-      (CompletionInvoked compl) -> return CMD.Continue
+      (CompletionInvoked _compl) -> return CMD.Continue
       (Success parsedArgs) -> do
           -- parsedArgs <- liftIO $ myHandleParseResult parserResult
           mFrame <- loadPcapIntoFrame defaultTsharkPrefs (pcap parsedArgs)
           -- fmap onSuccess mFrame
           case mFrame of
             Nothing -> return CMD.Continue
-            Just frame -> do
+            Just _frame -> do
               prompt .= pcap parsedArgs ++ "> "
               loadedFile .= mFrame
 
@@ -99,18 +99,15 @@ loadPcapIntoFrame params path = do
                 if cacheRes then
                   $(logTM) InfoS $ logStr "Saved into cache"
                 else
-                  -- TODO do nothing
                   pure ()
 
                 return $ Just frame
-                -- TODO update the state too
-                -- pass
               else do
                 let msg = "Error happened: " ++ show exitCode
                 $(logTM) InfoS $ logStr msg
                 -- let stdErr = "TODO"
                 $(logTM) WarningS $ logStr (stdErr :: String)
-                liftIO $ putStrLn $ "error happened: exitCode" 
+                liftIO $ putStrLn "error happened: exitCode"
                 return Nothing
 
           -- and then the handle can be used via "export_to_csv"
@@ -122,15 +119,15 @@ loadPcapIntoFrame params path = do
 
     where
       cacheId = CacheId [path] "" ""
-      fields :: [String]
+      -- fields :: [String]
       -- TODO check baseFields
-      fields = [
-        "frame.interface_name",
-        "_ws.col.ipsrc",
-        "_ws.col.ipdst",
-        "tcp.stream",
-        "mptcp.stream"
-        ]
+      -- fields = [
+      --   "frame.interface_name",
+      --   "_ws.col.ipsrc",
+      --   "_ws.col.ipdst",
+      --   "tcp.stream",
+      --   "mptcp.stream"
+      --   ]
       opts :: TempFileOptions
       opts = TempFileOptions True
 

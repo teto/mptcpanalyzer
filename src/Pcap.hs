@@ -197,6 +197,7 @@ exportToCsv params pcapPath path fd = do
             std_err = CreatePipe,
             std_out = UseHandle fd
             }
+    putStrLn $ "Command run: " ++ show (RawCommand bin args)
     -- TODO write header
     -- withCreateProcess (proc cmd args) { ... }  $ \stdin stdout stderr ph -> do
     -- runInteractiveProcess
