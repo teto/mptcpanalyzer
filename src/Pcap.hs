@@ -162,8 +162,8 @@ generateCsvCommand fieldNames pcapFilename tsharkParams =
     -- single-quotes, n no quotes (the default).
     -- the -2 is important, else some mptcp parameters are not exported
         start = [
-              "-r", show pcapFilename,
-              "-E", "separator=" ++ show (csvDelimiter tsharkParams)
+              "-r", pcapFilename,
+              "-E", "separator=" ++ [csvDelimiter tsharkParams]
             ]
         -- if self.profile:
         --     cmd.extend(['-C', self.profile])
@@ -179,7 +179,8 @@ generateCsvCommand fieldNames pcapFilename tsharkParams =
             Nothing -> []
 
         fields :: [T.Text]
-        fields = ["-T", "fields"] ++ Prelude.foldr (\fname l -> l ++ ["-e", fname]) [] fieldNames
+        fields = ["-T", "fields"]
+            ++ Prelude.foldr (\fieldName l -> ["-e", fieldName] ++ l) [] fieldNames
 
 -- TODO pass a list of options too
 -- TODO need to override 'WIRESHARK_CONFIG_DIR' = tempfile.gettempdir()
@@ -197,6 +198,7 @@ exportToCsv params pcapPath path fd = do
             std_err = CreatePipe,
             std_out = UseHandle fd
             }
+    putStrLn $ "Exporting fields " ++ show fields
     putStrLn $ "Command run: " ++ show (RawCommand bin args)
     -- TODO write header
     -- withCreateProcess (proc cmd args) { ... }  $ \stdin stdout stderr ph -> do
@@ -220,9 +222,6 @@ exportToCsv params pcapPath path fd = do
       fields :: [T.Text]
       fields = map (\(_, desc) -> fullname desc) baseFields
 
--- No instance for (Vector (VectorFor Word32) Word32
-
--- No instance for (Parseable Word32)
 -- "data/server_2_filtered.pcapng.csv"
 loadRows :: FilePath -> IO PcapFrame
 loadRows path = inCoreAoS (

@@ -7,8 +7,7 @@ where
 import qualified Data.Text as T
 import Language.Haskell.TH
 -- import Net.IP
-import Data.Word (Word64)
--- import Data.Word (Word16, Word32, Word64)
+import Data.Word (Word16, Word32, Word64)
 -- import Language.Haskell.TH.Syntax
 import Data.Vinyl ()
 
@@ -46,10 +45,10 @@ baseFields = [
     -- ("abstime", TsharkFieldDesc "frame.time_epoch" [t|String|] Nothing False),
     -- ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" [t|IP|] (Just "source ip") False),
     -- ("ipdst", TsharkFieldDesc "_ws.col.ipdst" [t|IP|] Nothing False),
-    -- ("tcpstream", TsharkFieldDesc "tcp.stream" [t|Int|] Nothing False),
+    , ("tcpstream", TsharkFieldDesc "tcp.stream" [t|Word32|] Nothing False)
     -- -- TODO use Word32 instead
-    -- ("sport", TsharkFieldDesc "tcp.srcport" [t|Word16|] Nothing False),
-    -- ("dport", TsharkFieldDesc "tcp.dstport" [t|Word16|] Nothing False),
+    , ("sport", TsharkFieldDesc "tcp.srcport" [t|Word16|] Nothing False)
+    , ("dport", TsharkFieldDesc "tcp.dstport" [t|Word16|] Nothing False)
     -- -- TODO read as a list
     -- ("tcpflags", TsharkFieldDesc "tcp.dstport" [t|String|] Nothing False),
     -- ("tcpoptionkind", TsharkFieldDesc "tcp.dstport" [t|Word32|] Nothing False),

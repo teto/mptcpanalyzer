@@ -339,7 +339,7 @@ getHelp =
     -- foldr printCmdHelp "Available commands:\n" commands
     -- foldMap
   where
-    printCmdHelp k v accum = accum ++ "\n- " ++ k
+    printCmdHelp k _ accum = accum ++ "\n- " ++ k
 
 -- liftIO $ putStrLn doPrintHelp >> 
 

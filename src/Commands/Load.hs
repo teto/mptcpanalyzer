@@ -93,7 +93,7 @@ loadPcapIntoFrame params path = do
               then do
                 $(logTM) InfoS $ logStr $ "exported to file " ++ show tempPath
                 frame <- liftIO $ loadRows tempPath
-                liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
+                liftIO $ putStrLn $ "Number of rows after loading " ++ show (frameLength frame)
                 cacheRes <- putCache cacheId tempPath
                 -- use ifThenElse instead
                 if cacheRes then
@@ -110,24 +110,8 @@ loadPcapIntoFrame params path = do
                 liftIO $ putStrLn "error happened: exitCode"
                 return Nothing
 
-          -- and then the handle can be used via "export_to_csv"
-          -- mkstemp
-          -- withCreateProcess createProc
-
-            -- createProcess 
-            -- error "could not load pcap"
-
     where
       cacheId = CacheId [path] "" ""
-      -- fields :: [String]
-      -- TODO check baseFields
-      -- fields = [
-      --   "frame.interface_name",
-      --   "_ws.col.ipsrc",
-      --   "_ws.col.ipdst",
-      --   "tcp.stream",
-      --   "mptcp.stream"
-      --   ]
       opts :: TempFileOptions
       opts = TempFileOptions True
 
