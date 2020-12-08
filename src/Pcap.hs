@@ -223,6 +223,8 @@ exportToCsv params pcapPath path fd = do
       fields = map (\(_, desc) -> fullname desc) baseFields
 
 -- "data/server_2_filtered.pcapng.csv"
+-- la le probleme c'est que je ne passe pas d'options sur les separators etc
+-- ca foire silencieusement ??
 loadRows :: FilePath -> IO PcapFrame
 loadRows path = inCoreAoS (
   readTable path

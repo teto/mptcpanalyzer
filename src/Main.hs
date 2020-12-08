@@ -31,27 +31,28 @@ import Options.Applicative
 -- import Control.Monad.Trans (liftIO, MonadIO)
 -- import Control.Monad.Trans.State (StateT(..), runStateT, withStateT)
 import Control.Monad.Catch
-import Control.Monad.State (StateT(..), runStateT, withStateT)
-import Control.Monad.State (MonadState, get)
+import Control.Monad.State (StateT(..), runStateT, withStateT, MonadState, gets, get)
 import qualified Data.Map         as HM
 import qualified Commands.Utils         as CMD
 import Commands.List
 
-import Polysemy as SEM
-import Polysemy.Reader
+-- import Polysemy as SEM
+import Polysemy.Reader()
+
+import Logging()
 
 -- for noCompletion
 import System.Console.Haskeline
 -- import Data.List (isPrefixOf)
 -- import Data.Singletons.TH
 import Utils
-import Control.Lens
+import Control.Lens ( (^.), view, set)
 
 -- Repline is a wrapper (suppposedly more advanced) around haskeline
 -- for now we focus on the simple usecase with repline
 -- import System.Console.Repline
 import Katip
-import Pcap
+import Pcap ()
 import Cache
 -- (Cache,putCache,getCache, isValid, CacheId)
 import Commands.Load
@@ -104,15 +105,9 @@ newtype MyStack m a = MyStack {
 --   liftBaseWith = defaultLiftBaseWith
 --   restoreM = defaultRestoreM
 
-data Log m a where
-  LogInfo :: String -> Log m ()
-makeSem ''Log
 
 -- data Cache m a where
 --   LogInfo :: String -> Log m ()
-
-logToIO :: Member (Embed IO) r => Sem (Log ': r) a -> Sem r a
-logToIO = interpret (\(LogInfo stringToLog) -> SEM.embed $ putStrLn stringToLog)
 
 instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
   getLogEnv = do
@@ -122,9 +117,7 @@ instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
   localLogEnv f (MyStack m) = MyStack (withStateT (\s -> set msLogEnv (f (s ^. msLogEnv)) s) m)
 
 instance (MonadState MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
-  getKatipContext = do
-      s <- get
-      return $ view msKContext s
+  getKatipContext = do gets (view msKContext)
   localKatipContext f (MyStack m) = MyStack (withStateT (\s -> set msKContext (f (s ^. msKContext )) s) m)
   -- local (\s -> s { msKContext = f (msKContext s)}) m)
   getKatipNamespace = get >>= \x -> return $ x ^. msKNamespace
@@ -140,6 +133,7 @@ data CLIArguments = CLIArguments {
   , version    :: Bool  -- ^ to show version
   , cacheDir    :: Maybe FilePath -- ^ Folder where to log files
   , logLevel :: Severity   -- ^ what level to use to parse
+  , extraCommands :: [String]  -- ^ commands to run on start
   }
 
 
@@ -190,7 +184,7 @@ sample = CLIArguments
           long "version"
           <> help "Show version"
           )
-      <*> (optional $ strOption
+      <*> optional ( strOption
           ( long "cachedir"
          <> help "mptcpanalyzer creates a cache of files in the folder \
             \$XDG_CACHE_HOME/mptcpanalyzer"
@@ -203,6 +197,10 @@ sample = CLIArguments
          <> showDefault
          <> Options.Applicative.value InfoS
          <> metavar "LOG_LEVEL" )
+      -- optional arguments
+      <*> some ( argument str (
+            metavar "COMMANDS..."
+        ))
 
 
 opts :: ParserInfo CLIArguments
@@ -262,14 +260,10 @@ opts = info (sample <**> helper)
 
 
 
--- cmdLoadPcap :: [String] -> Repl ()
--- cmdLoadPcap args = do
---   return ()
-
-loadCsv :: (Cache m, MonadIO m, KatipContext m) => FilePath -> m PcapFrame
-loadCsv csvFile = do
-    frame <- liftIO $ loadRows csvFile
-    return frame
+-- loadCsv :: (Cache m, MonadIO m, KatipContext m) => FilePath -> m PcapFrame
+-- loadCsv csvFile = do
+--     frame <- liftIO $ loadRows csvFile
+--     return frame
 
 
 -- just for testing, to remove afterwards
@@ -290,7 +284,7 @@ main = do
   cacheFolderXdg <- getXdgDirectory XdgCache "mptcpanalyzer2"
   -- TODO check if creation fails ?
   -- Create cache if doesn't exist
-  doesDirectoryExist cacheFolderXdg >>= \x -> case x of
+  doesDirectoryExist cacheFolderXdg >>= \case
       True -> putStrLn ("cache folder already exists" ++ show cacheFolderXdg)
       False -> createDirectory cacheFolderXdg
 
@@ -307,23 +301,25 @@ main = do
     _prompt = promptSuffix
   }
 
-  -- putStrLn $ "Result " ++ show res
-  -- TODO preload the pcap file if passed on
   options <- execParser opts
 
-  flip runStateT myState $ do
-      let haskelineSettings = defaultSettings { historyFile = Just $ cacheFolderXdg </> "history" }
+  putStrLn "Commands"
+  print $ extraCommands options
+  -- discards result
+  _ <- flip runStateT myState $ do
+      let haskelineSettings = defaultSettings {
+          historyFile = Just $ cacheFolderXdg </> "history"
+          }
       unAppT (runInputT haskelineSettings inputLoop)
 
   putStrLn "Thanks for flying with mptcpanalyzer"
 
 
--- type CommandCb = (CMD.CommandConstraint m) => [String] -> m ()
-
 -- TODO associate parser ?
 commands :: HM.Map String (CMD.CommandCb (MyStack IO))
 commands = HM.fromList [
     ("load", loadPcap)
+    , ("load_csv", loadCsv)
     , ("list_tcp", listTcpConnections)
     , ("help", printHelp)
     -- , ("list_mptcp", listMpTcpConnections)
@@ -349,25 +345,30 @@ getHelp =
 inputLoop :: InputT (MyStack IO) ()
 inputLoop = do
   -- todo use forever ?
-    s <- lift $ get
-
+    s <- lift get
     minput <- getInputLine (view prompt s)
-    -- cmdCode :: CMD.RetCode
     cmdCode <- case fmap words minput of
         Nothing -> do
           liftIO $ putStrLn "please enter a valid command, see help"
           return CMD.Continue
-        Just [] -> return CMD.Continue
-        Just fullCmd -> do
-          let commandStr = head fullCmd
-          let cmd = HM.lookup commandStr commands
-          case cmd of
-              Nothing -> liftIO $ putStrLn ("Unknown command " ++ commandStr) >> return CMD.Continue
-              Just callback -> lift $ callback $ tail fullCmd
+        Just args -> lift $ runCommand args
 
     case cmdCode of
         CMD.Exit -> return ()
         _behavior -> inputLoop
+
+
+runCommand :: [String] -> (MyStack IO) CMD.RetCode
+runCommand args = do
+    -- cmdCode :: CMD.RetCode
+    case args of
+        [] -> return CMD.Continue
+        fullCmd -> do
+          let commandStr = head fullCmd
+          let cmd = HM.lookup commandStr commands
+          case cmd of
+              Nothing -> liftIO $ putStrLn ("Unknown command " ++ commandStr) >> return CMD.Continue
+              Just callback -> callback $ tail fullCmd
 
 
 data SimpleData = SimpleData {

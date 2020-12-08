@@ -21,7 +21,9 @@ import Utils
 -- Phantom types
 data Mptcp
 data Tcp
-data StreamId a = StreamId Int deriving (Show, Read, Eq, Ord)
+
+-- TODO use Word instead
+newtype StreamId a = StreamId Int deriving (Show, Read, Eq, Ord)
 
 -- This 
 data ParserListSubflows = ParserListSubflows {
@@ -33,9 +35,9 @@ data ParserListSubflows = ParserListSubflows {
 -- listSubflowParser = 
 
 parserSubflow :: Parser ParserListSubflows
-parserSubflow = ParserListSubflows <$> (switch
+parserSubflow = ParserListSubflows <$> switch
           ( long "full"
-         <> help "Print details for each subflow" ))
+         <> help "Print details for each subflow" )
       <*> argument auto (
           help "Show version"
           -- TODO pass a default
@@ -69,13 +71,13 @@ optsListSubflows = info (parserSubflow <**> helper)
     -- (view tcpstream <$> frame)
 
 listTcpConnections :: CMD.CommandConstraint m => [String] -> m CMD.RetCode
-listTcpConnections params = do
+listTcpConnections _params = do
     state <- get
     let loadedPcap = view loadedFile state
     case loadedPcap of
       Nothing -> liftIO $ putStrLn "please load a pcap first" >> return CMD.Continue
       Just frame -> do
-        let tcpstreams = getTcpStreams frame
+        let _tcpstreams = getTcpStreams frame
         liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
         >> return CMD.Continue
                     -- liftIO $ listTcpConnectionsInFrame frame >> return CMD.Continue
@@ -86,8 +88,7 @@ listTcpConnectionsInFrame :: PcapFrame -> IO ()
 listTcpConnectionsInFrame frame = do
   putStrLn "Listing tcp connections"
   let streamIds = getTcpStreams frame
-  mapM_ (\x -> putStrLn $ show x) streamIds
-  return ()
+  mapM_ print streamIds
 
   -- L.fold L.minimum (view age <$> ms)
   -- L.fold

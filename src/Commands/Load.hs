@@ -50,7 +50,7 @@ loadOpts = info (loadPcapParser <**> helper)
 -- handleParseResult
 loadPcap :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
 loadPcap args = do
-    $(logTM) DebugS $ logStr "starting"
+    $(logTM) DebugS $ logStr "Called loadPcap"
     -- s <- gets
     -- liftIO $ withProgName "load" (
     -- TODO fix the name of the program, by "load"
@@ -115,6 +115,22 @@ loadPcapIntoFrame params path = do
       opts :: TempFileOptions
       opts = TempFileOptions True
 
+-- TODO should disappear after testing phase
+loadCsv :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
+loadCsv args = do
+    $(logTM) DebugS $ logStr "Called loadCsv"
+    let parserResult = execParserPure defaultParserPrefs loadOpts args
+    _ <- case parserResult of
+      (Failure failure) -> liftIO $ print failure >> return CMD.Error
+      -- TODO here we should complete autocompletion
+      (CompletionInvoked _compl) -> return CMD.Continue
+      (Success parsedArgs) -> do
+          -- parsedArgs <- liftIO $ myHandleParseResult parserResult
+          frame <- liftIO $ loadRows (pcap parsedArgs)
+          loadedFile .= Just frame
+          liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
+          liftIO $ putStrLn "Frame loaded" >> return CMD.Continue
+    return CMD.Continue
 
 -- loadRows :: IO (PcapFrame)
 -- loadRows = inCoreAoS (readTable "data/server_2_filtered.pcapng.csv")
