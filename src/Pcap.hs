@@ -35,10 +35,11 @@ import System.Exit
 -- import Control.Lens.TH
 import Frames.TH
 import Frames
--- import Frames.CSV
+import Frames.CSV (QuotingMode(..), ParserOptions(..))
+import Frames.ColumnTypeable (Parseable(..), parseIntish)
 -- for Record
 -- import Frames.Rec (Record(..))
-import Frames.ColumnTypeable
+import Net.IP
 import Data.List (intercalate)
 -- for symbol
 -- import GHC.Types
@@ -49,45 +50,16 @@ import qualified Control.Foldl as L
 -- import Lens.Micro.Extras
 import Control.Lens
 -- import qualified Data.Vector as V
-import Data.Word (Word16, Word64)
+import Data.Word (Word16, Word32, Word64)
 
 -- instance Parseable TsharkField where
 --   representableAsType
 -- parse :: MonadPlus m => Text -> m (Parsed a) 
     -- parse text = return $ Definitely
 
-
-
--- TODO we should create a RowGen
-
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 -- tableTypes "Packet" "data/server_2_filtered.pcapng.csv"
 -- type PcapFrame = Frame Packet
-
-
--- mptcpFields :: [TsharkField]
--- mptcpFields = [
---         -- # TODO use 'category'
---         -- # rawvalue is tcp.window_size_value
---         -- # tcp.window_size takes into account scaling factor !
---         Field "tcp.window_size" "rwnd" 'Int64' True True
---         Field "tcp.flags" "tcpflags" 'UInt8' False True _convert_flags
---         Field "tcp.option_kind" "tcpoptions" None False False
---             -- functools.partial(_load_list field="option_kind") )
---         Field "tcp.seq" "tcpseq" 'UInt32' "TCP sequence number" True
---         Field "tcp.len" "tcplen" 'UInt16' "TCP segment length" True
---         Field "tcp.ack" "tcpack" 'UInt32' "TCP segment acknowledgment" True
---         Field "tcp.options.timestamp.tsval" "tcptsval" 'Int64'
---             "TCP timestamp tsval" True
---         Field "tcp.options.timestamp.tsecr" "tcptsecr" 'Int64'
---             "TCP timestamp tsecr" True
---     ]
-
-
---   (map (\(shortName, desc) -> declareColumn x) baseFields)
--- [Q Type]
-
-
 -- tableTypes "Packet" "data/test-simple.csv"
 
 
@@ -115,22 +87,36 @@ instance Frames.ColumnTypeable.Parseable Word16 where
 instance Frames.ColumnTypeable.Parseable Word64 where
   parse = parseIntish
 
+instance Frames.ColumnTypeable.Parseable IP where
+  parse = parseIntish
+
 declareColumn "frameNumber" ''Word64
-declareColumn "tcpStream" '' Word64
+declareColumn "IpSource" ''IP
+declareColumn "IpDest" ''IP
+declareColumn "tcpStream" '' Word32
+declareColumn "mptcpStream" '' Word32
 declareColumn "tcpSrcPort" ''Word16
 declareColumn "tcpDestPort" ''Word16
 
 type ManColumns = '["frame.number" :-> Word64
-                    , "tcp.stream" :-> Word64
+                    , "_ws.col.ipsrc" :-> IP
+                    , "_ws.col.ipdst" :-> IP
+                    , "tcp.stream" :-> Word32
+                    , "mptcp.stream" :-> Word32
                     , "tcp.srcport" :-> Word16
                     , "tcp.dstport" :-> Word16
                     ]
 
 -- type ManRowPacket = Record ManColumns
-type ManRowPacket = Record [FrameNumber, TcpStream, TcpSrcPort, TcpDestPort]
-type ManMaybe = Rec (Maybe :. ElField) ManColumns
+type ManRowPacket = Record [
+    FrameNumber, IpSource, IpDest
+    , TcpStream, MptcpStream, TcpSrcPort, TcpDestPort
+    ]
+
+-- type ManMaybe = Rec (Maybe :. ElField) ManColumns
 type instance VectorFor Word16 = V.Vector
 type instance VectorFor Word64 = V.Vector
+type instance VectorFor IP = V.Vector
 
 -- type PcapFrame = Frame Packet
 type PcapFrame = Frame ManRowPacket
@@ -143,8 +129,11 @@ data TsharkParams = TsharkParams {
       tsharkReadFilter :: Maybe String
     }
 
+defaultParserOptions :: ParserOptions
+defaultParserOptions = ParserOptions Nothing (T.pack [csvDelimiter defaultTsharkPrefs]) NoQuoting
+
 -- nub => remove duplicates
-getTcpStreams :: PcapFrame -> [Word64]
+getTcpStreams :: PcapFrame -> [Word32]
 getTcpStreams ps =
     L.fold L.nub (view tcpStream <$> ps)
 
@@ -225,9 +214,12 @@ exportToCsv params pcapPath path fd = do
 -- "data/server_2_filtered.pcapng.csv"
 -- la le probleme c'est que je ne passe pas d'options sur les separators etc
 -- ca foire silencieusement ??
+-- maybe use a readTableMaybe instead
+-- readTable path
+
 loadRows :: FilePath -> IO PcapFrame
 loadRows path = inCoreAoS (
-  readTable path
+  readTableOpt defaultParserOptions path
   )
 
 -- http://acowley.github.io/Frames/#orgf328b25

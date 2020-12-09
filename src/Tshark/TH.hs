@@ -6,7 +6,7 @@ where
 
 import qualified Data.Text as T
 import Language.Haskell.TH
--- import Net.IP
+import Net.IP
 import Data.Word (Word16, Word32, Word64)
 -- import Language.Haskell.TH.Syntax
 import Data.Vinyl ()
@@ -43,9 +43,10 @@ baseFields = [
     -- ("packetid", TsharkFieldDesc "frame.number" ("packetid" :-> Word64) Nothing False)
     -- ("ifname", TsharkFieldDesc "frame.interface_name" [t|String|] Nothing False),
     -- ("abstime", TsharkFieldDesc "frame.time_epoch" [t|String|] Nothing False),
-    -- ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" [t|IP|] (Just "source ip") False),
-    -- ("ipdst", TsharkFieldDesc "_ws.col.ipdst" [t|IP|] Nothing False),
+    , ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" [t|IP|] (Just "source ip") False)
+    , ("ipdst", TsharkFieldDesc "_ws.col.ipdst" [t|IP|] (Just "destination ip") False)
     , ("tcpstream", TsharkFieldDesc "tcp.stream" [t|Word32|] Nothing False)
+    , ("mptcpstream", TsharkFieldDesc "mptcp.stream" [t|Word32|] Nothing False)
     -- -- TODO use Word32 instead
     , ("sport", TsharkFieldDesc "tcp.srcport" [t|Word16|] Nothing False)
     , ("dport", TsharkFieldDesc "tcp.dstport" [t|Word16|] Nothing False)
@@ -55,6 +56,24 @@ baseFields = [
     -- ("tcpseq", TsharkFieldDesc "tcp.seq" [t|Word32|] (Just "Sequence number") False),
     -- ("tcpack", TsharkFieldDesc "tcp.ack" [t|Word32|] (Just "Acknowledgement") False)
     ]
+
+-- mptcpFields :: [TsharkField]
+-- mptcpFields = [
+--         -- # TODO use 'category'
+--         -- # rawvalue is tcp.window_size_value
+--         -- # tcp.window_size takes into account scaling factor !
+--         Field "tcp.window_size" "rwnd" 'Int64' True True
+--         Field "tcp.flags" "tcpflags" 'UInt8' False True _convert_flags
+--         Field "tcp.option_kind" "tcpoptions" None False False
+--             -- functools.partial(_load_list field="option_kind") )
+--         Field "tcp.seq" "tcpseq" 'UInt32' "TCP sequence number" True
+--         Field "tcp.len" "tcplen" 'UInt16' "TCP segment length" True
+--         Field "tcp.ack" "tcpack" 'UInt32' "TCP segment acknowledgment" True
+--         Field "tcp.options.timestamp.tsval" "tcptsval" 'Int64'
+--             "TCP timestamp tsval" True
+--         Field "tcp.options.timestamp.tsecr" "tcptsecr" 'Int64'
+--             "TCP timestamp tsecr" True
+--     ]
 
 -- "user id" :-> Int
 getTypes :: [(String, TsharkFieldDesc)] -> [Q Type]
