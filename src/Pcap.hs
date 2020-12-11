@@ -36,7 +36,7 @@ import System.Exit
 import Frames.TH
 import Frames
 import Frames.CSV (QuotingMode(..), ParserOptions(..))
-import Frames.ColumnTypeable (Parseable(..), parseIntish)
+import Frames.ColumnTypeable (Parseable(..), parseIntish, Parsed(..))
 -- for Record
 -- import Frames.Rec (Record(..))
 import Net.IP
@@ -83,12 +83,18 @@ import Data.Word (Word16, Word32, Word64)
 
 instance Frames.ColumnTypeable.Parseable Word16 where
   parse = parseIntish
-
+instance Frames.ColumnTypeable.Parseable Word32 where
+  parse = parseIntish
 instance Frames.ColumnTypeable.Parseable Word64 where
   parse = parseIntish
 
 instance Frames.ColumnTypeable.Parseable IP where
-  parse = parseIntish
+  -- parse :: MonadPlus m => T.Text -> m (Parsed a)
+-- IP.decode :: Text -> Maybe IP
+  -- fmap Definitely
+  parse text = case decode text of
+    Nothing -> return $ Possibly $ ipv4 0 0 0 0
+    Just ip -> return $ Definitely ip
 
 declareColumn "frameNumber" ''Word64
 declareColumn "IpSource" ''IP
@@ -114,7 +120,9 @@ type ManRowPacket = Record [
     ]
 
 -- type ManMaybe = Rec (Maybe :. ElField) ManColumns
+-- TODO goal here is to choose the most performant Data.Vector
 type instance VectorFor Word16 = V.Vector
+type instance VectorFor Word32 = V.Vector
 type instance VectorFor Word64 = V.Vector
 type instance VectorFor IP = V.Vector
 
