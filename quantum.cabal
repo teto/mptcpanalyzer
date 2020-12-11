@@ -77,6 +77,7 @@ common shared-properties
         -ddump-splices -ddump-to-file -dth-dec-file
     default-extensions:
         FlexibleContexts
+        , OverloadedStrings
         , DataKinds
         , FlexibleContexts
         , GADTs

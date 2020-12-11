@@ -41,7 +41,7 @@ baseFields :: [(String, TsharkFieldDesc)]
 baseFields = [
     ("packetid", TsharkFieldDesc "frame.number" [t|Word64|] Nothing False)
     -- ("packetid", TsharkFieldDesc "frame.number" ("packetid" :-> Word64) Nothing False)
-    -- ("ifname", TsharkFieldDesc "frame.interface_name" [t|String|] Nothing False),
+    -- ("ifname", TsharkFieldDesc "frame.interface_name" [t|Text|] Nothing False),
     -- ("abstime", TsharkFieldDesc "frame.time_epoch" [t|String|] Nothing False),
     , ("ipsrc", TsharkFieldDesc "_ws.col.ipsrc" [t|IP|] (Just "source ip") False)
     , ("ipdst", TsharkFieldDesc "_ws.col.ipdst" [t|IP|] (Just "destination ip") False)

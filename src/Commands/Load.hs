@@ -50,13 +50,13 @@ loadOpts = info (loadPcapParser <**> helper)
 -- handleParseResult
 loadPcap :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
 loadPcap args = do
-    $(logTM) DebugS $ logStr "Called loadPcap"
+    $(logTM) DebugS "Called loadPcap"
     -- s <- gets
     -- liftIO $ withProgName "load" (
     -- TODO fix the name of the program, by "load"
     let parserResult = execParserPure defaultParserPrefs loadOpts args
     _ <- case parserResult of
-      (Failure failure) -> liftIO $ print failure >> return CMD.Error
+      (Failure failure) -> liftIO $ print failure >> return ( CMD.Error "could not parse")
       -- TODO here we should complete autocompletion
       (CompletionInvoked _compl) -> return CMD.Continue
       (Success parsedArgs) -> do
@@ -79,11 +79,11 @@ loadPcapIntoFrame params path = do
     x <- liftIO $ getCache cacheId
     case x of
       Right frame -> do
-          $(logTM) DebugS $ logStr "Frame in cache"
+          $(logTM) DebugS "Frame in cache"
           return $ Just frame
       Left err -> do
           liftIO $ putStrLn $ "getCache error: " ++ show err
-          $(logTM) InfoS $ logStr "Calling tshark"
+          $(logTM) InfoS "Calling tshark"
           -- TODO need to create a temporary file
           -- mkstemps
           -- TODO use showCommandForUser to display the run command to the user
@@ -97,7 +97,7 @@ loadPcapIntoFrame params path = do
                 cacheRes <- putCache cacheId tempPath
                 -- use ifThenElse instead
                 if cacheRes then
-                  $(logTM) InfoS $ logStr "Saved into cache"
+                  $(logTM) InfoS "Saved into cache"
                 else
                   pure ()
 
@@ -118,18 +118,22 @@ loadPcapIntoFrame params path = do
 -- TODO should disappear after testing phase
 loadCsv :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
 loadCsv args = do
-    $(logTM) DebugS $ logStr "Called loadCsv"
+    $(logTM) DebugS "Called loadCsv"
     let parserResult = execParserPure defaultParserPrefs loadOpts args
     _ <- case parserResult of
-      (Failure failure) -> liftIO $ print failure >> return CMD.Error
+      (Failure failure) -> liftIO $ print failure >> return ( CMD.Error "could not load csv")
       -- TODO here we should complete autocompletion
       (CompletionInvoked _compl) -> return CMD.Continue
       (Success parsedArgs) -> do
+
+          $(logTM) DebugS $ logStr $ "Loading " ++ csvFilename
           -- parsedArgs <- liftIO $ myHandleParseResult parserResult
-          frame <- liftIO $ loadRows (pcap parsedArgs)
+          frame <- liftIO $ loadRows csvFilename
           loadedFile .= Just frame
           liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
           liftIO $ putStrLn "Frame loaded" >> return CMD.Continue
+          where
+            csvFilename = pcap parsedArgs
     return CMD.Continue
 
 -- loadRows :: IO (PcapFrame)

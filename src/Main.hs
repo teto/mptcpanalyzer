@@ -36,8 +36,10 @@ import qualified Data.Map         as HM
 import qualified Commands.Utils         as CMD
 import Commands.List
 
--- import Polysemy as SEM
+import qualified Polysemy as S
 import Polysemy.Reader()
+import qualified Polysemy.State as S
+import qualified Polysemy.IO as S
 
 import Logging()
 
@@ -305,6 +307,9 @@ main = do
 
   putStrLn "Commands"
   print $ extraCommands options
+  -- _ <- flip runStateT myState $ do
+  --     unAppT map runCommand (extraCommands options)
+
   -- discards result
   _ <- flip runStateT myState $ do
       let haskelineSettings = defaultSettings {
@@ -342,7 +347,7 @@ getHelp =
 -- | Main loop of the program, will run commands in turn
 -- TODO pass a dict of command ? that will parse
 -- TODO turn it into a library
-inputLoop :: InputT (MyStack IO) ()
+inputLoop :: Member (S.IO r) => InputT (S.Sem r) ()
 inputLoop = do
   -- todo use forever ?
     s <- lift get
@@ -355,10 +360,13 @@ inputLoop = do
 
     case cmdCode of
         CMD.Exit -> return ()
+        CMD.Error _msg -> do
+          -- lift $ putStrLn $ "Last command failed with message:\n" ++ show msg
+          inputLoop
         _behavior -> inputLoop
 
 
-runCommand :: [String] -> (MyStack IO) CMD.RetCode
+runCommand :: S.Member (S.State MyState) r => [String] -> S.Sem r CMD.RetCode
 runCommand args = do
     -- cmdCode :: CMD.RetCode
     case args of
@@ -367,7 +375,7 @@ runCommand args = do
           let commandStr = head fullCmd
           let cmd = HM.lookup commandStr commands
           case cmd of
-              Nothing -> liftIO $ putStrLn ("Unknown command " ++ commandStr) >> return CMD.Continue
+              Nothing -> putStrLn ("Unknown command " ++ commandStr) >> return CMD.Continue
               Just callback -> callback $ tail fullCmd
 
 
