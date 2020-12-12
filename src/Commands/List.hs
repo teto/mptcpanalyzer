@@ -5,7 +5,7 @@ where
 
 -- import Data.Text
 -- import Net.Tcp
-import qualified Commands.Utils         as CMD
+import Commands.Utils
 import Options.Applicative
 import Pcap
 import Frames
@@ -70,15 +70,15 @@ optsListSubflows = info (parserSubflow <**> helper)
     -- Search for SYN flags
     -- (view tcpstream <$> frame)
 
-listTcpConnections :: CMD.CommandConstraint m => [String] -> m CMD.RetCode
+listTcpConnections :: CMD.CommandCb
 listTcpConnections _params = do
     state <- get
     let loadedPcap = view loadedFile state
     case loadedPcap of
-      Nothing -> liftIO $ putStrLn "please load a pcap first" >> return CMD.Continue
+      Nothing -> logInfo "please load a pcap first" >> return CMD.Continue
       Just frame -> do
         let _tcpstreams = getTcpStreams frame
-        liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
+        logInfo $ "Number of rows " ++ show (frameLength frame)
         >> return CMD.Continue
                     -- liftIO $ listTcpConnectionsInFrame frame >> return CMD.Continue
 

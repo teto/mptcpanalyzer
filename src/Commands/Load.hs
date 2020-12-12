@@ -6,7 +6,8 @@ import Frames
 -- import Frames.CSV
 import Pcap
 -- import qualified Data.HashMap.Strict         as HM
-import qualified Commands.Utils         as CMD
+import Commands.Utils as CMD
+-- import qualified Commands.Utils         as CMD
 import Options.Applicative
 import Katip
 import Control.Monad.Trans (MonadIO, liftIO)
@@ -17,6 +18,7 @@ import Cache
 import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
 import System.Exit
 import Utils
+import Mptcp.Logging (logInfo)
 -- import System.Environment (withProgName)
 
 
@@ -48,15 +50,15 @@ loadOpts = info (loadPcapParser <**> helper)
 -- TODO move commands to their own module
 -- TODO it should update the loadedFile in State !
 -- handleParseResult
-loadPcap :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
+loadPcap :: CMD.CommandCb m
 loadPcap args = do
-    $(logTM) DebugS "Called loadPcap"
+    logInfo "Called loadPcap"
     -- s <- gets
     -- liftIO $ withProgName "load" (
     -- TODO fix the name of the program, by "load"
     let parserResult = execParserPure defaultParserPrefs loadOpts args
     _ <- case parserResult of
-      (Failure failure) -> liftIO $ print failure >> return ( CMD.Error "could not parse")
+      (Failure failure) -> logInfo failure >> return ( CMD.Error "could not parse")
       -- TODO here we should complete autocompletion
       (CompletionInvoked _compl) -> return CMD.Continue
       (Success parsedArgs) -> do
@@ -116,22 +118,22 @@ loadPcapIntoFrame params path = do
       opts = TempFileOptions True
 
 -- TODO should disappear after testing phase
-loadCsv :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
+loadCsv :: CMD.CommandCb m
 loadCsv args = do
-    $(logTM) DebugS "Called loadCsv"
+    logInfo "Called loadCsv"
     let parserResult = execParserPure defaultParserPrefs loadOpts args
     _ <- case parserResult of
-      (Failure failure) -> liftIO $ print failure >> return ( CMD.Error "could not load csv")
+      (Failure failure) -> logInfo failure >> return ( CMD.Error "could not load csv")
       -- TODO here we should complete autocompletion
       (CompletionInvoked _compl) -> return CMD.Continue
       (Success parsedArgs) -> do
 
-          $(logTM) DebugS $ logStr $ "Loading " ++ csvFilename
+          logInfo "Loading " ++ csvFilename
           -- parsedArgs <- liftIO $ myHandleParseResult parserResult
           frame <- liftIO $ loadRows csvFilename
           loadedFile .= Just frame
-          liftIO $ putStrLn $ "Number of rows " ++ show (frameLength frame)
-          liftIO $ putStrLn "Frame loaded" >> return CMD.Continue
+          logInfo $ "Number of rows " ++ show (frameLength frame)
+          logInfo "Frame loaded" >> return CMD.Continue
           where
             csvFilename = pcap parsedArgs
     return CMD.Continue

@@ -4,7 +4,7 @@ module Commands.Utils
 where
 
 -- import Katip
--- import Cache
+import Cache
 -- import Control.Monad.State (MonadState)
 -- import Control.Monad.Trans (MonadIO)
 -- import System.Console.Haskeline.MonadException

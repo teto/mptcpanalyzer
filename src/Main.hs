@@ -44,7 +44,7 @@ import qualified Polysemy.State as S
 -- import qualified Polysemy.Output as S
 -- import qualified Polysemy.Trace as S
 
-import Logging (Log, logInfo)
+import Mptcp.Logging (Log, logInfo)
 
 -- for noCompletion
 import System.Console.Haskeline
