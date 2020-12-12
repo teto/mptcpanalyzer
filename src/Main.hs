@@ -33,15 +33,18 @@ import Options.Applicative
 import Control.Monad.Catch
 import Control.Monad.State (StateT(..), runStateT, withStateT, MonadState, gets, get)
 import qualified Data.Map         as HM
-import qualified Commands.Utils         as CMD
+import qualified Commands.Utils (RetCode(..), CommandCb)
 import Commands.List
 
+import Polysemy (Sem, Member, Members)
 import qualified Polysemy as S
 import Polysemy.Reader()
 import qualified Polysemy.State as S
-import qualified Polysemy.IO as S
+-- import qualified Polysemy.IO as S
+-- import qualified Polysemy.Output as S
+-- import qualified Polysemy.Trace as S
 
-import Logging()
+import Logging (Log, logInfo)
 
 -- for noCompletion
 import System.Console.Haskeline
@@ -86,21 +89,6 @@ newtype MyStack m a = MyStack {
 --   getCache id = Left "not implemented"
 --   -- check
 --   isValid = cacheCheckValidity
--- MonadBase, MonadTransControl, and MonadBaseControl aren't strictly
--- needed for this example, but they are commonly required and
--- MonadTransControl/MonadBaseControl are a pain to implement, so I've
--- included them. Note that KatipT and KatipContextT already do this work for you.
--- instance MonadBase b m => MonadBase b (MyStack m) where
---   liftBase = liftBaseDefault
-
-
--- instance MonadTransControl MyStack where
---   -- type StT MyStack a = StT (StateT Int) a
---   type StT MyStack a = StT (ReaderT Int) a
-
---   liftWith = defaultLiftWith MyStack unStack
---   restoreT = defaultRestoreT MyStack
-
 
 -- instance MonadBaseControl b m => MonadBaseControl b (MyStack m) where
 --   type StM (MyStack m) a = ComposeSt MyStack m a
@@ -111,23 +99,23 @@ newtype MyStack m a = MyStack {
 -- data Cache m a where
 --   LogInfo :: String -> Log m ()
 
-instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
-  getLogEnv = do
-      s <- get
-      return $ s ^. msLogEnv
-  -- (LogEnv -> LogEnv) -> m a -> m a
-  localLogEnv f (MyStack m) = MyStack (withStateT (\s -> set msLogEnv (f (s ^. msLogEnv)) s) m)
+-- instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
+--   getLogEnv = do
+--       s <- get
+--       return $ s ^. msLogEnv
+--   -- (LogEnv -> LogEnv) -> m a -> m a
+--   localLogEnv f (MyStack m) = MyStack (withStateT (\s -> set msLogEnv (f (s ^. msLogEnv)) s) m)
 
-instance (MonadState MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
-  getKatipContext = do gets (view msKContext)
-  localKatipContext f (MyStack m) = MyStack (withStateT (\s -> set msKContext (f (s ^. msKContext )) s) m)
-  -- local (\s -> s { msKContext = f (msKContext s)}) m)
-  getKatipNamespace = get >>= \x -> return $ x ^. msKNamespace
-  localKatipNamespace f (MyStack m) = MyStack (withStateT (\s -> set msKNamespace (f (view msKNamespace s)) s) m)
+-- instance (MonadState MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
+--   getKatipContext = do gets (view msKContext)
+--   localKatipContext f (MyStack m) = MyStack (withStateT (\s -> set msKContext (f (s ^. msKContext )) s) m)
+--   -- local (\s -> s { msKContext = f (msKContext s)}) m)
+--   getKatipNamespace = get >>= \x -> return $ x ^. msKNamespace
+--   localKatipNamespace f (MyStack m) = MyStack (withStateT (\s -> set msKNamespace (f (view msKNamespace s)) s) m)
 
 
-cacheCheckValidity :: CacheId -> MyStack IO Bool
-cacheCheckValidity _cid = return False
+-- cacheCheckValidity :: CacheId -> MyStack IO Bool
+-- cacheCheckValidity _cid = return False
 
 
 data CLIArguments = CLIArguments {
@@ -311,17 +299,21 @@ main = do
   --     unAppT map runCommand (extraCommands options)
 
   -- discards result
-  _ <- flip runStateT myState $ do
-      let haskelineSettings = defaultSettings {
-          historyFile = Just $ cacheFolderXdg </> "history"
-          }
-      unAppT (runInputT haskelineSettings inputLoop)
+  -- _ <- flip runStateT myState $ do
+  --     let haskelineSettings = defaultSettings {
+  --         historyFile = Just $ cacheFolderXdg </> "history"
+  --         }
+  --     unAppT (runInputT haskelineSettings inputLoop)
+  let haskelineSettings = defaultSettings {
+      historyFile = Just $ cacheFolderXdg </> "history"
+      }
+  runInputT haskelineSettings inputLoop
 
   putStrLn "Thanks for flying with mptcpanalyzer"
 
 
 -- TODO associate parser ?
-commands :: HM.Map String (CMD.CommandCb (MyStack IO))
+commands :: HM.Map String CommandCb
 commands = HM.fromList [
     ("load", loadPcap)
     , ("load_csv", loadCsv)
@@ -331,7 +323,8 @@ commands = HM.fromList [
     ]
 
 
-printHelp :: (CMD.CommandConstraint m) => [String] -> m CMD.RetCode
+-- (CMD.CommandConstraint m) => [String] -> Sem m CMD.RetCode
+printHelp :: CommandCb
 printHelp _ = liftIO $ putStrLn getHelp >> return CMD.Continue
 
 getHelp :: String
@@ -347,16 +340,17 @@ getHelp =
 -- | Main loop of the program, will run commands in turn
 -- TODO pass a dict of command ? that will parse
 -- TODO turn it into a library
-inputLoop :: Member (S.IO r) => InputT (S.Sem r) ()
+-- TODO embed InputT
+inputLoop :: Members [S.State MyState , Log ] r => InputT (Sem r) ()
 inputLoop = do
   -- todo use forever ?
     s <- lift get
     minput <- getInputLine (view prompt s)
     cmdCode <- case fmap words minput of
         Nothing -> do
-          liftIO $ putStrLn "please enter a valid command, see help"
+          logInfo "please enter a valid command, see help"
           return CMD.Continue
-        Just args -> lift $ runCommand args
+        Just args -> runCommand args
 
     case cmdCode of
         CMD.Exit -> return ()
@@ -366,7 +360,7 @@ inputLoop = do
         _behavior -> inputLoop
 
 
-runCommand :: S.Member (S.State MyState) r => [String] -> S.Sem r CMD.RetCode
+runCommand :: Members [ S.State MyState, Log] r => [String] -> Sem r CMD.RetCode
 runCommand args = do
     -- cmdCode :: CMD.RetCode
     case args of
@@ -375,7 +369,7 @@ runCommand args = do
           let commandStr = head fullCmd
           let cmd = HM.lookup commandStr commands
           case cmd of
-              Nothing -> putStrLn ("Unknown command " ++ commandStr) >> return CMD.Continue
+              Nothing -> logInfo ("Unknown command " ++ commandStr) >> return CMD.Continue
               Just callback -> callback $ tail fullCmd
 
 

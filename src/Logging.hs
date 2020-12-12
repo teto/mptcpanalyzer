@@ -5,6 +5,8 @@ import Polysemy
 
 data Log m a where
   LogInfo :: String -> Log m ()
+
+-- generates logInfo function
 makeSem ''Log
 
 logToIO :: Member (Embed IO) r => Sem (Log ': r) a -> Sem r a
