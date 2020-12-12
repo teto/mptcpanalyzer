@@ -77,7 +77,7 @@ loadPcap args = do
 -- TODO return an Either or Maybe ?
 loadPcapIntoFrame :: (Cache m, MonadIO m, KatipContext m) => TsharkParams -> FilePath -> m (Maybe PcapFrame)
 loadPcapIntoFrame params path = do
-    $(logTM) DebugS $ logStr ("Start loading pcap " ++ show path)
+    logInfo ("Start loading pcap " ++ show path)
     x <- liftIO $ getCache cacheId
     case x of
       Right frame -> do
@@ -128,7 +128,7 @@ loadCsv args = do
       (CompletionInvoked _compl) -> return CMD.Continue
       (Success parsedArgs) -> do
 
-          logInfo "Loading " ++ csvFilename
+          logInfo $ "Loading " ++ csvFilename
           -- parsedArgs <- liftIO $ myHandleParseResult parserResult
           frame <- liftIO $ loadRows csvFilename
           loadedFile .= Just frame

@@ -1,4 +1,4 @@
-module Logging
+module Mptcp.Logging
 where
 
 import Polysemy

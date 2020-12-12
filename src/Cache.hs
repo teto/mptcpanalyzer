@@ -24,11 +24,12 @@ getFilenameFromCacheId cid =
     cachePrefix cid ++ intercalate "_" basenames ++ hash ++ cacheSuffix cid
     where
         -- takeBaseName
-        basenames = (map takeBaseName $ cacheDeps cid)
+        basenames = map takeBaseName $ cacheDeps cid
         -- TODO
         hash = "hash"
 
 
+-- TODO this should be an effect
 class Monad m => Cache m where
     -- should maybe be a filepath
     putCache :: CacheId -> FilePath -> m Bool
@@ -61,11 +62,11 @@ instance Cache IO where
     isValid = isCacheValid
 
 doGetCache :: CacheId -> IO (Either String PcapFrame)
-doGetCache cid = return $ Left "getCache not implemented yet"
+doGetCache _cacheItemId = return $ Left "getCache not implemented yet"
 
 doPutCache :: CacheId -> FilePath -> IO Bool
 doPutCache = undefined
 
 isCacheValid :: CacheId -> IO Bool
-isCacheValid  _ = return $ False
+isCacheValid  _ = return False
 
