@@ -72,7 +72,7 @@ optsListSubflows = info (parserSubflow <**> helper)
     -- Search for SYN flags
     -- (view tcpstream <$> frame)
 
-listTcpConnections :: CMD.CommandCb m
+listTcpConnections :: CMD.CommandCb
 listTcpConnections _params = do
     state <- P.get
     let loadedPcap = view loadedFile state

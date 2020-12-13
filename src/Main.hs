@@ -20,6 +20,8 @@ TemplateHaskell for Katip :(
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE TypeApplications             #-}
+{-# LANGUAGE RankNTypes             #-}
 
 module Main where
 
@@ -30,44 +32,38 @@ import Prelude hiding (concat, init)
 import Options.Applicative
 -- import Control.Monad.Trans (liftIO, MonadIO)
 -- import Control.Monad.Trans.State (StateT(..), runStateT, withStateT)
--- import Control.Monad.Catch
 -- import Control.Monad.State (StateT(..), runStateT, withStateT, MonadState, gets, get)
+-- for monadmask
+import Control.Monad.Catch
 import qualified Data.Map         as HM
 import Commands.Utils (RetCode(..), CommandCb, DefaultMembers)
 import qualified Commands.Utils as CMD
--- import Commands.List
+import Commands.List
+import Commands.Load
 
--- Member, 
-import Polysemy (Sem, Members, runM)
--- import qualified Polysemy as S
+-- Member, , Embed Members, 
+import Polysemy (Sem, runM)
+-- import qualified Polysemy as P
 import Polysemy.Reader()
 import qualified Polysemy.State as P
--- import qualified Polysemy.IO as P
 -- import qualified Polysemy.Output as P
 -- import qualified Polysemy.Trace as P
 
-import Mptcp.Logging (Log, logInfo, logToIO, Severity(..))
+import Mptcp.Logging (logInfo, logToIO, Severity(..))
 
 -- for noCompletion
 import System.Console.Haskeline
--- import Data.List (isPrefixOf)
--- import Data.Singletons.TH
 import Utils
--- import Control.Lens ( (^.), view, set)
+import Control.Lens ( (^.), view, set)
 
 -- Repline is a wrapper (suppposedly more advanced) around haskeline
 -- for now we focus on the simple usecase with repline
 -- import System.Console.Repline
 import Pcap ()
-import Mptcp.Cache (runCache)
--- import Commands.Load
+import Mptcp.Cache (runCache,)
 -- import System.Environment.Blank   (getEnvDefault)
--- import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
 -- import           Frames
 import Pipes hiding (Proxy)
--- import qualified Pipes.Prelude as P
--- import qualified Control.Foldl as L
--- import qualified Data.Foldable as F
 
 
 -- newtype MyStack m a = MyStack {
@@ -81,27 +77,6 @@ import Pipes hiding (Proxy)
 --     , MonadCatch
 --     , MonadMask
 --     )
-
--- (MonadState MyState m, MonadIO m) =>
--- instance (Cache AppM) where
---   putCache id frame = return False
---   getCache id = Left "not implemented"
---   -- check
---   isValid = cacheCheckValidity
-
--- instance MonadBaseControl b m => MonadBaseControl b (MyStack m) where
---   type StM (MyStack m) a = ComposeSt MyStack m a
---   liftBaseWith = defaultLiftBaseWith
---   restoreM = defaultRestoreM
-
-
--- data Cache m a where
---   LogInfo :: String -> Log m ()
-
-
--- cacheCheckValidity :: CacheId -> MyStack IO Bool
--- cacheCheckValidity _cid = return False
-
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -286,32 +261,37 @@ main = do
   --         historyFile = Just $ cacheFolderXdg </> "history"
   --         }
   --     unAppT (runInputT haskelineSettings inputLoop)
-  -- let _haskelineSettings = defaultSettings {
-  --     historyFile = Just $ cacheFolderXdg </> "history"
-  --     }
+  let haskelineSettings = defaultSettings {
+      historyFile = Just $ cacheFolderXdg </> "history"
+      }
   -- runInputT haskelineSettings inputLoop
-  _res <- runM . runCache . logToIO . P.runState myState $ runCommand printHelp []
+  -- [Log, P.State MyState, Cache, Embed IO]
+  _res <- runM . P.runState myState . runCache . logToIO $ do
+    runInputT haskelineSettings inputLoop
 
-  -- putStrLn $ "Result: " 
   putStrLn "Thanks for flying with mptcpanalyzer"
 
 
 -- TODO associate parser ?
 -- is it the interpreter ?
--- commands :: HM.Map String (CommandCb m)
--- commands = HM.fromList [
---     ("load", loadPcap)
---     , ("load_csv", loadCsv)
---     , ("list_tcp", listTcpConnections)
---     , ("help", printHelp)
---     -- , ("list_mptcp", listMpTcpConnections)
---     ]
+-- commands :: HM.Map String (CMD.CommandCb (MyStack IO))
+
+-- type CommandList m = HM.Map String (CommandCb m)
+
+commands :: HM.Map String CommandCb
+commands = HM.fromList [
+    ("load", loadPcap)
+    , ("load_csv", loadCsv)
+    , ("list_tcp", listTcpConnections)
+    , ("help", printHelp)
+    -- , ("list_mptcp", listMpTcpConnections)
+    ]
 
 
 -- (CMD.CommandConstraint m) => [String] -> Sem m CMD.RetCode
-printHelp :: CommandCb m
--- printHelp _ = liftIO $ putStrLn getHelp >> return CMD.Continue
-printHelp _ = liftIO $ putStrLn "hello" >> return CMD.Continue
+printHelp :: CommandCb
+-- printHelp _ = logInfo getHelp >> return CMD.Continue
+printHelp _ = logInfo "hello" >> return CMD.Continue
 
 -- getHelp :: String
 -- getHelp =
@@ -325,40 +305,35 @@ printHelp _ = liftIO $ putStrLn "hello" >> return CMD.Continue
 -- TODO pass a dict of command ? that will parse
 -- TODO turn it into a library
 -- TODO embed InputT
--- inputLoop :: Members [P.State MyState, Log ] r => InputT (Sem r) ()
--- inputLoop = do
---     s <- lift get
---     minput <- getInputLine (view prompt s)
---     cmdCode <- case fmap words minput of
---         Nothing -> do
---           logInfo "please enter a valid command, see help"
---           return CMD.Continue
---         Just args -> do
---           let commandStr = head fullCmd
---           let cmd = HM.lookup commandStr commands
---           runCommand cmd args
+inputLoop :: InputT (Sem DefaultMembers) ()
+inputLoop = do
+    s <- lift P.get
+    minput <- getInputLine (view prompt s)
+    cmdCode <- case fmap words minput of
+        Nothing -> do
+          lift $ logInfo "please enter a valid command, see help"
+          return CMD.Continue
+        Just [] -> return $ CMD.Error "Please enter a command"
 
---     case cmdCode of
---         CMD.Exit -> return ()
---         CMD.Error _msg -> do
---           -- lift $ putStrLn $ "Last command failed with message:\n" ++ show msg
---           inputLoop
---         _behavior -> inputLoop
+        Just (commandStr:args) -> do
+          -- let commandStr = head args
+          let cmd = HM.lookup commandStr commands
+          case cmd of
+            Nothing -> return $ CMD.Error "Unknown command"
+            Just cb -> lift $ runCommand cb args
+
+    case cmdCode of
+        CMD.Exit -> return ()
+        CMD.Error msg -> do
+          lift $ logInfo $ "Last command failed with message:\n" ++ show msg
+          inputLoop
+        _behavior -> inputLoop
 
 
 -- TODO pass the command
-runCommand :: Members DefaultMembers r =>
-    CommandCb r -> [String] -> Sem r CMD.RetCode
+runCommand :: CommandCb -> [String] -> Sem DefaultMembers CMD.RetCode
 runCommand callback args = do
-    -- cmdCode :: CMD.RetCode
-    case args of
-        [] -> return CMD.Continue
-        fullCmd -> callback $ tail fullCmd
-        -- do
-        --   case cmd of
-        --       -- ++ commandStr
-        --       Nothing -> logInfo ("Unknown command " ) >> return CMD.Continue
-        --       Just callback -> callback $ tail fullCmd
+    callback args
 
 
 data SimpleData = SimpleData {
