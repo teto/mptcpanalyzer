@@ -72,8 +72,10 @@ loadPcap args = do
           case mFrame of
             Nothing -> return CMD.Continue
             Just _frame -> do
-              prompt .= pcap parsedArgs ++ "> "
-              loadedFile .= mFrame
+              -- prompt .= pcap parsedArgs ++ "> "
+              modify (\s -> s { _prompt = pcap parsedArgs ++ "> ",
+                    _loadedFile = mFrame
+                  })
               logInfo "Frame loaded" >> return CMD.Continue
 
 -- TODO return an Either or Maybe ?

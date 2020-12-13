@@ -5,14 +5,16 @@ where
 
 -- import Data.Text
 -- import Net.Tcp
-import Commands.Utils
+import Commands.Utils as CMD
 import Options.Applicative
 import Pcap
 import Frames
 import Control.Lens hiding (argument)
-import Control.Monad.Trans (liftIO)
-import Control.Monad.State (get)
+-- import Control.Monad.Trans (liftIO)
+-- import Control.Monad.State (get)
 import Utils
+import Mptcp.Logging
+import Polysemy.State as P
 
 -- for TcpConnection
 -- import Net.Tcp
@@ -70,9 +72,9 @@ optsListSubflows = info (parserSubflow <**> helper)
     -- Search for SYN flags
     -- (view tcpstream <$> frame)
 
-listTcpConnections :: CMD.CommandCb
+listTcpConnections :: CMD.CommandCb m
 listTcpConnections _params = do
-    state <- get
+    state <- P.get
     let loadedPcap = view loadedFile state
     case loadedPcap of
       Nothing -> logInfo "please load a pcap first" >> return CMD.Continue
@@ -100,5 +102,5 @@ listTcpConnectionsInFrame frame = do
 
 
 --
-cmdMptcpSummary :: CMD.CommandConstraint m => [String] -> m CMD.RetCode
-cmdMptcpSummary = undefined
+-- cmdMptcpSummary :: CMD.CommandConstraint m => [String] -> m CMD.RetCode
+-- cmdMptcpSummary = undefined

@@ -33,7 +33,8 @@ import Options.Applicative
 import Control.Monad.Catch
 import Control.Monad.State (StateT(..), runStateT, withStateT, MonadState, gets, get)
 import qualified Data.Map         as HM
-import qualified Commands.Utils (RetCode(..), CommandCb)
+import Commands.Utils (RetCode(..), CommandCb)
+import qualified Commands.Utils as CMD
 import Commands.List
 
 import Polysemy (Sem, Member, Members)
@@ -105,7 +106,7 @@ data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
   , version    :: Bool  -- ^ to show version
   , cacheDir    :: Maybe FilePath -- ^ Folder where to log files
-  , logLevel :: Severity   -- ^ what level to use to parse
+  -- , logLevel :: Severity   -- ^ what level to use to parse
   , extraCommands :: [String]  -- ^ commands to run on start
   }
 
@@ -290,33 +291,33 @@ main = do
   let haskelineSettings = defaultSettings {
       historyFile = Just $ cacheFolderXdg </> "history"
       }
-  runInputT haskelineSettings inputLoop
+  -- runInputT haskelineSettings inputLoop
+  runCommand printHelp
 
   putStrLn "Thanks for flying with mptcpanalyzer"
 
 
 -- TODO associate parser ?
-commands :: HM.Map String CommandCb
-commands = HM.fromList [
-    ("load", loadPcap)
-    , ("load_csv", loadCsv)
-    , ("list_tcp", listTcpConnections)
-    , ("help", printHelp)
-    -- , ("list_mptcp", listMpTcpConnections)
-    ]
+-- is it the interpreter ?
+-- commands :: HM.Map String (CommandCb m)
+-- commands = HM.fromList [
+--     ("load", loadPcap)
+--     , ("load_csv", loadCsv)
+--     , ("list_tcp", listTcpConnections)
+--     , ("help", printHelp)
+--     -- , ("list_mptcp", listMpTcpConnections)
+--     ]
 
 
 -- (CMD.CommandConstraint m) => [String] -> Sem m CMD.RetCode
-printHelp :: CommandCb
+printHelp :: CommandCb m
 printHelp _ = liftIO $ putStrLn getHelp >> return CMD.Continue
 
-getHelp :: String
-getHelp =
-    HM.foldrWithKey printCmdHelp "Available commands:\n" commands
-    -- foldr printCmdHelp "Available commands:\n" commands
-    -- foldMap
-  where
-    printCmdHelp k _ accum = accum ++ "\n- " ++ k
+-- getHelp :: String
+-- getHelp =
+--     HM.foldrWithKey printCmdHelp "Available commands:\n" commands
+--   where
+--     printCmdHelp k _ accum = accum ++ "\n- " ++ k
 
 -- liftIO $ putStrLn doPrintHelp >> 
 
@@ -324,7 +325,7 @@ getHelp =
 -- TODO pass a dict of command ? that will parse
 -- TODO turn it into a library
 -- TODO embed InputT
-inputLoop :: Members [S.State MyState , Log ] r => InputT (Sem r) ()
+inputLoop :: Members [S.State MyState, Log ] r => InputT (Sem r) ()
 inputLoop = do
   -- todo use forever ?
     s <- lift get
@@ -333,7 +334,10 @@ inputLoop = do
         Nothing -> do
           logInfo "please enter a valid command, see help"
           return CMD.Continue
-        Just args -> runCommand args
+        Just args -> do
+          let commandStr = head fullCmd
+          let cmd = HM.lookup commandStr commands
+          runCommand cmd args
 
     case cmdCode of
         CMD.Exit -> return ()
@@ -343,14 +347,14 @@ inputLoop = do
         _behavior -> inputLoop
 
 
-runCommand :: Members [ S.State MyState, Log] r => [String] -> Sem r CMD.RetCode
+-- TODO pass the command
+runCommand :: Members [ S.State MyState, Log] r =>
+    CommandCb r -> [String] -> Sem r CMD.RetCode
 runCommand args = do
     -- cmdCode :: CMD.RetCode
     case args of
         [] -> return CMD.Continue
         fullCmd -> do
-          let commandStr = head fullCmd
-          let cmd = HM.lookup commandStr commands
           case cmd of
               Nothing -> logInfo ("Unknown command " ++ commandStr) >> return CMD.Continue
               Just callback -> callback $ tail fullCmd

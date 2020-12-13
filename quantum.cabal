@@ -30,7 +30,7 @@ common shared-properties
       , katip
       , readable
       , polysemy
-      , polysemy-plugin
+      -- , polysemy-plugin
       , bytestring, process
       , ip
       -- , netlink >= 1.1.1.0
@@ -73,8 +73,10 @@ common shared-properties
 
     -- -ddump-splices to dump TH code
     ghc-options:
-        -Wall -fno-warn-unused-binds -fno-warn-unused-matches -threaded -fprof-auto -rtsopts -fplugin=Polysemy.Plugin
+        -Wall -fno-warn-unused-binds -fno-warn-unused-matches
+        -threaded -fprof-auto -rtsopts 
         -ddump-splices -ddump-to-file -dth-dec-file
+        -- -fplugin=Polysemy.Plugin
     default-extensions:
         FlexibleContexts
         , OverloadedStrings
