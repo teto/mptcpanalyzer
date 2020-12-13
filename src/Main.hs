@@ -25,41 +25,42 @@ module Main where
 
 import System.FilePath
 import System.Directory
-import System.IO (stdout)
+-- import System.IO (stdout)
 import Prelude hiding (concat, init)
 import Options.Applicative
 -- import Control.Monad.Trans (liftIO, MonadIO)
 -- import Control.Monad.Trans.State (StateT(..), runStateT, withStateT)
-import Control.Monad.Catch
-import Control.Monad.State (StateT(..), runStateT, withStateT, MonadState, gets, get)
+-- import Control.Monad.Catch
+-- import Control.Monad.State (StateT(..), runStateT, withStateT, MonadState, gets, get)
 import qualified Data.Map         as HM
-import Commands.Utils (RetCode(..), CommandCb)
+import Commands.Utils (RetCode(..), CommandCb, DefaultMembers)
 import qualified Commands.Utils as CMD
-import Commands.List
+-- import Commands.List
 
-import Polysemy (Sem, Member, Members)
-import qualified Polysemy as S
+-- Member, 
+import Polysemy (Sem, Members, runM)
+-- import qualified Polysemy as S
 import Polysemy.Reader()
-import qualified Polysemy.State as S
--- import qualified Polysemy.IO as S
--- import qualified Polysemy.Output as S
--- import qualified Polysemy.Trace as S
+import qualified Polysemy.State as P
+-- import qualified Polysemy.IO as P
+-- import qualified Polysemy.Output as P
+-- import qualified Polysemy.Trace as P
 
-import Mptcp.Logging (Log, logInfo)
+import Mptcp.Logging (Log, logInfo, logToIO, Severity(..))
 
 -- for noCompletion
 import System.Console.Haskeline
 -- import Data.List (isPrefixOf)
 -- import Data.Singletons.TH
 import Utils
-import Control.Lens ( (^.), view, set)
+-- import Control.Lens ( (^.), view, set)
 
 -- Repline is a wrapper (suppposedly more advanced) around haskeline
 -- for now we focus on the simple usecase with repline
 -- import System.Console.Repline
 import Pcap ()
-import Mptcp.Cache
-import Commands.Load
+import Mptcp.Cache (runCache)
+-- import Commands.Load
 -- import System.Environment.Blank   (getEnvDefault)
 -- import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
 -- import           Frames
@@ -69,17 +70,17 @@ import Pipes hiding (Proxy)
 -- import qualified Data.Foldable as F
 
 
-newtype MyStack m a = MyStack {
-    unAppT :: StateT MyState m a
-} deriving (Monad, Applicative, Functor
-    , MonadIO
-    -- , Cache
-    -- , MonadReader MyState m
-    , MonadState MyState
-    , MonadThrow
-    , MonadCatch
-    , MonadMask
-    )
+-- newtype MyStack m a = MyStack {
+--     unAppT :: StateT MyState m a
+-- } deriving (Monad, Applicative, Functor
+--     , MonadIO
+--     -- , Cache
+--     -- , MonadReader MyState m
+--     , MonadState MyState
+--     , MonadThrow
+--     , MonadCatch
+--     , MonadMask
+--     )
 
 -- (MonadState MyState m, MonadIO m) =>
 -- instance (Cache AppM) where
@@ -106,7 +107,7 @@ data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
   , version    :: Bool  -- ^ to show version
   , cacheDir    :: Maybe FilePath -- ^ Folder where to log files
-  -- , logLevel :: Severity   -- ^ what level to use to parse
+  , logLevel :: Severity   -- ^ what level to use to parse
   , extraCommands :: [String]  -- ^ commands to run on start
   }
 
@@ -262,15 +263,12 @@ main = do
       True -> putStrLn ("cache folder already exists" ++ show cacheFolderXdg)
       False -> createDirectory cacheFolderXdg
 
-  handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem DebugS) V0
-  katipEnv <- initLogEnv "mptcpanalyzer" "devel"
-  mkLogEnv <- registerScribe "stdout" handleScribe defaultScribeSettings katipEnv
+  -- handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem DebugS) V0
+  -- katipEnv <- initLogEnv "mptcpanalyzer" "devel"
+  -- mkLogEnv <- registerScribe "stdout" handleScribe defaultScribeSettings katipEnv
 
   let myState = MyState {
     _cacheFolder = cacheFolderXdg,
-    _msKNamespace = "devel",
-    _msLogEnv = mkLogEnv,
-    _msKContext = mempty,
     _loadedFile = Nothing,
     _prompt = promptSuffix
   }
@@ -288,12 +286,13 @@ main = do
   --         historyFile = Just $ cacheFolderXdg </> "history"
   --         }
   --     unAppT (runInputT haskelineSettings inputLoop)
-  let haskelineSettings = defaultSettings {
-      historyFile = Just $ cacheFolderXdg </> "history"
-      }
+  -- let _haskelineSettings = defaultSettings {
+  --     historyFile = Just $ cacheFolderXdg </> "history"
+  --     }
   -- runInputT haskelineSettings inputLoop
-  runCommand printHelp
+  _res <- runM . runCache . logToIO . P.runState myState $ runCommand printHelp []
 
+  -- putStrLn $ "Result: " 
   putStrLn "Thanks for flying with mptcpanalyzer"
 
 
@@ -311,7 +310,8 @@ main = do
 
 -- (CMD.CommandConstraint m) => [String] -> Sem m CMD.RetCode
 printHelp :: CommandCb m
-printHelp _ = liftIO $ putStrLn getHelp >> return CMD.Continue
+-- printHelp _ = liftIO $ putStrLn getHelp >> return CMD.Continue
+printHelp _ = liftIO $ putStrLn "hello" >> return CMD.Continue
 
 -- getHelp :: String
 -- getHelp =
@@ -325,39 +325,40 @@ printHelp _ = liftIO $ putStrLn getHelp >> return CMD.Continue
 -- TODO pass a dict of command ? that will parse
 -- TODO turn it into a library
 -- TODO embed InputT
-inputLoop :: Members [S.State MyState, Log ] r => InputT (Sem r) ()
-inputLoop = do
-  -- todo use forever ?
-    s <- lift get
-    minput <- getInputLine (view prompt s)
-    cmdCode <- case fmap words minput of
-        Nothing -> do
-          logInfo "please enter a valid command, see help"
-          return CMD.Continue
-        Just args -> do
-          let commandStr = head fullCmd
-          let cmd = HM.lookup commandStr commands
-          runCommand cmd args
+-- inputLoop :: Members [P.State MyState, Log ] r => InputT (Sem r) ()
+-- inputLoop = do
+--     s <- lift get
+--     minput <- getInputLine (view prompt s)
+--     cmdCode <- case fmap words minput of
+--         Nothing -> do
+--           logInfo "please enter a valid command, see help"
+--           return CMD.Continue
+--         Just args -> do
+--           let commandStr = head fullCmd
+--           let cmd = HM.lookup commandStr commands
+--           runCommand cmd args
 
-    case cmdCode of
-        CMD.Exit -> return ()
-        CMD.Error _msg -> do
-          -- lift $ putStrLn $ "Last command failed with message:\n" ++ show msg
-          inputLoop
-        _behavior -> inputLoop
+--     case cmdCode of
+--         CMD.Exit -> return ()
+--         CMD.Error _msg -> do
+--           -- lift $ putStrLn $ "Last command failed with message:\n" ++ show msg
+--           inputLoop
+--         _behavior -> inputLoop
 
 
 -- TODO pass the command
-runCommand :: Members [ S.State MyState, Log] r =>
+runCommand :: Members DefaultMembers r =>
     CommandCb r -> [String] -> Sem r CMD.RetCode
-runCommand args = do
+runCommand callback args = do
     -- cmdCode :: CMD.RetCode
     case args of
         [] -> return CMD.Continue
-        fullCmd -> do
-          case cmd of
-              Nothing -> logInfo ("Unknown command " ++ commandStr) >> return CMD.Continue
-              Just callback -> callback $ tail fullCmd
+        fullCmd -> callback $ tail fullCmd
+        -- do
+        --   case cmd of
+        --       -- ++ commandStr
+        --       Nothing -> logInfo ("Unknown command " ) >> return CMD.Continue
+        --       Just callback -> callback $ tail fullCmd
 
 
 data SimpleData = SimpleData {

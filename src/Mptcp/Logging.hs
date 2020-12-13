@@ -3,6 +3,8 @@ where
 
 import Polysemy
 
+data Severity = TraceS | DebugS | InfoS | ErrorS deriving (Read, Show, Eq)
+
 data Log m a where
   LogInfo :: String -> Log m ()
 

@@ -31,6 +31,7 @@ getFilenameFromCacheId cid =
         hash = "hash"
 
 
+-- TODO add a cacheConfig ?
 -- TODO this should be an effect
 data Cache m a where
     -- should maybe be a filepath
@@ -64,8 +65,8 @@ makeSem ''Cache
 --     putCache = doPutCache
 --     isValid = isCacheValid
 
-cacheToIO :: Sem (Cache : r) a -> Sem r a
-cacheToIO = interpret $ \case
+runCache :: Sem (Cache : r) a -> Sem r a
+runCache = interpret $ \case
   PutCache cid fp -> doPutCache cid fp
   GetCache cid -> doGetCache cid
   IsValid cid -> isCacheValid cid

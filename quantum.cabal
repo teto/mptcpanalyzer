@@ -17,6 +17,10 @@ Source-repository head
   type:       git
   location:   https://github.com/teto/quantum
 
+Flag WithPolysemy {
+  Description: Add polysemy plugin
+  Default:     True
+}
 
 
 -- aeson to (de)serialize to json
@@ -27,7 +31,9 @@ common shared-properties
       , containers
       -- diagrams is not ready for 8.10
       -- , diagrams
-      , katip
+    -- polysemybased logger
+      -- , co-log
+      -- , katip
       , readable
       , polysemy
       -- , polysemy-plugin
@@ -70,6 +76,9 @@ common shared-properties
     default-language: Haskell2010
     -- -fno-warn-unused-imports
     -- -fforce-recomp  makes it build twice
+    if flag(WithPolysemy)
+        ghc-options: -fplugin=Polysemy.Plugin
+        build-depends: polysemy-plugin
 
     -- -ddump-splices to dump TH code
     ghc-options:
