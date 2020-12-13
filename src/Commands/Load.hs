@@ -9,17 +9,20 @@ import Pcap
 import Commands.Utils as CMD
 -- import qualified Commands.Utils         as CMD
 import Options.Applicative
-import Katip
-import Control.Monad.Trans (MonadIO, liftIO)
+-- import Katip
+-- MonadIO,
+import Control.Monad.Trans (liftIO)
 -- import Control.Monad.State (get, put)
 import Control.Lens hiding (argument)
 
-import Cache
+import Mptcp.Cache
 import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
 import System.Exit
 import Utils
-import Mptcp.Logging (logInfo)
+import Mptcp.Logging (Log, logInfo)
 -- import System.Environment (withProgName)
+import Polysemy (Sem, Members, Embed)
+import Polysemy.State as P
 
 
 newtype LoadPcap = LoadPcap {
@@ -50,19 +53,20 @@ loadOpts = info (loadPcapParser <**> helper)
 -- TODO move commands to their own module
 -- TODO it should update the loadedFile in State !
 -- handleParseResult
-loadPcap :: CMD.CommandCb m
+-- loadPcap :: CMD.CommandCb m
+loadPcap :: Members [Log, P.State MyState, Cache, Embed IO] m => [String] -> Sem m RetCode
 loadPcap args = do
     logInfo "Called loadPcap"
     -- s <- gets
     -- liftIO $ withProgName "load" (
     -- TODO fix the name of the program, by "load"
     let parserResult = execParserPure defaultParserPrefs loadOpts args
-    _ <- case parserResult of
-      (Failure failure) -> logInfo failure >> return ( CMD.Error "could not parse")
+    case parserResult of
+      -- logInfo $ show failure >>
+      (Failure _failure) -> return $ CMD.Error "could not parse"
       -- TODO here we should complete autocompletion
       (CompletionInvoked _compl) -> return CMD.Continue
       (Success parsedArgs) -> do
-          -- parsedArgs <- liftIO $ myHandleParseResult parserResult
           mFrame <- loadPcapIntoFrame defaultTsharkPrefs (pcap parsedArgs)
           -- fmap onSuccess mFrame
           case mFrame of
@@ -70,22 +74,22 @@ loadPcap args = do
             Just _frame -> do
               prompt .= pcap parsedArgs ++ "> "
               loadedFile .= mFrame
-
-              liftIO $ putStrLn "Frame loaded" >> return CMD.Continue
-    return CMD.Continue
+              logInfo "Frame loaded" >> return CMD.Continue
 
 -- TODO return an Either or Maybe ?
-loadPcapIntoFrame :: (Cache m, MonadIO m, KatipContext m) => TsharkParams -> FilePath -> m (Maybe PcapFrame)
+-- MonadIO m, KatipContext m
+  -- EmbedIO
+loadPcapIntoFrame :: Members [Cache, Log, Embed IO ] m => TsharkParams -> FilePath -> Sem m (Maybe PcapFrame)
 loadPcapIntoFrame params path = do
     logInfo ("Start loading pcap " ++ show path)
-    x <- liftIO $ getCache cacheId
+    x <- getCache cacheId
     case x of
       Right frame -> do
-          $(logTM) DebugS "Frame in cache"
+          logInfo "Frame in cache"
           return $ Just frame
       Left err -> do
-          liftIO $ putStrLn $ "getCache error: " ++ show err
-          $(logTM) InfoS "Calling tshark"
+          logInfo $ "getCache error: " ++ show err
+          logInfo "Calling tshark"
           -- TODO need to create a temporary file
           -- mkstemps
           -- TODO use showCommandForUser to display the run command to the user
@@ -93,23 +97,23 @@ loadPcapIntoFrame params path = do
           (tempPath , exitCode, stdErr) <- liftIO $ withTempFileEx opts "/tmp" "mptcp.csv" (exportToCsv params path)
           if exitCode == ExitSuccess
               then do
-                $(logTM) InfoS $ logStr $ "exported to file " ++ show tempPath
+                logInfo $ "exported to file " ++ show tempPath
                 frame <- liftIO $ loadRows tempPath
-                liftIO $ putStrLn $ "Number of rows after loading " ++ show (frameLength frame)
+                logInfo $ "Number of rows after loading " ++ show (frameLength frame)
                 cacheRes <- putCache cacheId tempPath
                 -- use ifThenElse instead
                 if cacheRes then
-                  $(logTM) InfoS "Saved into cache"
+                  logInfo "Saved into cache"
                 else
                   pure ()
 
                 return $ Just frame
               else do
                 let msg = "Error happened: " ++ show exitCode
-                $(logTM) InfoS $ logStr msg
+                logInfo msg
                 -- let stdErr = "TODO"
-                $(logTM) WarningS $ logStr (stdErr :: String)
-                liftIO $ putStrLn "error happened: exitCode"
+                logInfo (stdErr :: String)
+                logInfo "error happened: exitCode"
                 return Nothing
 
     where
@@ -118,12 +122,13 @@ loadPcapIntoFrame params path = do
       opts = TempFileOptions True
 
 -- TODO should disappear after testing phase
-loadCsv :: CMD.CommandCb m
+-- loadCsv :: CMD.CommandCb m
+loadCsv :: Members [Log, P.State MyState, Cache, Embed IO ] m => [String] -> Sem m RetCode
 loadCsv args = do
     logInfo "Called loadCsv"
     let parserResult = execParserPure defaultParserPrefs loadOpts args
     _ <- case parserResult of
-      (Failure failure) -> logInfo failure >> return ( CMD.Error "could not load csv")
+      (Failure _failure) -> return ( CMD.Error "could not load csv")
       -- TODO here we should complete autocompletion
       (CompletionInvoked _compl) -> return CMD.Continue
       (Success parsedArgs) -> do
@@ -131,13 +136,11 @@ loadCsv args = do
           logInfo $ "Loading " ++ csvFilename
           -- parsedArgs <- liftIO $ myHandleParseResult parserResult
           frame <- liftIO $ loadRows csvFilename
-          loadedFile .= Just frame
+          -- TODO restore
+          -- loadedFile .= Just frame
           logInfo $ "Number of rows " ++ show (frameLength frame)
           logInfo "Frame loaded" >> return CMD.Continue
           where
             csvFilename = pcap parsedArgs
     return CMD.Continue
-
--- loadRows :: IO (PcapFrame)
--- loadRows = inCoreAoS (readTable "data/server_2_filtered.pcapng.csv")
 

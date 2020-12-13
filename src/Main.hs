@@ -56,10 +56,8 @@ import Control.Lens ( (^.), view, set)
 -- Repline is a wrapper (suppposedly more advanced) around haskeline
 -- for now we focus on the simple usecase with repline
 -- import System.Console.Repline
-import Katip
 import Pcap ()
-import Cache
--- (Cache,putCache,getCache, isValid, CacheId)
+import Mptcp.Cache
 import Commands.Load
 -- import System.Environment.Blank   (getEnvDefault)
 -- import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
@@ -74,8 +72,7 @@ newtype MyStack m a = MyStack {
     unAppT :: StateT MyState m a
 } deriving (Monad, Applicative, Functor
     , MonadIO
-    -- , Katip, KatipContext
-    , Cache
+    -- , Cache
     -- , MonadReader MyState m
     , MonadState MyState
     , MonadThrow
@@ -98,20 +95,6 @@ newtype MyStack m a = MyStack {
 
 -- data Cache m a where
 --   LogInfo :: String -> Log m ()
-
--- instance (MonadIO m, MonadState MyState (MyStack m)) => Katip (MyStack m) where
---   getLogEnv = do
---       s <- get
---       return $ s ^. msLogEnv
---   -- (LogEnv -> LogEnv) -> m a -> m a
---   localLogEnv f (MyStack m) = MyStack (withStateT (\s -> set msLogEnv (f (s ^. msLogEnv)) s) m)
-
--- instance (MonadState MyState (MyStack m), Katip (MyStack m)) => KatipContext (MyStack m) where
---   getKatipContext = do gets (view msKContext)
---   localKatipContext f (MyStack m) = MyStack (withStateT (\s -> set msKContext (f (s ^. msKContext )) s) m)
---   -- local (\s -> s { msKContext = f (msKContext s)}) m)
---   getKatipNamespace = get >>= \x -> return $ x ^. msKNamespace
---   localKatipNamespace f (MyStack m) = MyStack (withStateT (\s -> set msKNamespace (f (view msKNamespace s)) s) m)
 
 
 -- cacheCheckValidity :: CacheId -> MyStack IO Bool
