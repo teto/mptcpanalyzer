@@ -42,14 +42,16 @@ import Commands.List
 import Commands.Load
 
 -- Member, , Embed Members, 
-import Polysemy (Sem, runM)
--- import qualified Polysemy as P
-import Polysemy.Reader()
+import Polysemy (Sem, runM, runFinal)
+import qualified Polysemy as P
+import Polysemy.Reader as P
 import qualified Polysemy.State as P
 -- import qualified Polysemy.Output as P
 -- import qualified Polysemy.Trace as P
 
 import Mptcp.Logging (logInfo, logToIO, Severity(..))
+import Mptcp.Logging
+import Mptcp.Cache
 
 -- for noCompletion
 import System.Console.Haskeline
@@ -220,11 +222,6 @@ opts = info (sample <**> helper)
 defaultPcap :: FilePath
 defaultPcap = "examples/client_2_filtered.pcapng"
 
--- instance MonadMask m => MonadMask (StateT s m) where
---     controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
---                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
---                     in fmap (flip runStateT s) $ f run'
-
 promptSuffix :: String
 promptSuffix = "> "
 
@@ -238,10 +235,6 @@ main = do
       True -> putStrLn ("cache folder already exists" ++ show cacheFolderXdg)
       False -> createDirectory cacheFolderXdg
 
-  -- handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem DebugS) V0
-  -- katipEnv <- initLogEnv "mptcpanalyzer" "devel"
-  -- mkLogEnv <- registerScribe "stdout" handleScribe defaultScribeSettings katipEnv
-
   let myState = MyState {
     _cacheFolder = cacheFolderXdg,
     _loadedFile = Nothing,
@@ -252,32 +245,20 @@ main = do
 
   putStrLn "Commands"
   print $ extraCommands options
-  -- _ <- flip runStateT myState $ do
-  --     unAppT map runCommand (extraCommands options)
-
-  -- discards result
-  -- _ <- flip runStateT myState $ do
-  --     let haskelineSettings = defaultSettings {
-  --         historyFile = Just $ cacheFolderXdg </> "history"
-  --         }
-  --     unAppT (runInputT haskelineSettings inputLoop)
   let haskelineSettings = defaultSettings {
       historyFile = Just $ cacheFolderXdg </> "history"
       }
   -- runInputT haskelineSettings inputLoop
   -- [Log, P.State MyState, Cache, Embed IO]
+  -- embedFinal
   _res <- runM . P.runState myState . runCache . logToIO $ do
-    runInputT haskelineSettings inputLoop
-
+        runInputT haskelineSettings inputLoop
+      
+    -- runInputT haskelineSettings inputLoop
   putStrLn "Thanks for flying with mptcpanalyzer"
 
 
--- TODO associate parser ?
--- is it the interpreter ?
--- commands :: HM.Map String (CMD.CommandCb (MyStack IO))
-
 -- type CommandList m = HM.Map String (CommandCb m)
-
 commands :: HM.Map String CommandCb
 commands = HM.fromList [
     ("load", loadPcap)
@@ -305,7 +286,7 @@ printHelp _ = logInfo "hello" >> return CMD.Continue
 -- TODO pass a dict of command ? that will parse
 -- TODO turn it into a library
 -- TODO embed InputT
-inputLoop :: InputT (Sem DefaultMembers) ()
+inputLoop :: InputT (Sem [Log, Cache, P.State MyState, P.Embed IO]) ()
 inputLoop = do
     s <- lift P.get
     minput <- getInputLine (view prompt s)
@@ -340,13 +321,3 @@ data SimpleData = SimpleData {
       mainStr :: String
       , optionalHello      :: String
     }
-
--- simpleParser :: Parser SimpleData
--- simpleParser = SimpleData
---       -- action "filepath"
---       <$> argument str (metavar "NAME" <> completeWith ["toto", "tata"])
---       <*> strOption
---           ( long "hello"
---          <> metavar "TARGET"
---          <> help "Target for the greeting" )
-
