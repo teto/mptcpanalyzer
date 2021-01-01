@@ -1,5 +1,20 @@
 {
   "nodes": {
+    "flake-utils": {
+      "locked": {
+        "lastModified": 1609246779,
+        "narHash": "sha256-eq6ZXE/VWo3EMC65jmIT6H/rrUc9UWOWVujkzav025k=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "08c7ad4a0844adc4a7f9f5bb3beae482e789afa4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1597943282,
@@ -16,9 +31,41 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "narHash": "sha256-ROwC9FTNyBKnrVFAPVrtYgm7gwJFe1fTd+FqB5kojFk=",
+        "path": "/home/teto/nixpkgs",
+        "type": "path"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "poetry": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1607036882,
+        "narHash": "sha256-lwxPG/La2JrWfWpVIGanjAvITP9cTre6xQGgDR0EAGE=",
+        "owner": "teto",
+        "repo": "poetry2nix",
+        "rev": "6a09b84a95dfdc50a58e39633a72b3e4813802b9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "teto",
+        "ref": "fix_tag",
+        "repo": "poetry2nix",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs",
+        "poetry": "poetry"
       }
     }
   },
