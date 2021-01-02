@@ -12,8 +12,8 @@
 
   outputs = { self, nixpkgs, flake-utils, poetry }: let
   in flake-utils.lib.eachDefaultSystem (system: let
-    # myPoetry = nixpkgs.legacyPackages.${system}.poetry2nix;
-    myPoetry = poetry.packages.poetry;
+    # myPoetry = poetry.legacyPackages.${system}.poetry2nix;
+    myPoetry = poetry.packages."${system}".poetry2nix;
     in rec {
 
     packages.mptcpanalyzer = myPoetry.mkPoetryApplication {
@@ -27,7 +27,11 @@
         });
       });
     };
-    devShell = packages.mptcpanalyzer;
+    devShell = packages.mptcpanalyzer.overrideAttrs(oa: {
+      postShellHook =  ''
+        export PYTHONPATH=.:$PYTHONPATH
+      '';
+    });
     defaultPackage = packages.mptcpanalyzer;
   });
 }

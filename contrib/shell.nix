@@ -47,16 +47,17 @@ let
   '';
 
   myMptcpAnalyzer = mptcpanalyzer.overridePythonAttrs (oa: {
-    buildInputs = oa ++ [
+    buildInputs = oa.buildInputs ++ [
       pkgs.poetry
-      pkgs.gobjectIntrospection # otherwise Namespace Gtk not available
+      # pkgs.gobjectIntrospection # otherwise Namespace Gtk not available
+      # pkgs.gtk3
       pkgs.wrapGAppsHook  # check GDK_PIXBUF_MODULE_FILE
       pkgs.pango # Typelib file for namespace 'Pango', version '1.0' not found
       pkgs.gdk-pixbuf # Typelib file for namespace 'GdkPixbuf', version '2.0' not found
       pkgs.atk # Typelib file for namespace 'Atk', version '1.0' not found
     ];
 
-    shellHook = oa.shellHook + ''
+    shellHook = oa.shellHook or "" + ''
       alias m=mptcpanalyzer
       export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${pkgs.stdenv.cc.cc.lib}/lib"
       echo '${pkgs.lib.traceVal finalNvimRcContent}' > .nvimrc
@@ -92,4 +93,5 @@ let
   # };
 in
   # myShell
+  # myMptcpAnalyzer
   mptcpanalyzer
