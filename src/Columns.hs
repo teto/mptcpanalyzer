@@ -8,6 +8,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts, QuasiQuotes #-}
 module Columns
 where
@@ -26,8 +27,6 @@ type instance VectorFor IP = V.Vector
 
 
 instance Readable IP  where
-  fromText t = case decode t of
-      Just ip -> return ip
-      Nothing -> mzero
+  fromText t = maybe mzero return (decode t)
 
 
