@@ -1,7 +1,14 @@
 -- {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE PackageImports           #-}
 
-module MptcpAnalyzer.Commands.List
+module MptcpAnalyzer.Commands.List (
+  piListTcpOpts
+  , piTcpSummaryOpts
+  , piMptcpSummaryOpts
+  , cmdListTcpConnections
+  , cmdTcpSummary
+  , cmdMptcpSummary
+)
 where
 
 import MptcpAnalyzer.Cache

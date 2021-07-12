@@ -1,7 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell            #-}
-module Tshark.TH
+module Tshark.TH (
+  declarePrefixedColumns
+  , genExplicitRecord
+  , genRecordFrom
+  , genRecordFromHeaders
+  , genRecHashable
+)
 where
 
 import Tshark.Fields

@@ -249,7 +249,7 @@ mainParser = subparser (
     <> command "quit" quit
     <> commandGroup "Loader commands"
     <> command "load-csv" CL.piLoadCsv
-    <> command "load-pcap" CL.loadPcapOpts
+    <> command "load-pcap" CL.piLoadPcapOpts
     <> commandGroup "TCP commands"
     <> command "tcp-summary" CLI.piTcpSummaryOpts
     <> command "mptcp-summary" CLI.piMptcpSummaryOpts
@@ -265,7 +265,7 @@ mainParser = subparser (
     -- TODO here we should pass a subparser
     -- <> subparser (
     -- Main.piParserGeneric
-    <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "hello"))
+    <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
     <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "hello"))
     )
     where
@@ -296,7 +296,7 @@ runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
   --       _loadedFile = Just frame
   --     })
   -- return ret
-runCommand (ArgsLoadCsv csvFile) = CL.loadCsv csvFile
+runCommand (ArgsLoadCsv csvFile) = CL.cmdLoadCsv csvFile
 runCommand (ArgsParserSummary detailed streamId) = CLI.cmdTcpSummary streamId detailed
 runCommand (ArgsMptcpSummary detailed streamId) = CLI.cmdMptcpSummary streamId detailed
 runCommand (ArgsListSubflows detailed) = CLI.cmdListSubflows detailed

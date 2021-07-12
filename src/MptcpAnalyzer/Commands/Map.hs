@@ -1,4 +1,10 @@
-module MptcpAnalyzer.Commands.Map
+module MptcpAnalyzer.Commands.Map (
+  mapTcpOpts
+  , mapMptcpOpts
+  -- , parserMapConnection
+  , cmdMapTcpConnection
+  , cmdMapMptcpConnection
+)
 where
 
 import MptcpAnalyzer.Cache

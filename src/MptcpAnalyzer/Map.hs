@@ -16,7 +16,12 @@ See "MptcpAnalyzer.Merge"
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
-module MptcpAnalyzer.Map
+module MptcpAnalyzer.Map (
+  mapMptcpConnection
+  , mapTcpConnection
+  , mapSubflows
+  , showMptcpSubflowMapping
+)
 where
 
 import MptcpAnalyzer.Cache

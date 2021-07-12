@@ -40,7 +40,17 @@ You can easily generate retransmissions using the "redundant scheduler".
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -O0 #-}
-module MptcpAnalyzer.Merge
+module MptcpAnalyzer.Merge (
+  mergeTcpConnectionsFromKnownStreams
+  , mergeMptcpConnectionsFromKnownStreams
+  , convertToSenderReceiver
+
+  -- * Types
+  , SenderReceiverCols
+  , TcpSenderReceiverCols
+  , MptcpSenderReceiverCols
+  , MergedFrame
+)
 where
 
 import Prelude hiding (log)

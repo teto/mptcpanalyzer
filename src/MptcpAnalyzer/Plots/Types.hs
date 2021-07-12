@@ -1,4 +1,8 @@
-module MptcpAnalyzer.Plots.Types
+module MptcpAnalyzer.Plots.Types (
+  PlotSettings(..)
+  , ArgsPlots(..)
+
+)
 where
 
 import MptcpAnalyzer.Types

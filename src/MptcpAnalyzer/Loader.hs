@@ -1,4 +1,8 @@
-module MptcpAnalyzer.Loader
+module MptcpAnalyzer.Loader (
+  loadPcapIntoFrame
+  , buildAFrameFromStreamIdTcp
+  , buildAFrameFromStreamIdMptcp
+  )
 where
 import MptcpAnalyzer.Types
 import MptcpAnalyzer.Cache

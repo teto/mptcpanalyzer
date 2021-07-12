@@ -20,15 +20,32 @@
 {-# LANGUAGE UndecidableInstances   #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE PackageImports         #-}
-module MptcpAnalyzer.Pcap
--- (TsharkParams(..),
---     defaultTsharkPrefs
---     , defaultTsharkOptions
---     , generateCsvCommand
---     , exportToCsv
---     , loadRows
---     , getTcpStreams
---     )
+module MptcpAnalyzer.Pcap (
+    TsharkParams(..)
+    , addTcpDestToFrame
+    , addMptcpDestToFrame
+    , addMptcpDest
+    , addTcpDestinationsToAFrame
+    , buildTcpConnectionFromStreamId
+    , buildMptcpConnectionFromStreamId
+    , defaultTsharkPrefs
+    , defaultTsharkOptions
+    , defaultParserOptions
+    , generateCsvCommand
+    , genTcpDestFrame
+    , exportToCsv
+    , loadRows
+    , getTcpStreams
+    , getMptcpStreams
+    , buildSubflowFromTcpStreamId
+
+    -- TODO remove ? use instance instead
+    , showMptcpSubflowText
+    , similarityScore
+    , StreamConnection(..)
+    , showConnection
+    -- , showMptcpSubflowText
+    )
 where
 
 
@@ -548,6 +565,7 @@ class StreamConnection a b | a -> b where
   showConnectionText :: a -> Text
   -- describeConnection :: a -> Text
   buildFrameFromStreamId :: Frame Packet -> StreamId b -> Either String (FrameFiltered a Packet)
+  -- type Needs a :: Constraint
 
   -- type toto = Int
 

@@ -1,4 +1,7 @@
-module MptcpAnalyzer.Commands.Export
+module MptcpAnalyzer.Commands.Export (
+  parseExportOpts
+  , cmdExport
+)
 where
 
 import MptcpAnalyzer.Types

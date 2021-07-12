@@ -1,7 +1,11 @@
 {-# LANGUAGE DataKinds, FlexibleContexts, QuasiQuotes, TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
-module MptcpAnalyzer.Commands.Load
+module MptcpAnalyzer.Commands.Load (
+  cmdLoadCsv
+  , piLoadCsv
+  , piLoadPcapOpts
+)
 where
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Commands.Definitions as CMD
@@ -27,19 +31,19 @@ loadPcapArgs =  ArgsLoadPcap <$> argument str (metavar "PCAP" <> completeWith ["
           <> help "Load a Pcap file"
       )
 
-loadCsvArgs :: Parser CommandArgs
-loadCsvArgs =  ArgsLoadCsv <$> argument str (metavar "PCAP" <> completeWith ["toto", "tata"]
+cmdLoadCsvArgs :: Parser CommandArgs
+cmdLoadCsvArgs =  ArgsLoadCsv <$> argument str (metavar "PCAP" <> completeWith ["toto", "tata"]
           <> help "Load a Csv file"
       )
 
 piLoadCsv :: ParserInfo CommandArgs
-piLoadCsv = info (loadCsvArgs <**> helper)
+piLoadCsv = info (cmdLoadCsvArgs <**> helper)
   ( fullDesc
   <> progDesc "Load a csv file generated from wireshark"
   )
 
-loadPcapOpts :: ParserInfo CommandArgs
-loadPcapOpts = info (loadPcapArgs <**> helper)
+piLoadPcapOpts :: ParserInfo CommandArgs
+piLoadPcapOpts = info (loadPcapArgs <**> helper)
   ( fullDesc
   <> progDesc "Load a pcap file via wireshark"
   <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
@@ -51,10 +55,10 @@ loadPcapOpts = info (loadPcapArgs <**> helper)
 
 
 
-loadCsv :: (Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] m)
+cmdLoadCsv :: (Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] m)
     => FilePath   -- ^ csv file to load
     -> Sem m CMD.RetCode
-loadCsv csvFilename  = do
+cmdLoadCsv csvFilename  = do
 
     P.trace $ "Loading " ++ csvFilename
     frame <- liftIO $ loadRows csvFilename

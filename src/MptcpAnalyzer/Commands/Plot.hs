@@ -1,6 +1,13 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
-module MptcpAnalyzer.Commands.Plot
+module MptcpAnalyzer.Commands.Plot (
+  -- * Actual commands that plot
+  cmdPlotMptcpAttribute
+  , cmdPlotTcpAttribute
+  , piPlotTcpMainParser
+  , parserPlotTcpMain
+  , parserPlotMptcpMain
+)
 where
 
 import MptcpAnalyzer.Types
