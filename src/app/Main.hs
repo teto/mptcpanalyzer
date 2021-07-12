@@ -258,8 +258,8 @@ mainParser = subparser (
     <> command "map-mptcp" CLI.mapMptcpOpts
     <> commandGroup "MPTCP commands"
     <> command "list-reinjections" CLI.piListReinjections
-    <> command "list-mptcp" CLI.listMpTcpOpts
-    <> command "export" CLI.parseExportOpts
+    <> command "list-mptcp" CLI.piListMpTcpOpts
+    <> command "export" CLI.piExportOpts
     <> command "analyze" CLI.piQualifyReinjections
     -- <> commandGroup "TCP plots"
     -- TODO here we should pass a subparser

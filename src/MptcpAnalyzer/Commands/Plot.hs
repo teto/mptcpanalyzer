@@ -49,8 +49,9 @@ import Polysemy.Trace as P
 import System.Process hiding (runCommand)
 import System.Exit
 -- import Data.Time.LocalTime
-import Data.Foldable (toList)
-import Data.Maybe (fromMaybe, isJust)
+-- import Data.Foldable (toList)
+import qualified Data.Foldable  as F
+import Data.Maybe (catMaybes, fromMaybe, isJust, maybeToList)
 import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
 import System.Directory (renameFile)
 import System.IO (Handle)
@@ -64,34 +65,15 @@ import Data.Vinyl.TypeLevel
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 
--- data PlotTypes = PlotTcpAttribute {
---     pltAttrField :: Text
---     -- syndrop => drop syn packets
---     -- Drops first 3 packets of the dataframe assuming they are syn
---   }
-
 -- Plot MPTCP subflow attributes over time
 
--- piPlotParserTcpAttr :: Parser PlotTypes
--- piPlotParserTcpAttr = PlotTcpAttribute <$> argument str
---       ( help "Choose an mptcp attribute to plot"
---       <> metavar "FIELD" )
-
-
+-- | Parses options common to all plots like the title
 parserPlotSettings :: Bool -> Parser PlotSettings
 parserPlotSettings mptcpPlot = PlotSettings 
     <$> optional (strOption
       ( long "out" <> short 'o'
       <> help "Save filename of the plot."
       <> metavar "OUT" ))
-    -- <*> optional ( strOption
-      -- ( long "title" <> short 't'
-      -- <> help "Overrides the default plot title."
-      -- <> metavar "TITLE" ))
-    -- <*> optional (switch
-      -- ( long "primary"
-      -- <> help "Copy to X clipboard, requires `xsel` to be installed"
-      -- ))
     <*> optional ( strOption
       ( long "title" <> short 't'
       <> help "Overrides the default plot title."
@@ -129,22 +111,12 @@ parserPlotTcpMain  = ArgsPlotGeneric <$> parserPlotSettings False
 
 
 parserPlotMptcpMain :: Parser CommandArgs
-parserPlotMptcpMain  = ArgsPlotGeneric <$> parserPlotSettings False
+parserPlotMptcpMain  = ArgsPlotGeneric <$> parserPlotSettings True
     <*> hsubparser (
-      command "attr" (info (plotStreamParser validTcpAttributes False) (progDesc "toto"))
+      command "attr" (info (plotStreamParser validTcpAttributes True)
+          (progDesc "Plot MPTCP attribute (choose from ...)"))
       <> command "owd" (info (plotParserOwd True) (progDesc "Plot MPTCP owd"))
       )
-
--- shared by tcp / mptcp
--- parserPlotGeneric :: Parser ArgsPlots
--- parserPlotGeneric  = plotStreamParser validTcpAttributes False
-      -- <*> option auto (
-      --     metavar "MPTCP"
-      --   -- internal is stronger than --belive, hides from all descriptions
-      --   <> internal
-      --   <> Options.Applicative.value mptcpPlot
-      --   <> help ""
-      -- )
 
 -- piPlotTcpAttrParser :: ParserInfo ArgsPlots
 -- piPlotTcpAttrParser = info (plotStreamParser validTcpAttributes False)
@@ -160,7 +132,6 @@ piPlotMptcpParser = info (
   ( progDesc "Plot MPTCP attr"
   )
 
--- data TcpAttr = 
 
 -- Superset of @validTcpAttributes@
 validMptcpAttributes :: [String]
@@ -226,7 +197,7 @@ plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
       <*> optional (argument readConnectionRole (
           metavar "Destination"
         -- <> Options.Applicative.value RoleServer
-        <> help ""
+        <> help "Only show in a specific direction"
       ))
       -- <*> option auto (
       --     metavar "MPTCP"
@@ -291,7 +262,7 @@ cmdPlotTcpAttribute field tempPath _ destinations aFrame = do
           seqData :: [Double]
           -- seqData = map fromIntegral (toList $ (getSelector field) <$> unidirectionalFrame)
           seqData = getData unidirectionalFrame field
-          timeData = toList $ view relTime <$> unidirectionalFrame
+          timeData = F.toList $ view relTime <$> unidirectionalFrame
 
           -- selector
           -- type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
@@ -313,20 +284,25 @@ getData :: forall t a2. (Num a2,
             Foldable t, Functor t) =>
             t (Record (TcpDest ': HostCols) ) -> String -> [a2]
 getData frame attr =
-  toList (getAttr  <$> frame)
+  F.toList (getAttr  <$> frame)
   where
     getAttr = case attr of
       "tcpSeq" -> fromIntegral . view tcpSeq
       "tcpLen" -> fromIntegral. view tcpLen
       "rwnd" -> fromIntegral. view rwnd
       "tcpAck" -> fromIntegral. view tcpAck
+      -- TODO filter
+      -- "mptcpDsn" -> case view mptcpDsn of
+          -- Nothing -> 
       -- "tsval" -> tsval
       _ -> error "unsupported attr"
 
--- type Lens s t a b
--- case
-cmdPlotMptcpAttribute :: (Members [Log, P.State MyState, P.Trace, Cache, Embed IO] m) =>
-    String -- Tcp attr
+
+-- TODO support more attributes
+cmdPlotMptcpAttribute :: (
+  Members [
+    Log, P.State MyState, P.Trace, Cache, Embed IO
+  ] m) => String -- Tcp attr
     -> FilePath -- ^ temporary file to save plot to
     -> Handle
     -> [ConnectionRole]
@@ -353,7 +329,7 @@ cmdPlotMptcpAttribute field tempPath _ destinations aFrame = do
     -- add dest to the whole frame
     frameDest = addMptcpDest (ffFrame aFrame) (ffCon aFrame)
     plotAttr (dest, sf) =
-      plot (line lineLabel [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
+      plot (line lineLabel [ [ (d,v) | (d,v) <- zip timeData dsnData ] ])
 
         where
           -- show sf
@@ -362,8 +338,12 @@ cmdPlotMptcpAttribute field tempPath _ destinations aFrame = do
           unidirectionalFrame = filterFrame (\x -> x ^. mptcpDest == dest
                     && x ^. tcpStream == conTcpStreamId (sfConn sf) ) frameDest
 
-          seqData :: [Double]
-          seqData = map fromIntegral (toList $ view tcpSeq <$> unidirectionalFrame)
-          timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) toList $ view relTime <$> unidirectionalFrame
+          -- seqData :: [Double]
+          -- seqData = map fromIntegral (toList $ view tcpSeq <$> unidirectionalFrame)
+          dsnData :: [Double]
+          dsnData = map fromIntegral (catMaybes $ F.toList $ view mptcpDsn <$> unidirectionalFrame)
+          -- dsnFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) unidirectionalFrame
+
+          timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> unidirectionalFrame
 
 
