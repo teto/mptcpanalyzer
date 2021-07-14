@@ -1,4 +1,15 @@
-module MptcpAnalyzer.Stats
+{-|
+Module      : MptcpAnalyzer.Stats
+Description : Compute statistics on connections
+Maintainer  : matt
+License     : GPL-3
+-}
+
+module MptcpAnalyzer.Stats (
+  getTcpStats
+  , getMptcpStats
+  , getSubflowStats
+  )
 where
 
 import Net.Tcp

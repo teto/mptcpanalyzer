@@ -341,9 +341,10 @@ cmdPlotMptcpAttribute field tempPath _ destinations aFrame = do
           -- seqData :: [Double]
           -- seqData = map fromIntegral (toList $ view tcpSeq <$> unidirectionalFrame)
           dsnData :: [Double]
-          dsnData = map fromIntegral (catMaybes $ F.toList $ view mptcpDsn <$> unidirectionalFrame)
-          -- dsnFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) unidirectionalFrame
+          dsnData = map fromIntegral (catMaybes $ F.toList $ view mptcpDsn <$> dsnFrame)
 
-          timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> unidirectionalFrame
+          dsnFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) unidirectionalFrame
+
+          timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> dsnFrame
 
 

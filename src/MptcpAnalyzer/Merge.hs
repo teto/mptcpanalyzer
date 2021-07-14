@@ -1,12 +1,14 @@
-{-
+{-|
 Module      : MptcpAnalyzer.Merge
 Description : Merges 2 dataframes into a single one with the format sender -> receiver
 Maintainer  : matt
+License     : GPL-3
 
 To compute some statistics, it is necessary
 to be able to map packets captured on the server to the ones mapped on the client.
 
-For instance if clocks on both hosts are synchronized and we know the mapping, we can compute the One-Way-Delay (OWD). It is usually assumed to be half the roundtrip, also because there is almost no tooling to measure it.
+For instance if clocks on both hosts are synchronized and we know the mapping, we can compute the One-Way-Delay (OWD).
+It is usually assumed to be half the roundtrip, also because there is almost no tooling to measure it.
 
 Another example where it is useful is when dealing with retransmissions, you may want
 to identify what transmission arrived first in order to classify between successful
@@ -333,6 +335,7 @@ mergeTcpSubflowFromKnownStreams (FrameTcp sfcon1 frame1) (FrameTcp sfcon2 frame2
   mergeTcpConnectionsFromKnownStreams (FrameTcp (sfConn sfcon1) frame1)
       (FrameTcp (sfConn sfcon2) frame2)
 
+-- | Merge 2 pcaps
 mergeTcpConnectionsFromKnownStreams ::
   (Members '[Log, P.Embed IO] r)
   => FrameFiltered TcpConnection PacketWithSenderDest

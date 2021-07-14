@@ -1,4 +1,4 @@
-{-
+{-|
 Module      : MptcpAnalyzer.Maps
 Description : Maps Packets and Tcp streams between two frames
 Maintainer  : matt
@@ -62,6 +62,7 @@ mapSubflows con1 con2 =
         map (\sf -> (sf, similarityScore sf1 sf)) (Set.toList $ mpconSubflows con2)
 
 
+-- | show a mapping
 showMptcpSubflowMapping :: MptcpSubflowMapping -> Text
 showMptcpSubflowMapping m =
   intercalate "\n" $ map showOneSfMapping m

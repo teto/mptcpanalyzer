@@ -1,3 +1,9 @@
+{-|
+Module      : Net.Mptcp.Stats
+Description : Compute basic MPTCP statistics
+Maintainer  : matt
+License     : GPL-3
+-}
 module Net.Mptcp.Stats
 where
 

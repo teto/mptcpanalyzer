@@ -1,3 +1,8 @@
+{-|
+Module: MptcpAnalyzer.Commands.Load
+Maintainer  : matt
+License     : GPL-3
+-}
 {-# LANGUAGE DataKinds, FlexibleContexts, QuasiQuotes, TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}

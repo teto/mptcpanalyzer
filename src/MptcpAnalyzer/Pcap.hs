@@ -1,3 +1,8 @@
+{-|
+Module: MptcpAnalyzer.Commands.Load
+Maintainer  : matt
+License     : GPL-3
+-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveGeneric          #-}
@@ -41,7 +46,6 @@ module MptcpAnalyzer.Pcap (
 
     -- TODO remove ? use instance instead
     , showMptcpSubflowText
-    , similarityScore
     , StreamConnection(..)
     , showConnection
     -- , showMptcpSubflowText

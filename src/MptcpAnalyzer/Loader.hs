@@ -1,3 +1,9 @@
+{-|
+Module      : MptcpAnalyzer.Loader
+Description : Load pcap/csv into a @Frame@
+Maintainer  : matt
+License     : GPL-3
+-}
 module MptcpAnalyzer.Loader (
   loadPcapIntoFrame
   , buildAFrameFromStreamIdTcp

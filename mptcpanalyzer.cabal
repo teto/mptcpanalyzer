@@ -4,12 +4,12 @@ version: 0.0.1
 license: GPL-3.0-only
 license-file: LICENSE
 build-type: Simple
+Author: Matthieu Coudron
 Maintainer:  teto
 Category:   Network
 Synopsis: A Multipath TCP analyzer
 Homepage:   https://github.com/teto/quantum
-Description:
-  Multipath TCP (www.multipath-tcp.org) analyzer
+Description: Multipath TCP (www.multipath-tcp.org) protocol analyzer
 extra-source-files:
   README.md CHANGELOG
   tests/integration/list-tcp.test
@@ -40,8 +40,6 @@ common shared-properties
       , cereal
       , co-log
       , co-log-core
-      -- , co-log-polysemy
-      -- , co-log-polysemy-formatting
       , polysemy-log
       , polysemy-log-co
       , formatting
@@ -165,7 +163,6 @@ library libmptcpanalyzer
         , MptcpAnalyzer.Merge
         , MptcpAnalyzer.Plots
         , MptcpAnalyzer.Plots.Stream
-        , MptcpAnalyzer.Plots.Owd
         -- TODO remove les commandes ?
         -- , MptcpAnalyzer.Commands
         -- , MptcpAnalyzer.Commands.Load

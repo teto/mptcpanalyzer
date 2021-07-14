@@ -1,9 +1,24 @@
+{-|
+Module      : MptcpAnalyzer.Cache
+Description : Save into/load from a local cache
+Maintainer  : matt
+License     : GPL-3
+-}
+
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving         #-}
-module MptcpAnalyzer.Cache
+module MptcpAnalyzer.Cache (
+  CacheId(..)
+  , Cache(..)
+  , CacheConfig(..)
+  , runMockCache
+  , getCache
+  , putCache
+  , runCache
+)
 where
 
 import MptcpAnalyzer.Pcap
@@ -23,12 +38,15 @@ import GHC.Generics
 import Data.Serialize
 import Data.ByteString (writeFile)
 
+
+-- | Cache item identifier
 data CacheId = CacheId {
   cacheDeps :: [FilePath]
   , cachePrefix :: String
   , cacheSuffix :: String
 } deriving (Generic, Show, Eq, Hashable)
 
+-- | Cache config
 data CacheConfig = CacheConfig {
   cacheFolder :: FilePath
   , cacheEnabled :: Bool
