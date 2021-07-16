@@ -1,6 +1,6 @@
 {-
-Module      : MptcpAnalyzer.Merge
-Description : Merges 2 dataframes into a single one with the format sender -> receiver
+Module      : MptcpAnalyzer.Commands.PlotOwd
+Description : Plot One way delays
 Maintainer  : matt
 -}
 {-# LANGUAGE AllowAmbiguousTypes   #-}

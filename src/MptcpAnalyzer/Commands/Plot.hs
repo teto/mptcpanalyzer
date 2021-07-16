@@ -1,3 +1,8 @@
+{-|
+Module: MptcpAnalyzer.Commands.Plot
+Maintainer  : matt
+License     : GPL-3
+-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 module MptcpAnalyzer.Commands.Plot (
@@ -298,17 +303,18 @@ getData frame attr =
       _ -> error "unsupported attr"
 
 
--- TODO support more attributes
+-- | Plot an attribute selected from ''
+-- @TODO support more attributes
 cmdPlotMptcpAttribute :: (
   Members [
     Log, P.State MyState, P.Trace, Cache, Embed IO
   ] m) => String -- Tcp attr
     -> FilePath -- ^ temporary file to save plot to
-    -> Handle
+    -- -> Handle
     -> [ConnectionRole]
     -> FrameFiltered MptcpConnection Packet
     -> Sem m RetCode
-cmdPlotMptcpAttribute field tempPath _ destinations aFrame = do
+cmdPlotMptcpAttribute field tempPath destinations aFrame = do
 
 -- inCore converts into a producer
   Log.debug $ "show con " <> tshow (ffCon aFrame)

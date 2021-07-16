@@ -72,7 +72,6 @@ import           System.Exit
 import           System.IO                      (BufferMode (LineBuffering), Handle, SeekMode (AbsoluteSeek),
                                                  hGetContents, hSeek, hSetBuffering)
 import           System.Process
--- import Frames.InCore
 import           Frames.CSV                     (ParserOptions (..), QuotingMode (..), ReadRec, pipeTableEitherOpt,
                                                  produceTextLines, readFileLatin1Ln, readTableMaybeOpt)
 import           Frames.Col

@@ -140,6 +140,7 @@ library libmptcpanalyzer
     Exposed-Modules:
         Tshark.TH
         , Tshark.Fields
+        , Tshark.Interfaces
         , Net.Mptcp.Types
         , Net.Tcp.Stats
         , Net.Tcp.Connection

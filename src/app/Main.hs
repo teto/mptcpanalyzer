@@ -58,6 +58,8 @@ import MptcpAnalyzer.Plots.Types
 -- import qualified MptcpAnalyzer.Plots.Owd as Plots
 import qualified MptcpAnalyzer.Commands.Load as CL
 -- import Control.Monad (void)
+import Tshark.Interfaces
+import MptcpAnalyzer.Pcap (defaultTsharkPrefs, defaultTsharkOptions, defaultParserOptions)
 
 
 import Polysemy (Sem, Members, runFinal, Final)
@@ -89,7 +91,6 @@ import System.Console.Haskeline
 import System.Console.ANSI
 import Control.Lens ((^.), view)
 import System.Exit
-import MptcpAnalyzer.Pcap (defaultTsharkPrefs, defaultTsharkOptions, defaultParserOptions)
 import Pipes hiding (Proxy)
 import System.Process hiding (runCommand)
 import Distribution.Simple.Utils (withTempFileEx)
@@ -237,6 +238,15 @@ main = do
   return ()
 
 
+
+
+piListInterfaces :: ParserInfo CommandArgs
+piListInterfaces = info (pure ArgsListInterfaces)
+  ( fullDesc
+  <> progDesc "List interfaces as seen by tshark"
+  <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
+  )
+
 -- |Global parser: contains every available command
 -- TODO for some commands we could factorize the preprocessing eg check a file
 -- was pre-loaded
@@ -259,6 +269,7 @@ mainParser = subparser (
     <> commandGroup "MPTCP commands"
     <> command "list-reinjections" CLI.piListReinjections
     <> command "list-mptcp" CLI.piListMpTcpOpts
+    <> command "list-interfaces" piListInterfaces
     <> command "export" CLI.piExportOpts
     <> command "analyze" CLI.piQualifyReinjections
     -- <> commandGroup "TCP plots"
@@ -284,7 +295,17 @@ mainParserInfo = info (mainParser <**> helper)
   )
 
 
+cmdListInterfaces :: (Members '[
+  Log, Cache,
+  P.Trace, P.State MyState,
+  P.Embed IO
+  ] r) => Sem r CMD.RetCode
+cmdListInterfaces = do
+  (exitCode, ifs) <- P.embed listInterfaces
 
+  trace "Listing interfaces:"
+  trace $ "ifs" ++ concatMap (\x -> x ++ "\n") ifs
+  return CMD.Continue
 
 
 runCommand :: (Members '[Log, Cache, P.Trace, P.State MyState, P.Embed IO] r)
@@ -303,6 +324,7 @@ runCommand (ArgsListSubflows detailed) = CLI.cmdListSubflows detailed
 runCommand (ArgsListReinjections streamId)  = CLI.cmdListReinjections streamId
 runCommand (ArgsListTcpConnections detailed) = CLI.cmdListTcpConnections detailed
 runCommand (ArgsListMpTcpConnections detailed) = CLI.cmdListMptcpConnections detailed
+runCommand (ArgsListInterfaces ) = cmdListInterfaces
 runCommand (ArgsExport out) = CLI.cmdExport out
 runCommand (ArgsPlotGeneric plotSettings plotArgs) = runPlotCommand plotSettings plotArgs
 runCommand (ArgsMapTcpConnections cmd False) = CLI.cmdMapTcpConnection cmd
@@ -359,7 +381,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
               eFrame <- buildAFrameFromStreamIdMptcp defaultTsharkPrefs pcapFilename (StreamId streamId)
               case eFrame of
                 Left err -> return $ CMD.Error err
-                Right frame -> Plots.cmdPlotMptcpAttribute attr tempPath handle destinations frame
+                Right frame -> Plots.cmdPlotMptcpAttribute attr tempPath destinations frame
 
             else do
               eFrame <- buildAFrameFromStreamIdTcp defaultTsharkPrefs pcapFilename (StreamId streamId)

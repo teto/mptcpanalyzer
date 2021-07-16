@@ -38,6 +38,7 @@ data CommandArgs =
     -- ^ Pcap 1 Pcap 2 streamId1 verbose Limit Mptcp
     -- | ArgsMapMptcpConnections FilePath FilePath Word32 Bool Int Bool
     | ArgsListSubflows Bool
+    | ArgsListInterfaces
       -- ^ _listSubflowsDetailed
     | ArgsListReinjections (StreamId Mptcp)
     | ArgsParserSummary Bool (StreamId Tcp)
