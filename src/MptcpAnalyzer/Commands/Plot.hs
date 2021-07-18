@@ -264,10 +264,10 @@ cmdPlotTcpAttribute field tempPath _ destinations aFrame = do
           frameDest = frame2
           unidirectionalFrame = filterFrame (\x -> x ^. tcpDest == dest) (ffFrame frameDest)
 
-          seqData :: [Double]
+          -- seqData :: [Double]
           -- seqData = map fromIntegral (toList $ (getSelector field) <$> unidirectionalFrame)
-          seqData = getData unidirectionalFrame field
-          timeData = F.toList $ view relTime <$> unidirectionalFrame
+          (timeData, seqData) = getData unidirectionalFrame field
+          -- timeData = F.toList $ view relTime <$> unidirectionalFrame
 
           -- selector
           -- type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
@@ -280,7 +280,7 @@ cmdPlotTcpAttribute field tempPath _ destinations aFrame = do
 
 -- type HostCols = RecordColumns HostCols
 
-
+-- it should return the time data too ?
 -- it should be possible to get something more abstract
 getData :: forall t a2. (Num a2,
             -- RecElem
@@ -288,9 +288,12 @@ getData :: forall t a2. (Num a2,
             -- (Record HostCols) <: (Record rs)
             Foldable t, Functor t) =>
             t (Record (TcpDest ': HostCols) ) -> String -> [a2]
+
 getData frame attr =
-  F.toList (getAttr  <$> frame)
+  (timeData, F.toList (getAttr  <$> frame))
   where
+    timeData = F.toList $ view relTime <$> unidirectionalFrame
+
     getAttr = case attr of
       "tcpSeq" -> fromIntegral . view tcpSeq
       "tcpLen" -> fromIntegral. view tcpLen
@@ -302,15 +305,15 @@ getData frame attr =
       -- "tsval" -> tsval
       _ -> error "unsupported attr"
 
+getTcpData 
 
 -- | Plot an attribute selected from ''
 -- @TODO support more attributes
 cmdPlotMptcpAttribute :: (
   Members [
     Log, P.State MyState, P.Trace, Cache, Embed IO
-  ] m) => String -- Tcp attr
+  ] m) => String -- ^ mptcp attr
     -> FilePath -- ^ temporary file to save plot to
-    -- -> Handle
     -> [ConnectionRole]
     -> FrameFiltered MptcpConnection Packet
     -> Sem m RetCode
@@ -346,8 +349,9 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
 
           -- seqData :: [Double]
           -- seqData = map fromIntegral (toList $ view tcpSeq <$> unidirectionalFrame)
+          toto = mptcpDsn
           dsnData :: [Double]
-          dsnData = map fromIntegral (catMaybes $ F.toList $ view mptcpDsn <$> dsnFrame)
+          dsnData = map fromIntegral (catMaybes $ F.toList $ view toto <$> dsnFrame)
 
           dsnFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) unidirectionalFrame
 
