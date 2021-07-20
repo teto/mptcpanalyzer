@@ -387,7 +387,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
               eFrame <- buildAFrameFromStreamIdTcp defaultTsharkPrefs pcapFilename (StreamId streamId)
               case eFrame of
                 Left err -> return $ CMD.Error err
-                Right frame -> Plots.cmdPlotTcpAttribute attr tempPath handle destinations frame
+                Right frame -> Plots.cmdPlotTcpAttribute attr tempPath destinations frame
         return res
 
       -- Destinations

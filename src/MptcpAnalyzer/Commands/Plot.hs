@@ -5,6 +5,7 @@ License     : GPL-3
 -}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
 module MptcpAnalyzer.Commands.Plot (
   -- * Actual commands that plot
   cmdPlotMptcpAttribute
@@ -15,66 +16,73 @@ module MptcpAnalyzer.Commands.Plot (
 )
 where
 
-import MptcpAnalyzer.Types
-import MptcpAnalyzer.ArtificialFields
-import MptcpAnalyzer.Plots.Types
-import MptcpAnalyzer.Cache
+import           MptcpAnalyzer.ArtificialFields
+import           MptcpAnalyzer.Cache
+import           MptcpAnalyzer.Plots.Types
+import           MptcpAnalyzer.Types
 -- import MptcpAnalyzer.Commands.Definitions
-import MptcpAnalyzer.Commands.Definitions as CMD
-import MptcpAnalyzer.Commands.PlotOWD
-import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Loader
-import Tshark.Fields (baseFields, TsharkFieldDesc (tfieldLabel))
-import MptcpAnalyzer.Debug
-import Net.Tcp
-import Net.Mptcp
+import           MptcpAnalyzer.Commands.Definitions     as CMD
+import           MptcpAnalyzer.Commands.PlotOWD
+import           MptcpAnalyzer.Debug
+import           MptcpAnalyzer.Loader
+import           MptcpAnalyzer.Pcap
+import           "mptcpanalyzer" Net.Mptcp
+import           "mptcpanalyzer" Net.Tcp
+import           Tshark.Fields                          (TsharkFieldDesc (tfieldLabel), baseFields)
 
-import Prelude hiding (filter, lookup, repeat, log)
-import Options.Applicative
-import Frames
-import Frames.CSV
+import           Frames
+import           Frames.CSV
+import           Options.Applicative
+import           Prelude                                hiding (filter, log, lookup, repeat)
 
 -- import Graphics.Rendering.Chart.Backend.Diagrams (defaultEnv, runBackendR)
 -- import Graphics.Rendering.Chart.Easy
 
-import Graphics.Rendering.Chart.Easy hiding (argument)
-import Graphics.Rendering.Chart.Backend.Cairo
-import Data.Word (Word8, Word16, Word32, Word64)
+import           Data.Word                              (Word16, Word32, Word64, Word8)
+import           Graphics.Rendering.Chart.Backend.Cairo
+import           Graphics.Rendering.Chart.Easy          hiding (argument)
 
-import Data.List (filter, intercalate)
-import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Pipes as P
-import qualified Pipes.Prelude as P
-import Polysemy
-import qualified Polysemy as P
-import Polysemy.State as P
-import Polysemy.Trace as P
+import           Data.List                              (filter, intercalate)
+import           Data.Text                              (Text)
+import qualified Data.Text                              as T
+import qualified Pipes                                  as P
+import qualified Pipes.Prelude                          as P
+import           Polysemy
+import qualified Polysemy                               as P
+import           Polysemy.State                         as P
+import           Polysemy.Trace                         as P
 -- import Colog.Polysemy (Log, log)
-import System.Process hiding (runCommand)
-import System.Exit
+import           System.Exit
+import           System.Process                         hiding (runCommand)
 -- import Data.Time.LocalTime
 -- import Data.Foldable (toList)
-import qualified Data.Foldable  as F
-import Data.Maybe (catMaybes, fromMaybe, isJust, maybeToList)
-import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
-import System.Directory (renameFile)
-import System.IO (Handle)
-import Frames.ShowCSV (showCSV)
-import qualified Data.Set as Set
-import Debug.Trace
-import Text.Read (readEither)
-import qualified Data.Map as Map
-import Data.String
-import Data.Vinyl.TypeLevel
-import Polysemy.Log (Log)
-import qualified Polysemy.Log as Log
+import qualified Data.Foldable                          as F
+import qualified Data.Map                               as Map
+import           Data.Maybe                             (catMaybes, fromMaybe, isJust, maybeToList)
+import qualified Data.Set                               as Set
+import           Data.String
+import           Data.Vinyl.TypeLevel
+import           Debug.Trace
+import           Distribution.Simple.Utils              (TempFileOptions (..), withTempFileEx)
+import           Frames.ShowCSV                         (showCSV)
+import           Polysemy.Log                           (Log)
+import qualified Polysemy.Log                           as Log
+import           System.Directory                       (renameFile)
+import           System.IO                              (Handle)
+import           Text.Read                              (readEither)
+
+-- import Data.Time.Calendar
+import Data.Time.LocalTime
+
+mkDate :: Integer -> LocalTime
+mkDate jday =
+  LocalTime (ModifiedJulianDay jday) midnight
 
 -- Plot MPTCP subflow attributes over time
 
 -- | Parses options common to all plots like the title
 parserPlotSettings :: Bool -> Parser PlotSettings
-parserPlotSettings mptcpPlot = PlotSettings 
+parserPlotSettings mptcpPlot = PlotSettings
     <$> optional (strOption
       ( long "out" <> short 'o'
       <> help "Save filename of the plot."
@@ -98,7 +106,7 @@ parserPlotSettings mptcpPlot = PlotSettings
 
 
 -- |
--- @param 
+-- @param
 -- TODO specialize ArgsPlots for TCP ?
 piPlotTcpMainParser :: ParserInfo CommandArgs
 piPlotTcpMainParser = info parserPlotTcpMain
@@ -142,7 +150,7 @@ piPlotMptcpParser = info (
 validMptcpAttributes :: [String]
 validMptcpAttributes = validTcpAttributes
 -- |Options that are available for all parsers
--- plotParserGenericOptions 
+-- plotParserGenericOptions
 -- TODO generate from the list of fields, via TH?
 
 validTcpAttributes :: [String]
@@ -239,11 +247,10 @@ instance PlotValue Word32 where
 cmdPlotTcpAttribute :: (Members [Log, P.State MyState, Cache, Embed IO] m)
   => String -- Tcp attr
   -> FilePath -- ^ temporary file to save plot to
-  -> Handle
   -> [ConnectionRole]
   -> FrameFiltered TcpConnection Packet
   -> Sem m RetCode
-cmdPlotTcpAttribute field tempPath _ destinations aFrame = do
+cmdPlotTcpAttribute field tempPath destinations aFrame = do
 
 -- inCore converts into a producer
   -- embed $ putStrLn $ showConnection (ffTcpCon tcpFrame)
@@ -287,7 +294,9 @@ getData :: forall t a2. (Num a2,
             --   Rec TcpLen TcpLen rs rs (Data.Vinyl.TypeLevel.RIndex TcpLen rs),
             -- (Record HostCols) <: (Record rs)
             Foldable t, Functor t) =>
-            t (Record (TcpDest ': HostCols) ) -> String -> [a2]
+            t (Record (TcpDest ': HostCols) ) -> String 
+            -> [(LocalTime, a2)]
+            -- ^ Returns a time + value
 
 getData frame attr =
   (timeData, F.toList (getAttr  <$> frame))
@@ -295,17 +304,22 @@ getData frame attr =
     timeData = F.toList $ view relTime <$> unidirectionalFrame
 
     getAttr = case attr of
-      "tcpSeq" -> fromIntegral . view tcpSeq
-      "tcpLen" -> fromIntegral. view tcpLen
-      "rwnd" -> fromIntegral. view rwnd
-      "tcpAck" -> fromIntegral. view tcpAck
+      "tcpSeq"   -> fromIntegral . view tcpSeq
+      "tcpLen"   -> fromIntegral. view tcpLen
+      "rwnd"     -> fromIntegral. view rwnd
+      "tcpAck"   -> fromIntegral. view tcpAck
       -- TODO filter
-      -- "mptcpDsn" -> case view mptcpDsn of
-          -- Nothing -> 
+      "mptcpDsn" -> getMptcpData frame (view mptcpDsn)
+          -- Nothing ->
       -- "tsval" -> tsval
-      _ -> error "unsupported attr"
+      _          -> error "unsupported attr"
 
-getTcpData 
+-- getTcpData  frame getter = fromIntegral . view tcpSeq
+getMptcpData  frame getter =
+  (F.toList $ view relTime <$> justFrame)
+  where
+    justFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) frame
+
 
 -- | Plot an attribute selected from ''
 -- @TODO support more attributes
