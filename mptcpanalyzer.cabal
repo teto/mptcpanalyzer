@@ -97,7 +97,7 @@ common shared-properties
           -fprof-auto
           -ddump-splices
           -ddump-to-file
-          -ddump-timings
+          -- -ddump-timings
         -- TODO remove
           -Wno-unused-imports
         -- build-depends: polysemy-plugin

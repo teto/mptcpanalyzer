@@ -184,7 +184,7 @@ showTcpStats :: TcpUnidirectionalStats -> String
 showTcpStats s =
                   "- transferred " ++ show (tusSndNext s - tusMinSeq s + 1 + tusReinjectedBytes s)  ++ " bytes "
                   ++ " over " ++ show (tusEndTime s - tusStartTime s) ++ "s: "
-                  ++ " Throughput " ++ show (getThroughput s) ++ "b/s"
+                  ++ " Throughput " ++ show (getTcpThroughput s) ++ "b/s"
 
 
 {-

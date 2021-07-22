@@ -1,4 +1,6 @@
-module Net.Mptcp.Flags
+module Net.Mptcp.Flags (
+  MptcpFlag
+)
 where
 
 data MptcpFlag = MptcpFlagFin | MptcpFlagSyn | MptcpFlagRst | MptcpFlagPsh

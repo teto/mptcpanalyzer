@@ -403,7 +403,7 @@ addMptcpDest frame con =
 
       startingFrame = fmap setTempDests frame
       setTempDests :: Record rs -> Record ( MptcpDest ': TcpDest ': rs)
-      setTempDests x = Col RoleClient :& (Col RoleClient) :& x
+      setTempDests x = Col RoleClient :& Col RoleClient :& x
       addMptcpDestToRec x role = (Col $ role) :& x
       subflows = Set.toList $ mpconSubflows con
 
@@ -465,7 +465,7 @@ computeTcpDest :: (
   , TcpDestPort ∈ rs
   ) => Record rs
   -> TcpConnection -> ConnectionRole
-computeTcpDest x con  = if (rgetField @IpSource x) == conTcpClientIp con
+computeTcpDest x con  = if rgetField @IpSource x == conTcpClientIp con
                 && rgetField @IpDest x == conTcpServerIp con
                 && rgetField @TcpSrcPort x == conTcpClientPort con
                 && rgetField @TcpDestPort x == conTcpServerPort con
@@ -496,7 +496,7 @@ addTcpDestinationsToAFrame aframe =
 -- append a field with a value role
 addTcpDestToRec :: (TcpStream ∈ rs, IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs)
   => Record rs -> ConnectionRole ->  Record  ( TcpDest ': rs )
-addTcpDestToRec x role = (Col $ role) :& x
+addTcpDestToRec x role = (Col role) :& x
 
 
 

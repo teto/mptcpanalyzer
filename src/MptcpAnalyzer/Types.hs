@@ -11,6 +11,11 @@
 {-# LANGUAGE PackageImports         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module MptcpAnalyzer.Types
+-- (
+--   -- * types
+--   PcapMapping(..)
+--   , tcpDest
+-- )
 where
 
 -- Inspired by Frames/demo/missingData
@@ -21,8 +26,8 @@ import "mptcp-pm" Net.Tcp (TcpFlag(..))
 import Net.Bitset (fromBitMask, toBitMask)
 import Net.IP
 import Net.IPv6 (IPv6(..))
-import Net.Tcp
-import Net.Mptcp
+import "this" Net.Tcp
+import "this" Net.Mptcp
 
 import Data.Hashable
 import qualified Data.Hashable as Hash

@@ -430,11 +430,11 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           (_, Left err) -> return $ CMD.Error err
         return res
 
-
-    _ <- P.embed $ case mbOut of
-            -- user specified a file move the file
-            Just outFilename -> renameFile tempPath outFilename
-            Nothing -> return ()
+    Data.Foldable.forM_ mbOut (renameFile tempPath)
+    -- _ <- P.embed $ case mbOut of
+    --         -- user specified a file move the file
+    --         Just outFilename -> renameFile tempPath outFilename
+    --         Nothing -> return ()
     if displayPlot then do
         let
           createProc :: CreateProcess
@@ -448,7 +448,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
     else
       return Continue
     where
-      getDests mbDest = maybe [RoleClient, RoleServer] (\x -> [x]) mbDest
+      getDests mbDest = maybe [RoleClient, RoleServer] (: []) mbDest
 
 
 -- TODO use genericRunCommand
@@ -470,7 +470,7 @@ runIteration fullCmd = do
                 -- last arg is progname
                 let (h, exit) = renderFailure failure ""
                 -- Log.debug h
-                P.trace $ h
+                P.trace h
                 Log.debug $ "Exit code " <> tshow exit
                 Log.debug $ "Passed args " <> tshow args
                 return $ case exit of

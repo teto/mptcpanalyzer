@@ -4,7 +4,12 @@ Description : Compute basic MPTCP statistics
 Maintainer  : matt
 License     : GPL-3
 -}
-module Net.Mptcp.Stats
+module Net.Mptcp.Stats (
+  TcpSubflowUnidirectionalStats(..)
+  , MptcpUnidirectionalStats(..)
+  , getMptcpGoodput
+  , getMptcpStatsDuration
+)
 where
 
 import MptcpAnalyzer.ArtificialFields

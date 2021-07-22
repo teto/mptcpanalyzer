@@ -35,7 +35,7 @@ listInterfaces =
         Just hout -> do
           out <- hGetContents hout
           -- err <- hGetContents herr
-          return $ (exitCode, map (\x -> head. tail $ words x) (lines out))
+          return (exitCode, map (head. tail . words) (lines out))
       -- return (words out)
       -- return (exitCode, err)
     -- p = re.compile(r'\d. (\w+)')

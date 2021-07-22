@@ -15,6 +15,7 @@ source-repository-package
 
 profiling: True
 documentation: True
+-- ghc options -ddump-timings
 
 -- -- Frames for colDecExplicit
 packages:

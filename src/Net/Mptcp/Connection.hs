@@ -6,6 +6,7 @@ License     : GPL-3
 -}
 {-# LANGUAGE OverloadedStrings #-}
 module Net.Mptcp.Connection (
+  -- * Types
   MptcpConnection(..)
   , MptcpSubflow(..)
   , showMptcpConnectionText

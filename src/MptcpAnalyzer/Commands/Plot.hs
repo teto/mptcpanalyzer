@@ -6,10 +6,13 @@ License     : GPL-3
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE StandaloneDer:xa #-}
 module MptcpAnalyzer.Commands.Plot (
   -- * Actual commands that plot
   cmdPlotMptcpAttribute
   , cmdPlotTcpAttribute
+
+  -- * parsers
   , piPlotTcpMainParser
   , parserPlotTcpMain
   , parserPlotMptcpMain
@@ -26,8 +29,8 @@ import           MptcpAnalyzer.Commands.PlotOWD
 import           MptcpAnalyzer.Debug
 import           MptcpAnalyzer.Loader
 import           MptcpAnalyzer.Pcap
-import           "mptcpanalyzer" Net.Mptcp
-import           "mptcpanalyzer" Net.Tcp
+import           "this" Net.Mptcp
+import           "this" Net.Tcp
 import           Tshark.Fields                          (TsharkFieldDesc (tfieldLabel), baseFields)
 
 import           Frames
@@ -70,6 +73,7 @@ import qualified Polysemy.Log                           as Log
 import           System.Directory                       (renameFile)
 import           System.IO                              (Handle)
 import           Text.Read                              (readEither)
+import           Data.Time
 
 -- import Data.Time.Calendar
 import Data.Time.LocalTime
@@ -230,13 +234,14 @@ plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
 
 -- instance RealFloat Word32 where
 
-instance PlotValue Word32 where
-    toValue  = fromIntegral
-    fromValue = truncate . toRational
-        -- autoAxis = autoScaledAxis def
-    -- autoScaledAxis def
-    -- autoAxis = autoScaledIntAxis def
-    autoAxis   = autoScaledIntAxis defaultIntAxis
+deriving instance PlotValue Word32
+-- instance PlotValue Word32 where
+--     toValue  = fromIntegral
+--     fromValue = truncate . toRational
+--         -- autoAxis = autoScaledAxis def
+--     -- autoScaledAxis def
+--     -- autoAxis = autoScaledIntAxis def
+--     autoAxis   = autoScaledIntAxis defaultIntAxis
 
 -- called PlotTcpAttribute in mptcpanalyzer
 -- todo pass --filterSyn Args fields
@@ -255,6 +260,7 @@ cmdPlotTcpAttribute field tempPath destinations aFrame = do
 -- inCore converts into a producer
   -- embed $ putStrLn $ showConnection (ffTcpCon tcpFrame)
   -- embed $ writeCSV "debug.csv" frame2
+  -- TODO provide a nice label
   embed $ toFile def tempPath $ do
       layout_title .= "TCP " ++ field
       -- TODO generate for mptcp plot
@@ -266,6 +272,7 @@ cmdPlotTcpAttribute field tempPath destinations aFrame = do
     frame2 = addTcpDestinationsToAFrame aFrame
     plotAttr dest =
         plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
+        -- plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ my_data ])
         where
           -- frameDest = ffTcpFrame tcpFrame
           frameDest = frame2
@@ -273,7 +280,8 @@ cmdPlotTcpAttribute field tempPath destinations aFrame = do
 
           -- seqData :: [Double]
           -- seqData = map fromIntegral (toList $ (getSelector field) <$> unidirectionalFrame)
-          (timeData, seqData) = getData unidirectionalFrame field
+          (timeData, seqData)= getData unidirectionalFrame field
+          -- (timeData, seqData)
           -- timeData = F.toList $ view relTime <$> unidirectionalFrame
 
           -- selector
@@ -289,35 +297,35 @@ cmdPlotTcpAttribute field tempPath destinations aFrame = do
 
 -- it should return the time data too ?
 -- it should be possible to get something more abstract
-getData :: forall t a2. (Num a2,
-            -- RecElem
-            --   Rec TcpLen TcpLen rs rs (Data.Vinyl.TypeLevel.RIndex TcpLen rs),
-            -- (Record HostCols) <: (Record rs)
-            Foldable t, Functor t) =>
+getData:: (PlotValue a1, PlotValue a2, Foldable t, Functor t) =>
             t (Record (TcpDest ': HostCols) ) -> String 
-            -> [(LocalTime, a2)]
+            -> ([a1], [a2])
             -- ^ Returns a time + value
 
 getData frame attr =
-  (timeData, F.toList (getAttr  <$> frame))
+  -- F.toList $ getAttr <$> frame)
+  getAttr
   where
-    timeData = F.toList $ view relTime <$> unidirectionalFrame
+    timeData = F.toList $ view relTime <$> frame
 
     getAttr = case attr of
-      "tcpSeq"   -> fromIntegral . view tcpSeq
-      "tcpLen"   -> fromIntegral. view tcpLen
-      "rwnd"     -> fromIntegral. view rwnd
-      "tcpAck"   -> fromIntegral. view tcpAck
+      "tcpSeq"   -> (timeData, getTcpData frame tcpSeq)
+      -- "tcpLen"   -> fromIntegral. view tcpLen
+      -- "rwnd"     -> fromIntegral. view rwnd
+      -- "tcpAck"   -> fromIntegral. view tcpAck
       -- TODO filter
-      "mptcpDsn" -> getMptcpData frame (view mptcpDsn)
+      -- "mptcpDsn" -> getMptcpData frame (view mptcpDsn)
           -- Nothing ->
       -- "tsval" -> tsval
       _          -> error "unsupported attr"
 
--- getTcpData  frame getter = fromIntegral . view tcpSeq
+    getTcpData  frame' getter = F.toList ((fromIntegral . view getter) <$> frame')
+
 getMptcpData  frame getter =
-  (F.toList $ view relTime <$> justFrame)
+  (timeData, view relTime <$> justFrame)
   where
+    timeData = F.toList $ view relTime <$> justFrame
+
     justFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) frame
 
 
