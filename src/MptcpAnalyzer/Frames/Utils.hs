@@ -30,14 +30,12 @@ import           Frames.Melt          (RDeleteAll, ElemOf)
 import qualified Data.Vinyl                    as V
 import qualified Data.Vinyl.TypeLevel          as V
 import qualified Data.Vinyl.XRec               as V
-
-import           GHC.TypeLits         (KnownSymbol, Symbol)
-
-import qualified Data.Text            as T
-import qualified Data.Vinyl           as V
 import qualified Data.Vinyl.Curry     as V
 import qualified Data.Vinyl.Functor   as V
 import           Data.Vinyl.TypeLevel as V --(type (++), Snd)
+
+
+import qualified Data.Text            as T
 
 import           GHC.TypeLits         (KnownSymbol, Symbol)
 import Data.Kind (Type)

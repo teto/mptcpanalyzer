@@ -6,7 +6,7 @@ License     : GPL-3
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
-{-# LANGUAGE StandaloneDer:xa #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module MptcpAnalyzer.Commands.Plot (
   -- * Actual commands that plot
   cmdPlotMptcpAttribute
@@ -42,7 +42,7 @@ import           Prelude                                hiding (filter, log, loo
 -- import Graphics.Rendering.Chart.Easy
 
 import           Data.Word                              (Word16, Word32, Word64, Word8)
-import           Graphics.Rendering.Chart.Backend.Cairo
+import           Graphics.Rendering.Chart.Backend.Cairo (toFile)
 import           Graphics.Rendering.Chart.Easy          hiding (argument)
 
 import           Data.List                              (filter, intercalate)
@@ -234,14 +234,26 @@ plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
 
 -- instance RealFloat Word32 where
 
-deriving instance PlotValue Word32
--- instance PlotValue Word32 where
---     toValue  = fromIntegral
---     fromValue = truncate . toRational
---         -- autoAxis = autoScaledAxis def
---     -- autoScaledAxis def
---     -- autoAxis = autoScaledIntAxis def
---     autoAxis   = autoScaledIntAxis defaultIntAxis
+-- deriving instance PlotValue Word32
+instance PlotValue Word32 where
+    -- => toDouble
+    toValue  = fromIntegral
+    -- => double -> value
+    fromValue = truncate . toRational
+        -- autoAxis = autoScaledAxis def
+    -- autoScaledAxis def
+    -- autoAxis = autoScaledIntAxis def
+    autoAxis   = autoScaledIntAxis defaultIntAxis
+
+instance PlotValue Word64 where
+    -- => toDouble
+    toValue  = fromIntegral
+    -- => double -> value
+    fromValue = truncate . toRational
+        -- autoAxis = autoScaledAxis def
+    -- autoScaledAxis def
+    -- autoAxis = autoScaledIntAxis def
+    autoAxis   = autoScaledIntAxis defaultIntAxis
 
 -- called PlotTcpAttribute in mptcpanalyzer
 -- todo pass --filterSyn Args fields
@@ -254,6 +266,7 @@ cmdPlotTcpAttribute :: (Members [Log, P.State MyState, Cache, Embed IO] m)
   -> FilePath -- ^ temporary file to save plot to
   -> [ConnectionRole]
   -> FrameFiltered TcpConnection Packet
+  -- we could return a EC r () instead
   -> Sem m RetCode
 cmdPlotTcpAttribute field tempPath destinations aFrame = do
 
@@ -270,6 +283,7 @@ cmdPlotTcpAttribute field tempPath destinations aFrame = do
   where
     -- filter by dest
     frame2 = addTcpDestinationsToAFrame aFrame
+    -- plotAttr :: ( PlotValue y) => ConnectionRole -> EC (Layout Double y) ()
     plotAttr dest =
         plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
         -- plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ my_data ])
@@ -278,11 +292,10 @@ cmdPlotTcpAttribute field tempPath destinations aFrame = do
           frameDest = frame2
           unidirectionalFrame = filterFrame (\x -> x ^. tcpDest == dest) (ffFrame frameDest)
 
-          -- seqData :: [Double]
+          seqData :: [Double]
           -- seqData = map fromIntegral (toList $ (getSelector field) <$> unidirectionalFrame)
-          (timeData, seqData)= getData unidirectionalFrame field
-          -- (timeData, seqData)
-          -- timeData = F.toList $ view relTime <$> unidirectionalFrame
+          seqData = getData unidirectionalFrame field
+          timeData = F.toList $ view relTime <$> unidirectionalFrame
 
           -- selector
           -- type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
@@ -297,36 +310,36 @@ cmdPlotTcpAttribute field tempPath destinations aFrame = do
 
 -- it should return the time data too ?
 -- it should be possible to get something more abstract
-getData:: (PlotValue a1, PlotValue a2, Foldable t, Functor t) =>
-            t (Record (TcpDest ': HostCols) ) -> String 
-            -> ([a1], [a2])
-            -- ^ Returns a time + value
-
+getData :: forall t a2. (Num a2,
+            -- RecElem
+            --   Rec TcpLen TcpLen rs rs (Data.Vinyl.TypeLevel.RIndex TcpLen rs),
+            -- (Record HostCols) <: (Record rs)
+            Foldable t, Functor t) =>
+            t (Record (TcpDest ': HostCols) ) -> String -> [a2]
 getData frame attr =
-  -- F.toList $ getAttr <$> frame)
-  getAttr
+  F.toList (getAttr  <$> frame)
   where
+    -- timeData :: [Double]
     timeData = F.toList $ view relTime <$> frame
 
     getAttr = case attr of
-      "tcpSeq"   -> (timeData, getTcpData frame tcpSeq)
-      -- "tcpLen"   -> fromIntegral. view tcpLen
-      -- "rwnd"     -> fromIntegral. view rwnd
-      -- "tcpAck"   -> fromIntegral. view tcpAck
-      -- TODO filter
-      -- "mptcpDsn" -> getMptcpData frame (view mptcpDsn)
-          -- Nothing ->
+      "tcpSeq" -> fromIntegral . view tcpSeq
+      "tcpLen" -> fromIntegral. view tcpLen
+      "rwnd" -> fromIntegral. view rwnd
+      "tcpAck" -> fromIntegral. view tcpAck
       -- "tsval" -> tsval
       _          -> error "unsupported attr"
 
-    getTcpData  frame' getter = F.toList ((fromIntegral . view getter) <$> frame')
+    -- getTcpData  t (Record (TcpDest ': HostCols) )  ::
+    -- getTcpData  frame' getter = F.toList $ (fromIntegral . view getter) <$> frame'
 
-getMptcpData  frame getter =
-  (timeData, view relTime <$> justFrame)
-  where
-    timeData = F.toList $ view relTime <$> justFrame
 
-    justFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) frame
+-- getMptcpData  frame getter =
+--   (timeData, view relTime <$> justFrame)
+--   where
+--     timeData = F.toList $ view relTime <$> justFrame
+
+--     justFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) frame
 
 
 -- | Plot an attribute selected from ''
@@ -360,7 +373,7 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
     -- add dest to the whole frame
     frameDest = addMptcpDest (ffFrame aFrame) (ffCon aFrame)
     plotAttr (dest, sf) =
-      plot (line lineLabel [ [ (d,v) | (d,v) <- zip timeData dsnData ] ])
+      plot (line lineLabel [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
 
         where
           -- show sf
@@ -369,14 +382,8 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
           unidirectionalFrame = filterFrame (\x -> x ^. mptcpDest == dest
                     && x ^. tcpStream == conTcpStreamId (sfConn sf) ) frameDest
 
-          -- seqData :: [Double]
-          -- seqData = map fromIntegral (toList $ view tcpSeq <$> unidirectionalFrame)
-          toto = mptcpDsn
-          dsnData :: [Double]
-          dsnData = map fromIntegral (catMaybes $ F.toList $ view toto <$> dsnFrame)
-
-          dsnFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) unidirectionalFrame
-
-          timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> dsnFrame
+          seqData :: [Double]
+          seqData = map fromIntegral (F.toList $ view tcpSeq <$> unidirectionalFrame)
+          timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> unidirectionalFrame
 
 

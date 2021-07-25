@@ -11,19 +11,15 @@ module Tshark.TH (
 where
 
 import Tshark.Fields
--- import MptcpAnalyzer.Types
 
 import qualified Data.Text as T
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax (Q)
 import GHC.TypeLits
 import Net.IP
 import Control.Arrow (second, first)
 import Data.Word (Word16, Word32, Word64)
 -- import Language.Haskell.TH.Syntax
 import Data.Vinyl ()
--- sequenceQ
--- sequenceQ
 import Language.Haskell.TH.Syntax (sequenceQ, Q)
 -- for ( (:->)())
 import Frames.Col ()
@@ -42,7 +38,7 @@ import qualified Data.Map as Map
 -- WARN the behavior here differs from Frames
 declarePrefixedColumns :: Text -> FieldDescriptions -> DecsQ
 declarePrefixedColumns prefix fields = do
-  foldM toto (mempty) (toList fields)
+  foldM toto mempty (toList fields)
   where
     -- acc ++
     toto acc (colName, field) = do
@@ -71,7 +67,7 @@ genRecordFromHeaders tablePrefix rowTypeName fields = genExplicitRecord tablePre
 -- tablePrefix here consists in the lenses but not the actual column names
 genExplicitRecord :: String -> String -> [(Text, Name)] -> Q [Dec]
 genExplicitRecord tablePrefix rowTypeName fields = do
-  (colTypes, colDecs) <- (second concat . unzip)
+  (colTypes, colDecs) <- second concat . unzip
                         <$> mapM (uncurry mkColDecs) headers
   -- let recTy = TySynD (mkName rowTypeName) [] (recDec colTypes)
   let recTy = TySynD (mkName rowTypeName) [] (qqDec colTypes)
@@ -92,7 +88,7 @@ genExplicitRecord tablePrefix rowTypeName fields = do
 
 
 genRecHashable :: String -> FieldDescriptions -> DecsQ
-genRecHashable prefix fields = genRecordFrom prefix (Map.filter (tfieldHashable  ) fields)
+genRecHashable prefix fields = genRecordFrom prefix (Map.filter tfieldHashable  fields)
 
 -- inspired from recDec
 qqDec :: [Type] -> Type

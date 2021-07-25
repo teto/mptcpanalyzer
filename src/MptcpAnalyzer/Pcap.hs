@@ -397,7 +397,7 @@ addMptcpDest frame con =
 
       addDestsToSubflowFrames sf = addMptcpDestToFrame (addTcpDestToFrame frame (sfConn sf)) sf
 
-      addMptcpDest' role x = (Col role) :& x
+      addMptcpDest' role x = Col role :& x
 
       addMptcpDestToFrame frame' sf = fmap (addMptcpDest' (getMptcpDest con sf)) frame'
 

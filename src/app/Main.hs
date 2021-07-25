@@ -98,6 +98,7 @@ import Distribution.Compat.Internal.TempFile (openTempFile)
 import MptcpAnalyzer.Loader
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Either (fromLeft)
+import Data.Foldable (forM_)
 import Frames.CSV (writeDSV)
 import Frames (recMaybe, Frame, Record)
 import Frames as F
@@ -324,7 +325,7 @@ runCommand (ArgsListSubflows detailed) = CLI.cmdListSubflows detailed
 runCommand (ArgsListReinjections streamId)  = CLI.cmdListReinjections streamId
 runCommand (ArgsListTcpConnections detailed) = CLI.cmdListTcpConnections detailed
 runCommand (ArgsListMpTcpConnections detailed) = CLI.cmdListMptcpConnections detailed
-runCommand (ArgsListInterfaces ) = cmdListInterfaces
+runCommand ArgsListInterfaces = cmdListInterfaces
 runCommand (ArgsExport out) = CLI.cmdExport out
 runCommand (ArgsPlotGeneric plotSettings plotArgs) = runPlotCommand plotSettings plotArgs
 runCommand (ArgsMapTcpConnections cmd False) = CLI.cmdMapTcpConnection cmd
@@ -419,7 +420,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
         eframe1 <- buildAFrameFromStreamIdMptcp defaultTsharkPrefs pcap1 streamId1
         eframe2 <- buildAFrameFromStreamIdMptcp defaultTsharkPrefs pcap2 streamId2
 
-        res <- case (eframe1, eframe2 ) of
+        case (eframe1, eframe2 ) of
           (Right aframe1, Right aframe2) -> do
               mergedRes <- mergeMptcpConnectionsFromKnownStreams aframe1 aframe2
               -- let mbRecs = map recMaybe mergedRes
@@ -428,9 +429,8 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
               error "not implemented"
           (Left err, _) -> return $ CMD.Error err
           (_, Left err) -> return $ CMD.Error err
-        return res
 
-    Data.Foldable.forM_ mbOut (renameFile tempPath)
+    P.embed $ forM_ mbOut (renameFile tempPath)
     -- _ <- P.embed $ case mbOut of
     --         -- user specified a file move the file
     --         Just outFilename -> renameFile tempPath outFilename

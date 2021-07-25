@@ -1,3 +1,10 @@
+{-|
+
+Module      : MptcpAnalyzer.Commands.Reinjections
+Description : Command to analyze reinjections
+Maintainer  : matt
+
+-}
 -- {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE PackageImports           #-}
 

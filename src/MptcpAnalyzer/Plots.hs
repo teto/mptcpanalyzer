@@ -6,7 +6,6 @@ where
 
 import MptcpAnalyzer.Plots.Stream
 import MptcpAnalyzer.Types
-import Net.IP
 
 
 -- connectionToLabel :: Connection -> String

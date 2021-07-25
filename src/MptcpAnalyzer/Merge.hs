@@ -59,7 +59,6 @@ import Prelude hiding (log)
 import MptcpAnalyzer.Types
 import Tshark.TH
 import MptcpAnalyzer.ArtificialFields
-import MptcpAnalyzer.Types
 -- for retypeColumn
 import MptcpAnalyzer.Frames.Utils
 import MptcpAnalyzer.Pcap
@@ -72,7 +71,6 @@ import Frames.CSV
 import Frames.Joins
 import Data.List (sortBy, sortOn, intersperse, intercalate)
 import Data.Vinyl
-import Data.Vinyl.TypeLevel
 import Data.Vinyl.TypeLevel as V --(type (++), Snd)
 import Data.Hashable
 import GHC.TypeLits (KnownSymbol, Symbol)
@@ -88,7 +86,7 @@ import Control.Lens
 import Frames.Melt          (RDeleteAll, ElemOf)
 import Data.Either (fromRight)
 
-import qualified Pipes as Pipes
+import qualified Pipes
 import qualified Pipes.Prelude as Pipes
 import qualified Data.Foldable as F
 import Polysemy
@@ -165,7 +163,7 @@ toHashablePacket = rcast
 addHash :: StreamConnection a b => FrameFiltered a Packet -> Frame (Record '[PacketHash] )
 addHash aframe =
   -- addHashToFrame (ffFrame aframe)
-  fmap (addHash')  (frame)
+  fmap addHash'  frame
   where
     frame = fmap toHashablePacket (ffFrame aframe)
     addHash' row = Col (hash row) :& RNil
@@ -351,7 +349,7 @@ mergeTcpConnectionsFromKnownStreams aframe1 aframe2 = do
   return $ (fst . mergedPcapToFrame) mergedRes
   where
     -- frame1withDest = addTcpDestToFrame (ffFrame aframe1) (ffCon aframe1)
-    frame1withDest = (ffFrame aframe1)
+    frame1withDest = ffFrame aframe1
 
     out1 = "merge-tcp-1-stream-" ++ show ((conTcpStreamId . ffCon) aframe1) ++ ".tsv"
     out2 = "merge-tcp-2-stream-" ++ show (conTcpStreamId $ ffCon aframe2) ++ ".tsv"
@@ -404,7 +402,7 @@ mergeTcpConnectionsFromKnownStreams aframe1 aframe2 = do
 
 -- gen https://hackage.haskell.org/package/vinyl-0.13.1/docs/Data-Vinyl-Derived.html
 convertToHost2Cols :: FrameRec HostCols -> FrameRec HostColsPrefixed
-convertToHost2Cols frame = fmap convertCols' frame
+convertToHost2Cols = fmap convertCols'
   where
     convertCols' :: Record HostCols -> Record HostColsPrefixed
     convertCols' = withNames . stripNames
@@ -489,7 +487,7 @@ convertToSenderReceiver oframe = do
         receiverCols :: Record ReceiverCols
         receiverCols = (withNames . stripNames . F.rcast @HostColsPrefixed) r
       in
-        rget @SenderDest r :& (rappend senderCols receiverCols)
+        rget @SenderDest r :& rappend senderCols receiverCols
 
     convertToReceiver r = let
         senderCols :: Record SenderCols
@@ -497,7 +495,7 @@ convertToSenderReceiver oframe = do
         receiverCols :: Record ReceiverCols
         receiverCols = (withNames . stripNames . F.rcast @HostCols) r
       in
-        (rget @SenderDest r) :& (rappend senderCols receiverCols)
+        rget @SenderDest r :& rappend senderCols receiverCols
         -- convert ("first host") to sender/receiver
         -- TODO this could be improved
 

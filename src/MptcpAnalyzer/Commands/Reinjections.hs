@@ -1,5 +1,9 @@
-{-
-Command to analyze reinjections
+{-|
+
+Module      : MptcpAnalyzer.Commands.Reinjections
+Description : Command to analyze reinjections
+Maintainer  : matt
+
 
 -}
 {-# LANGUAGE PackageImports         #-}
@@ -8,6 +12,8 @@ module MptcpAnalyzer.Commands.Reinjections (
   piListReinjections
   , piQualifyReinjections
   , qualifyReinjections
+  , cmdListReinjections
+  , cmdQualifyReinjections
 )
 where
 
