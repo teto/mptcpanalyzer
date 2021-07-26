@@ -308,17 +308,18 @@ getData :: forall t a2. (Num a2,
             Foldable t, Functor t) =>
             t (Record (TcpDest ': HostCols) ) -> String -> ([Double], [a2])
 getData frame attr =
-  (timeData, getAttr)
+  getAttr
   where
     -- timeData :: [Double]
     timeData = F.toList $ view relTime <$> frame
 
     getAttr = case attr of
-      "tcpSeq" -> getTcpData tcpSeq
+      "tcpSeq" -> (timeData, getTcpData tcpSeq)
       -- "tcpLen" -> fromIntegral. view tcpLen
       -- "rwnd" -> fromIntegral. view rwnd
       -- "tcpAck" -> fromIntegral. view tcpAck
       -- "tsval" -> tsval
+      -- "mptcpSeq" -> getMptcpData frame mptcpSeq
 
       _          -> error "unsupported attr"
 
@@ -327,12 +328,13 @@ getData frame attr =
 
     getTcpData getter = F.toList ((fromIntegral . view getter) <$> frame)
 
--- getMptcpData  frame getter =
---   (timeData, view relTime <$> justFrame)
---   where
---     timeData = F.toList $ view relTime <$> justFrame
-
---     justFrame = filterFrame (\x -> isJust $ x ^. mptcpDsn) frame
+--
+getMptcpData  frame getter =
+  (timeData, view relTime <$> justFrame)
+  where
+    timeData = F.toList $ view relTime <$> justFrame
+    -- filter on the field
+    justFrame = filterFrame (\x -> isJust $ x ^. getter) frame
 
 
 -- | Plot an attribute selected from ''
