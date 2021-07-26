@@ -292,32 +292,20 @@ cmdPlotTcpAttribute field tempPath destinations aFrame = do
           frameDest = frame2
           unidirectionalFrame = filterFrame (\x -> x ^. tcpDest == dest) (ffFrame frameDest)
 
-          seqData :: [Double]
-          -- seqData = map fromIntegral (toList $ (getSelector field) <$> unidirectionalFrame)
-          seqData = getData unidirectionalFrame field
-          timeData = F.toList $ view relTime <$> unidirectionalFrame
+          plotData :: ([Double], [Double])
+          plotData = getData unidirectionalFrame field
+          (timeData, seqData) = plotData
 
-          -- selector
-          -- type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
-          -- selector :: String -> Lens s t a b
 
--- TODO it should be capabale of returning
--- getSelector :: forall a. a -> Double
--- Getter
--- use / view
-
--- type HostCols = RecordColumns HostCols
-
--- it should return the time data too ?
 -- it should be possible to get something more abstract
 getData :: forall t a2. (Num a2,
             -- RecElem
             --   Rec TcpLen TcpLen rs rs (Data.Vinyl.TypeLevel.RIndex TcpLen rs),
             -- (Record HostCols) <: (Record rs)
             Foldable t, Functor t) =>
-            t (Record (TcpDest ': HostCols) ) -> String -> [a2]
+            t (Record (TcpDest ': HostCols) ) -> String -> ([Double], [a2])
 getData frame attr =
-  F.toList (getAttr  <$> frame)
+  (timeData, F.toList (getAttr  <$> frame))
   where
     -- timeData :: [Double]
     timeData = F.toList $ view relTime <$> frame
