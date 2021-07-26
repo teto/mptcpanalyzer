@@ -15,3 +15,7 @@ import MptcpAnalyzer.Types
 --       <> "  (tcp.stream: " <> tshow (conTcpStreamId con) <> ")"
 --   where
 --     showIp = Net.IP.encode
+
+-- plotTcpSeq :: 
+--         plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
+

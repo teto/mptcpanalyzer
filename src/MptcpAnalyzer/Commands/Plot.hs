@@ -261,25 +261,28 @@ instance PlotValue Word64 where
 
 
 -- destinations is an array of destination
-cmdPlotTcpAttribute :: (Members [Log, P.State MyState, Cache, Embed IO] m)
+cmdPlotTcpAttribute :: (
+  Members [Log, P.State MyState, Cache, Embed IO] m
+  -- , Ord y
+  )
   => String -- Tcp attr
-  -> FilePath -- ^ temporary file to save plot to
+  -- -> FilePath -- ^ temporary file to save plot to
   -> [ConnectionRole]
   -> FrameFiltered TcpConnection Packet
   -- we could return a EC r () instead
-  -> Sem m RetCode
-cmdPlotTcpAttribute field tempPath destinations aFrame = do
+  -> Sem m (EC (Layout Double Double) ())
+cmdPlotTcpAttribute field destinations aFrame = do
 
 -- inCore converts into a producer
   -- embed $ putStrLn $ showConnection (ffTcpCon tcpFrame)
   -- embed $ writeCSV "debug.csv" frame2
   -- TODO provide a nice label
-  embed $ toFile def tempPath $ do
-      layout_title .= "TCP " ++ field
-      -- TODO generate for mptcp plot
-      mapM_ plotAttr destinations
+  -- TODO generate for mptcp plot
+  return $ do
+    layout_title .= "TCP " ++ field
+    mapM_ plotAttr destinations
 
-  return Continue
+  -- return Continue
   where
     -- filter by dest
     frame2 = addTcpDestinationsToAFrame aFrame
@@ -353,7 +356,7 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
       layout_title .= "MPTCP " ++ field
       -- TODO generate for mptcp plot
       -- for each subflow, plot the MptcpDest
-      mapM_ plotAttr ( [ (x, y) | x <- destinations , y <- Set.toList $ mpconSubflows $ ffCon aFrame ])
+      mapM_ plotAttr ( [ (dest, con) | dest <- destinations , con <- Set.toList $ mpconSubflows $ ffCon aFrame ])
       -- mapM_ plotAttr destinations
 
   return Continue

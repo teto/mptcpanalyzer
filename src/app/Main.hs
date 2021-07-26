@@ -80,8 +80,14 @@ import Options.Applicative.Help (parserHelp)
 -- import Colog.Core.IO (logStringStdout)
 -- import Colog.Polysemy (Log)
 import Colog.Actions
+import Control.Lens hiding (argument)
 -- import Graphics.Rendering.Chart.Easy hiding (argument)
-import Graphics.Rendering.Chart.Backend.Cairo
+-- import Data.Default (def)
+import Graphics.Rendering.Chart.Backend.Cairo (toFile,
+    renderableToFile, FileOptions(..), FileFormat(..))
+import Graphics.Rendering.Chart.Renderable    (toRenderable)
+-- import           Graphics.Rendering.Chart.Easy          hiding (argument)
+import Graphics.Rendering.Chart.Layout (layout_title)
 import Frames.InCore (toFrame)
 
 
@@ -115,6 +121,9 @@ data CLIArguments = CLIArguments {
   , extraCommands :: [String]  -- ^ commands to run on start
   }
 
+
+defaultImageOptions :: FileOptions
+defaultImageOptions = FileOptions (800,600) PNG
 
 loggerName :: String
 loggerName = "main"
@@ -388,7 +397,14 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
               eFrame <- buildAFrameFromStreamIdTcp defaultTsharkPrefs pcapFilename (StreamId streamId)
               case eFrame of
                 Left err -> return $ CMD.Error err
-                Right frame -> Plots.cmdPlotTcpAttribute attr tempPath destinations frame
+                Right frame -> do
+                  l <- Plots.cmdPlotTcpAttribute attr destinations frame
+                  -- toRenderable
+                  P.embed $ toFile defaultImageOptions tempPath l
+                  -- embed $ void $ renderableToFile defaultImageOptions tempPath (toRenderable l)
+                      -- layout_title .= "TCP " ++ attr
+                      -- l
+                  return CMD.Continue
         return res
 
       -- Destinations
