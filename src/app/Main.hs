@@ -80,7 +80,7 @@ import Options.Applicative.Help (parserHelp)
 -- import Colog.Core.IO (logStringStdout)
 -- import Colog.Polysemy (Log)
 import Colog.Actions
-import Control.Lens hiding (argument)
+-- import Control.Lens hiding (argument)
 -- import Graphics.Rendering.Chart.Easy hiding (argument)
 -- import Data.Default (def)
 import Graphics.Rendering.Chart.Backend.Cairo (toFile,
@@ -454,7 +454,10 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
     if displayPlot then do
         let
           createProc :: CreateProcess
-          createProc = proc "xdg-open" [ tempPath ]
+          -- for some reason it recognizes the image as application/octet-stream
+          -- and I can't manage to make it use my image/png application
+          -- createProc = proc "xdg-open" [ tempPath ]
+          createProc = proc "sxiv" [ tempPath ]
 
         Log.info $ "Launching " <> tshow createProc
         (_, _, mbHerr, ph) <- P.embed $ createProcess createProc

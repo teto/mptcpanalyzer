@@ -308,22 +308,24 @@ getData :: forall t a2. (Num a2,
             Foldable t, Functor t) =>
             t (Record (TcpDest ': HostCols) ) -> String -> ([Double], [a2])
 getData frame attr =
-  (timeData, F.toList (getAttr  <$> frame))
+  (timeData, getAttr)
   where
     -- timeData :: [Double]
     timeData = F.toList $ view relTime <$> frame
 
     getAttr = case attr of
-      "tcpSeq" -> fromIntegral . view tcpSeq
-      "tcpLen" -> fromIntegral. view tcpLen
-      "rwnd" -> fromIntegral. view rwnd
-      "tcpAck" -> fromIntegral. view tcpAck
+      "tcpSeq" -> getTcpData tcpSeq
+      -- "tcpLen" -> fromIntegral. view tcpLen
+      -- "rwnd" -> fromIntegral. view rwnd
+      -- "tcpAck" -> fromIntegral. view tcpAck
       -- "tsval" -> tsval
+
       _          -> error "unsupported attr"
 
     -- getTcpData  t (Record (TcpDest ': HostCols) )  ::
     -- getTcpData  frame' getter = F.toList $ (fromIntegral . view getter) <$> frame'
 
+    getTcpData getter = F.toList ((fromIntegral . view getter) <$> frame)
 
 -- getMptcpData  frame getter =
 --   (timeData, view relTime <$> justFrame)
