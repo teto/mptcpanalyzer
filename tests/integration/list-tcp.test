@@ -1,0 +1,24 @@
+cabal run mptcpanalyzer "load-pcap examples/client_2_filtered.pcapng" "quit"
+<<<
+>>>
+Up to date
+cache folder already exists"/home/teto/.cache/mptcpanalyzer2"
+Commands
+["load-pcap examples/client_2_filtered.pcapng","quit"]
+loading pcap examples/client_2_filtered.pcapng
+Start loading pcap examples/client_2_filtered.pcapng
+getCache error: Not implemented yet
+Calling tshark
+
+loading pcap examples/client_2_filtered.pcapng
+Start loading pcap examples/client_2_filtered.pcapng
+getCache error: Not implemented yet
+Calling tshark
+Exporting fields ["frame.number","frame.interface_name","frame.time_epoch","frame.time_relative","_ws.col.ipsrc","_ws.col.ipdst","ip.src_host","ip.dst_host","tcp.stream","tcp.srcport","tcp.dstport","tcp.window_size","tcp.flags","tcp.option_kind","tcp.seq","tcp.len","tcp.ack","tcp.options.timestamp.tsval","tcp.options.timestamp.tsecr","mptcp.expected_token","mptcp.stream","tcp.options.mptcp.sendkey","tcp.options.mptcp.recvkey","tcp.options.mptcp.recvtok","tcp.options.mptcp.datafin.flag","tcp.options.mptcp.version","mptcp.ack","mptcp.dsn"]
+Command run: RawCommand "tshark" ["-r","examples/client_2_filtered.pcapng","-E","separator=|","-o","mptcp.analyze_mptcp:true","-o","mptcp.intersubflows_retransmission:true","-o","mptcp.relative_sequence_numbers:true","-o","mptcp.analyze_mappings:true","-o","tcp.analyze_sequence_numbers:true","-o","gui.column.format:Time,%At,ipsrc,%s,ipdst,%d","-2","-R","mptcp or tcp and not icmp","-T","fields","-e","frame.number","-e","frame.interface_name","-e","frame.time_epoch","-e","frame.time_relative","-e","_ws.col.ipsrc","-e","_ws.col.ipdst","-e","ip.src_host","-e","ip.dst_host","-e","tcp.stream","-e","tcp.srcport","-e","tcp.dstport","-e","tcp.window_size","-e","tcp.flags","-e","tcp.option_kind","-e","tcp.seq","-e","tcp.len","-e","tcp.ack","-e","tcp.options.timestamp.tsval","-e","tcp.options.timestamp.tsecr","-e","mptcp.expected_token","-e","mptcp.stream","-e","tcp.options.mptcp.sendkey","-e","tcp.options.mptcp.recvkey","-e","tcp.options.mptcp.recvtok","-e","tcp.options.mptcp.datafin.flag","-e","tcp.options.mptcp.version","-e","mptcp.ack","-e","mptcp.dsn"]
+exported to file /tmp/mptcp31108-0.csv
+Number of rows after loading 4164
+Saved into cache
+Frame loaded
+>>>2
+>>>= 0

@@ -1,0 +1,47 @@
+Starting mptcpanalyzer
+cache folder already exists"/home/teto/.cache/mptcpanalyzer2"
+Commands:
+["map-mptcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0","quit"]
+[34m[info] [0m [Main#424] Running ["map-mptcp","examples/client_2_filtered.pcapng","examples/server_2_filtered.pcapng","0"]
+[34m[info] [0m [M.C.Map#114] Mapping mptcp connections
+[32m[debug][0m [M.Loader#93] Building frame for mptcp stream StreamId 0
+[34m[info] [0m [M.Loader#40] Start loading pcap "examples/client_2_filtered.pcapng"
+[32m[debug][0m [M.Loader#47] cache miss: "Not implemented yet"
+[32m[debug][0m [M.Loader#48] Calling tshark
+Exporting fields ["frame.time_epoch","frame.interface_name","_ws.col.ipdst","ip.dst_host","_ws.col.ipsrc","ip.src_host","mptcp.ack","tcp.options.mptcp.datafin.flag","mptcp.dsn","mptcp.expected_token","tcp.options.mptcp.recvkey","tcp.options.mptcp.recvtok","tcp.options.mptcp.sendkey","mptcp.stream","tcp.options.mptcp.version","frame.number","mptcp.reinjection_of","mptcp.reinjection_of","frame.time_relative","mptcp.related_mapping","tcp.window_size","tcp.ack","tcp.dstport","tcp.flags","tcp.len","tcp.option_kind","tcp.seq","tcp.srcport","tcp.stream","tcp.options.timestamp.tsecr","tcp.options.timestamp.tsval"]
+Command run: RawCommand "tshark" ["-r","examples/client_2_filtered.pcapng","-E","separator=|","-o","mptcp.analyze_mptcp:true","-o","mptcp.intersubflows_retransmission:true","-o","mptcp.relative_sequence_numbers:true","-o","mptcp.analyze_mappings:true","-o","tcp.analyze_sequence_numbers:true","-o","gui.column.format:Time,%At,ipsrc,%s,ipdst,%d","-2","-R","mptcp or tcp and not icmp","-T","fields","-e","frame.time_epoch","-e","frame.interface_name","-e","_ws.col.ipdst","-e","ip.dst_host","-e","_ws.col.ipsrc","-e","ip.src_host","-e","mptcp.ack","-e","tcp.options.mptcp.datafin.flag","-e","mptcp.dsn","-e","mptcp.expected_token","-e","tcp.options.mptcp.recvkey","-e","tcp.options.mptcp.recvtok","-e","tcp.options.mptcp.sendkey","-e","mptcp.stream","-e","tcp.options.mptcp.version","-e","frame.number","-e","mptcp.reinjection_of","-e","mptcp.reinjection_of","-e","frame.time_relative","-e","mptcp.related_mapping","-e","tcp.window_size","-e","tcp.ack","-e","tcp.dstport","-e","tcp.flags","-e","tcp.len","-e","tcp.option_kind","-e","tcp.seq","-e","tcp.srcport","-e","tcp.stream","-e","tcp.options.timestamp.tsecr","-e","tcp.options.timestamp.tsval"]
+[32m[debug][0m [M.Loader#52] exported to file "/tmp/mptcp716669-0.csv"
+[32m[debug][0m [M.Loader#54] Number of rows after loading 4164
+[34m[info] [0m [M.Loader#58] Saved into cache
+[34m[info] [0m [M.Loader#40] Start loading pcap "examples/server_2_filtered.pcapng"
+[32m[debug][0m [M.Loader#47] cache miss: "Not implemented yet"
+[32m[debug][0m [M.Loader#48] Calling tshark
+Exporting fields ["frame.time_epoch","frame.interface_name","_ws.col.ipdst","ip.dst_host","_ws.col.ipsrc","ip.src_host","mptcp.ack","tcp.options.mptcp.datafin.flag","mptcp.dsn","mptcp.expected_token","tcp.options.mptcp.recvkey","tcp.options.mptcp.recvtok","tcp.options.mptcp.sendkey","mptcp.stream","tcp.options.mptcp.version","frame.number","mptcp.reinjection_of","mptcp.reinjection_of","frame.time_relative","mptcp.related_mapping","tcp.window_size","tcp.ack","tcp.dstport","tcp.flags","tcp.len","tcp.option_kind","tcp.seq","tcp.srcport","tcp.stream","tcp.options.timestamp.tsecr","tcp.options.timestamp.tsval"]
+Command run: RawCommand "tshark" ["-r","examples/server_2_filtered.pcapng","-E","separator=|","-o","mptcp.analyze_mptcp:true","-o","mptcp.intersubflows_retransmission:true","-o","mptcp.relative_sequence_numbers:true","-o","mptcp.analyze_mappings:true","-o","tcp.analyze_sequence_numbers:true","-o","gui.column.format:Time,%At,ipsrc,%s,ipdst,%d","-2","-R","mptcp or tcp and not icmp","-T","fields","-e","frame.time_epoch","-e","frame.interface_name","-e","_ws.col.ipdst","-e","ip.dst_host","-e","_ws.col.ipsrc","-e","ip.src_host","-e","mptcp.ack","-e","tcp.options.mptcp.datafin.flag","-e","mptcp.dsn","-e","mptcp.expected_token","-e","tcp.options.mptcp.recvkey","-e","tcp.options.mptcp.recvtok","-e","tcp.options.mptcp.sendkey","-e","mptcp.stream","-e","tcp.options.mptcp.version","-e","frame.number","-e","mptcp.reinjection_of","-e","mptcp.reinjection_of","-e","frame.time_relative","-e","mptcp.related_mapping","-e","tcp.window_size","-e","tcp.ack","-e","tcp.dstport","-e","tcp.flags","-e","tcp.len","-e","tcp.option_kind","-e","tcp.seq","-e","tcp.srcport","-e","tcp.stream","-e","tcp.options.timestamp.tsecr","-e","tcp.options.timestamp.tsval"]
+[32m[debug][0m [M.Loader#52] exported to file "/tmp/mptcp716669-1.csv"
+[32m[debug][0m [M.Loader#54] Number of rows after loading 4321
+[34m[info] [0m [M.Loader#58] Saved into cache
+[34m[info] [0m [M.C.Map#121] Best match for MptcpConnection {mptcpStreamId = StreamId 0, mptcpServerKey = 10048458395084872514, mptcpClientKey = 17227928701987094984, mptcpServerToken = 2846245513, mptcpClientToken = 4093186044, mptcpNegotiatedVersion = 0, mpconSubflows = fromList [MptcpSubflow {sfConn = TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33782, conTcpServerPort = 5201, conTcpStreamId = StreamId 0}, sfJoinToken = Nothing, sfPriority = Nothing, sfLocalId = 0, sfRemoteId = 0, sfInterface = "unknown"},MptcpSubflow {sfConn = TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 54595, conTcpServerPort = 5201, conTcpStreamId = StreamId 2}, sfJoinToken = Just 2846245513, sfPriority = Nothing, sfLocalId = 0, sfRemoteId = 0, sfInterface = "unknown"},MptcpSubflow {sfConn = TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 35589, conTcpServerPort = 5201, conTcpStreamId = StreamId 6}, sfJoinToken = Just 2846245513, sfPriority = Nothing, sfLocalId = 0, sfRemoteId = 0, sfInterface = "unknown"},MptcpSubflow {sfConn = TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 59555, conTcpServerPort = 5201, conTcpStreamId = StreamId 4}, sfJoinToken = Just 2846245513, sfPriority = Nothing, sfLocalId = 0, sfRemoteId = 0, sfInterface = "unknown"}]} is 
+[32m[debug][0m [M.C.Map#122] Comparing with stream [StreamId 0,StreamId 1,StreamId 2]
+Score for connection StreamId 0: 200
+Server key/token: 10048458395084872514/2846245513
+Client key/token: 17227928701987094984/4093186044
+10.0.0.1:33782 -> 10.0.0.2:5201 (tcp.stream: 0)
+10.0.0.1:54595 -> 11.0.0.2:5201 (tcp.stream: 2)
+11.0.0.1:35589 -> 10.0.0.2:5201 (tcp.stream: 6)
+
+
+Score for connection StreamId 1: 0
+Server key/token: 14803550490012999960/1015310287
+Client key/token: 2708191410426849018/3188734930
+10.0.0.1:33784 -> 10.0.0.2:5201 (tcp.stream: 1)
+10.0.0.1:57491 -> 11.0.0.2:5201 (tcp.stream: 3)
+11.0.0.1:50007 -> 10.0.0.2:5201 (tcp.stream: 7)
+11.0.0.1:50077 -> 11.0.0.2:5201 (tcp.stream: 5)
+
+
+Couldn't compute score for mptcp.stream "No packet with any SYN flag for tcp.stream StreamId 4"
+[34m[info] [0m [Main#424] Running ["quit"]
+Thanks for flying with mptcpanalyzer
+Exiting
+Exiting

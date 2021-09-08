@@ -1,0 +1,24 @@
+Starting mptcpanalyzer
+cache folder already exists"/home/teto/.cache/mptcpanalyzer2"
+Commands:
+["load-pcap examples/client_2_filtered.pcapng","tcp-summary --full 0","quit"]
+[34m[info] [0m [Main#424] Running ["load-pcap","examples/client_2_filtered.pcapng"]
+[34m[info] [0m [Main#304] loading pcap "examples/client_2_filtered.pcapng"
+[34m[info] [0m [M.Loader#40] Start loading pcap "examples/client_2_filtered.pcapng"
+[32m[debug][0m [M.Loader#47] cache miss: "Not implemented yet"
+[32m[debug][0m [M.Loader#48] Calling tshark
+Exporting fields ["frame.time_epoch","frame.interface_name","_ws.col.ipdst","ip.dst_host","_ws.col.ipsrc","ip.src_host","mptcp.ack","tcp.options.mptcp.datafin.flag","mptcp.dsn","mptcp.expected_token","tcp.options.mptcp.recvkey","tcp.options.mptcp.recvtok","tcp.options.mptcp.sendkey","mptcp.stream","tcp.options.mptcp.version","frame.number","mptcp.reinjection_of","mptcp.reinjection_of","frame.time_relative","mptcp.related_mapping","tcp.window_size","tcp.ack","tcp.dstport","tcp.flags","tcp.len","tcp.option_kind","tcp.seq","tcp.srcport","tcp.stream","tcp.options.timestamp.tsecr","tcp.options.timestamp.tsval"]
+Command run: RawCommand "tshark" ["-r","examples/client_2_filtered.pcapng","-E","separator=|","-o","mptcp.analyze_mptcp:true","-o","mptcp.intersubflows_retransmission:true","-o","mptcp.relative_sequence_numbers:true","-o","mptcp.analyze_mappings:true","-o","tcp.analyze_sequence_numbers:true","-o","gui.column.format:Time,%At,ipsrc,%s,ipdst,%d","-2","-R","mptcp or tcp and not icmp","-T","fields","-e","frame.time_epoch","-e","frame.interface_name","-e","_ws.col.ipdst","-e","ip.dst_host","-e","_ws.col.ipsrc","-e","ip.src_host","-e","mptcp.ack","-e","tcp.options.mptcp.datafin.flag","-e","mptcp.dsn","-e","mptcp.expected_token","-e","tcp.options.mptcp.recvkey","-e","tcp.options.mptcp.recvtok","-e","tcp.options.mptcp.sendkey","-e","mptcp.stream","-e","tcp.options.mptcp.version","-e","frame.number","-e","mptcp.reinjection_of","-e","mptcp.reinjection_of","-e","frame.time_relative","-e","mptcp.related_mapping","-e","tcp.window_size","-e","tcp.ack","-e","tcp.dstport","-e","tcp.flags","-e","tcp.len","-e","tcp.option_kind","-e","tcp.seq","-e","tcp.srcport","-e","tcp.stream","-e","tcp.options.timestamp.tsecr","-e","tcp.options.timestamp.tsval"]
+[32m[debug][0m [M.Loader#52] exported to file "/tmp/mptcp712902-0.csv"
+[32m[debug][0m [M.Loader#54] Number of rows after loading 4164
+[34m[info] [0m [M.Loader#58] Saved into cache
+[34m[info] [0m [Main#314] Frame loaded
+[34m[info] [0m [Main#424] Running ["tcp-summary","--full","0"]
+10.0.0.1:33782 -> 10.0.0.2:5201 (tcp.stream: 0)
+[34m[info] [0m [M.C.List#139] Number of rows 29
+- transferred 458 bytes  over 45.831181697s:  Throughput 9.949557989028433b/s   (16 packets)
+- transferred 310 bytes  over 45.658558747s:  Throughput 6.745723221503069b/s   (13 packets)
+[34m[info] [0m [Main#424] Running ["quit"]
+Thanks for flying with mptcpanalyzer
+Exiting
+Exiting
