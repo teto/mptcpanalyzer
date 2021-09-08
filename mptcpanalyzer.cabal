@@ -4,12 +4,12 @@ version: 0.0.1
 license: GPL-3.0-only
 license-file: LICENSE
 build-type: Simple
+Author: Matthieu Coudron
 Maintainer:  teto
 Category:   Network
 Synopsis: A Multipath TCP analyzer
 Homepage:   https://github.com/teto/quantum
-Description:
-  Multipath TCP (www.multipath-tcp.org) analyzer
+Description: Multipath TCP (www.multipath-tcp.org) protocol analyzer
 extra-source-files:
   README.md CHANGELOG
   tests/integration/list-tcp.test
@@ -40,8 +40,6 @@ common shared-properties
       , cereal
       , co-log
       , co-log-core
-      -- , co-log-polysemy
-      -- , co-log-polysemy-formatting
       , polysemy-log
       , polysemy-log-co
       , formatting
@@ -86,6 +84,7 @@ common shared-properties
        -- , Chart-diagrams >= 1.5
        , Chart-cairo
        , wide-word
+       , time
     default-language: Haskell2010
     -- -fno-warn-unused-imports
     -- -fforce-recomp  makes it build twice
@@ -98,7 +97,7 @@ common shared-properties
           -fprof-auto
           -ddump-splices
           -ddump-to-file
-          -ddump-timings
+          -- -ddump-timings
         -- TODO remove
           -Wno-unused-imports
         -- build-depends: polysemy-plugin
@@ -142,6 +141,7 @@ library libmptcpanalyzer
     Exposed-Modules:
         Tshark.TH
         , Tshark.Fields
+        , Tshark.Interfaces
         , Net.Mptcp.Types
         , Net.Tcp.Stats
         , Net.Tcp.Connection
@@ -165,7 +165,6 @@ library libmptcpanalyzer
         , MptcpAnalyzer.Merge
         , MptcpAnalyzer.Plots
         , MptcpAnalyzer.Plots.Stream
-        , MptcpAnalyzer.Plots.Owd
         -- TODO remove les commandes ?
         -- , MptcpAnalyzer.Commands
         -- , MptcpAnalyzer.Commands.Load

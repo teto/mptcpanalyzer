@@ -1,4 +1,4 @@
-{-
+{-|
 Module      : Tshark.Fields
 Description : Interface between wireshark output format and haskell
 Maintainer  : matt

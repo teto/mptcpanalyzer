@@ -1,3 +1,8 @@
+{-|
+Module: MptcpAnalyzer.Commands.Load
+Maintainer  : matt
+License     : GPL-3
+-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveGeneric          #-}
@@ -20,15 +25,31 @@
 {-# LANGUAGE UndecidableInstances   #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE PackageImports         #-}
-module MptcpAnalyzer.Pcap
--- (TsharkParams(..),
---     defaultTsharkPrefs
---     , defaultTsharkOptions
---     , generateCsvCommand
---     , exportToCsv
---     , loadRows
---     , getTcpStreams
---     )
+module MptcpAnalyzer.Pcap (
+    TsharkParams(..)
+    , addTcpDestToFrame
+    , addMptcpDestToFrame
+    , addMptcpDest
+    , addTcpDestinationsToAFrame
+    , buildTcpConnectionFromStreamId
+    , buildMptcpConnectionFromStreamId
+    , defaultTsharkPrefs
+    , defaultTsharkOptions
+    , defaultParserOptions
+    , generateCsvCommand
+    , genTcpDestFrame
+    , exportToCsv
+    , loadRows
+    , getTcpStreams
+    , getMptcpStreams
+    , buildSubflowFromTcpStreamId
+
+    -- TODO remove ? use instance instead
+    , showMptcpSubflowText
+    , StreamConnection(..)
+    , showConnection
+    -- , showMptcpSubflowText
+    )
 where
 
 
@@ -51,7 +72,6 @@ import           System.Exit
 import           System.IO                      (BufferMode (LineBuffering), Handle, SeekMode (AbsoluteSeek),
                                                  hGetContents, hSeek, hSetBuffering)
 import           System.Process
--- import Frames.InCore
 import           Frames.CSV                     (ParserOptions (..), QuotingMode (..), ReadRec, pipeTableEitherOpt,
                                                  produceTextLines, readFileLatin1Ln, readTableMaybeOpt)
 import           Frames.Col
@@ -377,13 +397,13 @@ addMptcpDest frame con =
 
       addDestsToSubflowFrames sf = addMptcpDestToFrame (addTcpDestToFrame frame (sfConn sf)) sf
 
-      addMptcpDest' role x = (Col role) :& x
+      addMptcpDest' role x = Col role :& x
 
       addMptcpDestToFrame frame' sf = fmap (addMptcpDest' (getMptcpDest con sf)) frame'
 
       startingFrame = fmap setTempDests frame
       setTempDests :: Record rs -> Record ( MptcpDest ': TcpDest ': rs)
-      setTempDests x = Col RoleClient :& (Col RoleClient) :& x
+      setTempDests x = Col RoleClient :& Col RoleClient :& x
       addMptcpDestToRec x role = (Col $ role) :& x
       subflows = Set.toList $ mpconSubflows con
 
@@ -445,7 +465,7 @@ computeTcpDest :: (
   , TcpDestPort ∈ rs
   ) => Record rs
   -> TcpConnection -> ConnectionRole
-computeTcpDest x con  = if (rgetField @IpSource x) == conTcpClientIp con
+computeTcpDest x con  = if rgetField @IpSource x == conTcpClientIp con
                 && rgetField @IpDest x == conTcpServerIp con
                 && rgetField @TcpSrcPort x == conTcpClientPort con
                 && rgetField @TcpDestPort x == conTcpServerPort con
@@ -476,7 +496,7 @@ addTcpDestinationsToAFrame aframe =
 -- append a field with a value role
 addTcpDestToRec :: (TcpStream ∈ rs, IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs)
   => Record rs -> ConnectionRole ->  Record  ( TcpDest ': rs )
-addTcpDestToRec x role = (Col $ role) :& x
+addTcpDestToRec x role = (Col role) :& x
 
 
 
@@ -548,6 +568,7 @@ class StreamConnection a b | a -> b where
   showConnectionText :: a -> Text
   -- describeConnection :: a -> Text
   buildFrameFromStreamId :: Frame Packet -> StreamId b -> Either String (FrameFiltered a Packet)
+  -- type Needs a :: Constraint
 
   -- type toto = Int
 

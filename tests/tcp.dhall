@@ -1,4 +1,5 @@
-let Replica = https://raw.githubusercontent.com/berewt/REPLica/main/dhall/replica.dhall
+let Replica = https://raw.githubusercontent.com/REPLicaTest/REPLica/main/dhall/replica.dhall
+
 let args = "--log-level Info"
 let lib = ./lib.dhall
 in {

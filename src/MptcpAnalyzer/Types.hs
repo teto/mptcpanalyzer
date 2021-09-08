@@ -11,6 +11,11 @@
 {-# LANGUAGE PackageImports         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module MptcpAnalyzer.Types
+-- (
+--   -- * types
+--   PcapMapping(..)
+--   , tcpDest
+-- )
 where
 
 -- Inspired by Frames/demo/missingData
@@ -21,8 +26,8 @@ import "mptcp-pm" Net.Tcp (TcpFlag(..))
 import Net.Bitset (fromBitMask, toBitMask)
 import Net.IP
 import Net.IPv6 (IPv6(..))
-import Net.Tcp
-import Net.Mptcp
+import "this" Net.Tcp
+import "this" Net.Mptcp
 
 import Data.Hashable
 import qualified Data.Hashable as Hash
@@ -35,7 +40,6 @@ import Data.Vinyl.Class.Method
 import qualified Data.Vinyl as V
 import Data.Word (Word8, Word16, Word32, Word64)
 import Data.WideWord.Word128
-import Control.Monad (liftM)
 import Frames
 import Frames.ShowCSV
 import Frames.TH
@@ -53,7 +57,7 @@ import Language.Haskell.TH
 import qualified Data.Text.Lazy.Builder as B
 import Data.Typeable (Typeable)
 import Control.Lens
-import Control.Monad (MonadPlus, mzero)
+import Control.Monad (MonadPlus, mzero, liftM)
 import qualified Frames as F
 import qualified Data.Set as Set
 import qualified Data.Text as TS
@@ -146,7 +150,7 @@ instance Hashable (F.Record '[]) where
   {-# INLINABLE hashWithSalt #-}
 
 instance (V.KnownField t, Hashable (V.Snd t), Hashable (F.Record rs), rs F.⊆ (t ': rs)) => Hashable (F.Record (t ': rs)) where
-  hashWithSalt s r = s `Hash.hashWithSalt` (F.rgetField @t r) `Hash.hashWithSalt` F.rcast @rs r
+  hashWithSalt s r = s `Hash.hashWithSalt` F.rgetField @t r `Hash.hashWithSalt` F.rcast @rs r
   {-# INLINABLE hashWithSalt #-}
 
 deriving instance Hashable IP

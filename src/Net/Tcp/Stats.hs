@@ -1,7 +1,12 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DerivingVia #-}
-module Net.Tcp.Stats
+module Net.Tcp.Stats (
+  TcpUnidirectionalStats (..)
+  , getTcpGoodput
+  , getTcpThroughput
+  , getTcpSeqRange
+)
 where
 
 import MptcpAnalyzer.ArtificialFields
@@ -116,13 +121,13 @@ getTcpSeqRange s =
   fromIntegral (tusSndUna s - tusMinSeq s - 1)
 
 -- | Computes throughput
-getThroughput :: TcpUnidirectionalStats -> Double
-getThroughput s =
+getTcpThroughput :: TcpUnidirectionalStats -> Double
+getTcpThroughput s =
   fromIntegral (tusSndUna s - tusMinSeq s - 1) / (tusEndTime s - tusStartTime s)
 
 -- | Computes goodput
-getGoodput :: TcpUnidirectionalStats -> Double
-getGoodput s =
+getTcpGoodput :: TcpUnidirectionalStats -> Double
+getTcpGoodput s =
   fromIntegral (tusSndUna s - tusMinSeq s + 1 - tusReinjectedBytes s) / (tusEndTime s - tusStartTime s)
 
 

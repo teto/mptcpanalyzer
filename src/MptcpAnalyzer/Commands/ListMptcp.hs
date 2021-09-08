@@ -1,6 +1,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE PackageImports #-}
-module MptcpAnalyzer.Commands.ListMptcp
+module MptcpAnalyzer.Commands.ListMptcp (
+  piListMpTcpOpts
+  , cmdListMptcpConnections
+  , cmdListSubflows
+)
 where
 
 import MptcpAnalyzer.Cache
@@ -31,16 +35,16 @@ import Data.Either (fromRight)
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 
-listMpTcpOpts :: ParserInfo CommandArgs
-listMpTcpOpts = info (
+piListMpTcpOpts :: ParserInfo CommandArgs
+piListMpTcpOpts = info (
     parserList <**> helper)
   ( progDesc "List MPTCP connections"
   )
   where
     parserList = ArgsListMpTcpConnections <$> switch ( long "detailed" <> help "detail connections")
 
-listMptcpSubflowOpts :: ParserInfo CommandArgs
-listMptcpSubflowOpts = info (
+piListMptcpSubflowOpts :: ParserInfo CommandArgs
+piListMptcpSubflowOpts = info (
     parserList <**> helper)
   ( progDesc "List MPTCP connections"
   )
@@ -48,13 +52,13 @@ listMptcpSubflowOpts = info (
     parserList = ArgsListSubflows <$> switch ( long "detailed" <> help "detail connections")
 
 
-listMptcpReinjectionsOpts :: ParserInfo CommandArgs
-listMptcpReinjectionsOpts = info (
-    parserList <**> helper)
-  ( progDesc "List MPTCP reinjections"
-  )
-  where
-    parserList = ArgsListSubflows <$> switch ( long "detailed" <> help "detail connections")
+-- piListMptcpReinjectionsOpts :: ParserInfo CommandArgs
+-- piListMptcpReinjectionsOpts = info (
+--     parserList <**> helper)
+--   ( progDesc "List MPTCP reinjections"
+--   )
+--   where
+--     parserList = ArgsListSubflows <$> switch ( long "detailed" <> help "detail connections")
 
 type SomeFrame = Frame Packet
 

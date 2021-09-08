@@ -1,7 +1,21 @@
+{-|
+
+Module      : MptcpAnalyzer.Commands.Reinjections
+Description : Command to analyze reinjections
+Maintainer  : matt
+
+-}
 -- {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE PackageImports           #-}
 
-module MptcpAnalyzer.Commands.List
+module MptcpAnalyzer.Commands.List (
+  piListTcpOpts
+  , piTcpSummaryOpts
+  , piMptcpSummaryOpts
+  , cmdListTcpConnections
+  , cmdTcpSummary
+  , cmdMptcpSummary
+)
 where
 
 import MptcpAnalyzer.Cache
@@ -177,7 +191,7 @@ showTcpStats :: TcpUnidirectionalStats -> String
 showTcpStats s =
                   "- transferred " ++ show (tusSndNext s - tusMinSeq s + 1 + tusReinjectedBytes s)  ++ " bytes "
                   ++ " over " ++ show (tusEndTime s - tusStartTime s) ++ "s: "
-                  ++ " Throughput " ++ show (getThroughput s) ++ "b/s"
+                  ++ " Throughput " ++ show (getTcpThroughput s) ++ "b/s"
 
 
 {-

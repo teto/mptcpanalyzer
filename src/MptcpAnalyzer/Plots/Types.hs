@@ -1,4 +1,8 @@
-module MptcpAnalyzer.Plots.Types
+module MptcpAnalyzer.Plots.Types (
+  PlotSettings(..)
+  , ArgsPlots(..)
+
+)
 where
 
 import MptcpAnalyzer.Types
@@ -16,7 +20,7 @@ data PlotSettings = PlotSettings {
   , plsDisplay :: Bool
   -- , ploLabelx :: String
   -- , ploLabely :: String
-  , plsMptcp :: Bool -- mptcp
+  , plsMptcp :: Bool -- ^ True if it's an mptcp plot (as opposed to TCP)
   }
       -- parser.add_argument('--display', action="store", default="term", choices=["term", "gui", "no"],
 

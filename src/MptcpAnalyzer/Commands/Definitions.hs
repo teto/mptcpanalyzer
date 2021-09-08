@@ -1,4 +1,9 @@
-module MptcpAnalyzer.Commands.Definitions
+module MptcpAnalyzer.Commands.Definitions (
+  RetCode(..)
+  , CommandMapPcap (..)
+  , CommandArgs (..)
+  , parserPcapMapping
+)
 where
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Types
@@ -8,19 +13,9 @@ import MptcpAnalyzer.Plots.Types
 import Data.Word (Word32)
 import Options.Applicative
 
--- import Polysemy (Sem, Members, makeSem, interpret, Effect)
 
--- | To reprensent a mapping between 2 pcaps
--- data PcapMapping a = PcapMapping {
---       pmapPcap1 :: FilePath
---       , pmapStream1 :: StreamId a
---       , pmapPcap2 :: FilePath
---       , pmapStream2 :: StreamId a
---       -- , pmapVerbose :: Bool
---       -- , pmapLimit :: Int -- ^Number of comparisons to show
---       -- , pmapMptcp :: Bool -- ^Wether it's an MPTCP
---     }
-
+-- | Mapping streams between 2 pcaps is something common in this program.
+-- This structure avoids copy/paste.
 data CommandMapPcap = CommandMapPcap {
   argsMapPcap1 :: FilePath
   , argsMapPcap2 :: FilePath
@@ -43,6 +38,7 @@ data CommandArgs =
     -- ^ Pcap 1 Pcap 2 streamId1 verbose Limit Mptcp
     -- | ArgsMapMptcpConnections FilePath FilePath Word32 Bool Int Bool
     | ArgsListSubflows Bool
+    | ArgsListInterfaces
       -- ^ _listSubflowsDetailed
     | ArgsListReinjections (StreamId Mptcp)
     | ArgsParserSummary Bool (StreamId Tcp)
@@ -77,7 +73,6 @@ parserPcapMapping forMptcp =
           metavar "PCAP2"
           <> help "File to analyze"
       )
-      -- 
       <*> argument readStreamId (
           metavar "TCP_STREAM"
           <> help "stream id to analyzer"

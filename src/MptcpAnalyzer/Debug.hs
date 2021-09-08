@@ -1,3 +1,9 @@
+{-|
+Module      : MptcpAnalyzer.Merge
+Description : Utilities to help debug
+Maintainer  : matt
+License     : GPL-3
+-}
 module MptcpAnalyzer.Debug
 where
 

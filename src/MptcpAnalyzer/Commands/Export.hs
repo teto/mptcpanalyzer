@@ -1,4 +1,7 @@
-module MptcpAnalyzer.Commands.Export
+module MptcpAnalyzer.Commands.Export (
+  piExportOpts
+  , cmdExport
+)
 where
 
 import MptcpAnalyzer.Types
@@ -13,8 +16,8 @@ import Polysemy.State as P
 import Frames.CSV (writeCSV)
 import Options.Applicative
 
-parseExportOpts ::  ParserInfo CommandArgs
-parseExportOpts = info (
+piExportOpts ::  ParserInfo CommandArgs
+piExportOpts = info (
    ArgsExport <$> parserList <**> helper)
   ( progDesc "Filename to export to"
   )

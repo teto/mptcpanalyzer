@@ -1,4 +1,4 @@
-{-
+{-|
 Module      : MptcpAnalyzer.ArtificialFields
 Description : A set of artifical fields to ease dataframe processing
 Maintainer  : matt

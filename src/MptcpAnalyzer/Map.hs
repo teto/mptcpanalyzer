@@ -1,4 +1,4 @@
-{-
+{-|
 Module      : MptcpAnalyzer.Maps
 Description : Maps Packets and Tcp streams between two frames
 Maintainer  : matt
@@ -16,7 +16,12 @@ See "MptcpAnalyzer.Merge"
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
-module MptcpAnalyzer.Map
+module MptcpAnalyzer.Map (
+  mapMptcpConnection
+  , mapTcpConnection
+  , mapSubflows
+  , showMptcpSubflowMapping
+)
 where
 
 import MptcpAnalyzer.Cache
@@ -57,6 +62,7 @@ mapSubflows con1 con2 =
         map (\sf -> (sf, similarityScore sf1 sf)) (Set.toList $ mpconSubflows con2)
 
 
+-- | show a mapping
 showMptcpSubflowMapping :: MptcpSubflowMapping -> Text
 showMptcpSubflowMapping m =
   intercalate "\n" $ map showOneSfMapping m

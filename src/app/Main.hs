@@ -55,9 +55,11 @@ import MptcpAnalyzer.Merge
 import qualified MptcpAnalyzer.Commands.Plot as Plots
 import qualified MptcpAnalyzer.Commands.PlotOWD as Plots
 import MptcpAnalyzer.Plots.Types
-import qualified MptcpAnalyzer.Plots.Owd as Plots
+-- import qualified MptcpAnalyzer.Plots.Owd as Plots
 import qualified MptcpAnalyzer.Commands.Load as CL
 -- import Control.Monad (void)
+import Tshark.Interfaces
+import MptcpAnalyzer.Pcap (defaultTsharkPrefs, defaultTsharkOptions, defaultParserOptions)
 
 
 import Polysemy (Sem, Members, runFinal, Final)
@@ -78,8 +80,14 @@ import Options.Applicative.Help (parserHelp)
 -- import Colog.Core.IO (logStringStdout)
 -- import Colog.Polysemy (Log)
 import Colog.Actions
+-- import Control.Lens hiding (argument)
 -- import Graphics.Rendering.Chart.Easy hiding (argument)
-import Graphics.Rendering.Chart.Backend.Cairo
+-- import Data.Default (def)
+import Graphics.Rendering.Chart.Backend.Cairo (toFile,
+    renderableToFile, FileOptions(..), FileFormat(..))
+import Graphics.Rendering.Chart.Renderable    (toRenderable)
+-- import           Graphics.Rendering.Chart.Easy          hiding (argument)
+import Graphics.Rendering.Chart.Layout (layout_title)
 import Frames.InCore (toFrame)
 
 
@@ -89,7 +97,6 @@ import System.Console.Haskeline
 import System.Console.ANSI
 import Control.Lens ((^.), view)
 import System.Exit
-import MptcpAnalyzer.Pcap (defaultTsharkPrefs, defaultTsharkOptions, defaultParserOptions)
 import Pipes hiding (Proxy)
 import System.Process hiding (runCommand)
 import Distribution.Simple.Utils (withTempFileEx)
@@ -97,6 +104,7 @@ import Distribution.Compat.Internal.TempFile (openTempFile)
 import MptcpAnalyzer.Loader
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Either (fromLeft)
+import Data.Foldable (forM_)
 import Frames.CSV (writeDSV)
 import Frames (recMaybe, Frame, Record)
 import Frames as F
@@ -113,6 +121,9 @@ data CLIArguments = CLIArguments {
   , extraCommands :: [String]  -- ^ commands to run on start
   }
 
+
+defaultImageOptions :: FileOptions
+defaultImageOptions = FileOptions (800,600) PNG
 
 loggerName :: String
 loggerName = "main"
@@ -237,6 +248,15 @@ main = do
   return ()
 
 
+
+
+piListInterfaces :: ParserInfo CommandArgs
+piListInterfaces = info (pure ArgsListInterfaces)
+  ( fullDesc
+  <> progDesc "List interfaces as seen by tshark"
+  <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
+  )
+
 -- |Global parser: contains every available command
 -- TODO for some commands we could factorize the preprocessing eg check a file
 -- was pre-loaded
@@ -249,7 +269,7 @@ mainParser = subparser (
     <> command "quit" quit
     <> commandGroup "Loader commands"
     <> command "load-csv" CL.piLoadCsv
-    <> command "load-pcap" CL.loadPcapOpts
+    <> command "load-pcap" CL.piLoadPcapOpts
     <> commandGroup "TCP commands"
     <> command "tcp-summary" CLI.piTcpSummaryOpts
     <> command "mptcp-summary" CLI.piMptcpSummaryOpts
@@ -258,14 +278,15 @@ mainParser = subparser (
     <> command "map-mptcp" CLI.mapMptcpOpts
     <> commandGroup "MPTCP commands"
     <> command "list-reinjections" CLI.piListReinjections
-    <> command "list-mptcp" CLI.listMpTcpOpts
-    <> command "export" CLI.parseExportOpts
+    <> command "list-mptcp" CLI.piListMpTcpOpts
+    <> command "list-interfaces" piListInterfaces
+    <> command "export" CLI.piExportOpts
     <> command "analyze" CLI.piQualifyReinjections
     -- <> commandGroup "TCP plots"
     -- TODO here we should pass a subparser
     -- <> subparser (
     -- Main.piParserGeneric
-    <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "hello"))
+    <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
     <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "hello"))
     )
     where
@@ -284,7 +305,17 @@ mainParserInfo = info (mainParser <**> helper)
   )
 
 
+cmdListInterfaces :: (Members '[
+  Log, Cache,
+  P.Trace, P.State MyState,
+  P.Embed IO
+  ] r) => Sem r CMD.RetCode
+cmdListInterfaces = do
+  (exitCode, ifs) <- P.embed listInterfaces
 
+  trace "Listing interfaces:"
+  trace $ "ifs" ++ concatMap (\x -> x ++ "\n") ifs
+  return CMD.Continue
 
 
 runCommand :: (Members '[Log, Cache, P.Trace, P.State MyState, P.Embed IO] r)
@@ -296,13 +327,14 @@ runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
   --       _loadedFile = Just frame
   --     })
   -- return ret
-runCommand (ArgsLoadCsv csvFile) = CL.loadCsv csvFile
+runCommand (ArgsLoadCsv csvFile) = CL.cmdLoadCsv csvFile
 runCommand (ArgsParserSummary detailed streamId) = CLI.cmdTcpSummary streamId detailed
 runCommand (ArgsMptcpSummary detailed streamId) = CLI.cmdMptcpSummary streamId detailed
 runCommand (ArgsListSubflows detailed) = CLI.cmdListSubflows detailed
 runCommand (ArgsListReinjections streamId)  = CLI.cmdListReinjections streamId
 runCommand (ArgsListTcpConnections detailed) = CLI.cmdListTcpConnections detailed
 runCommand (ArgsListMpTcpConnections detailed) = CLI.cmdListMptcpConnections detailed
+runCommand ArgsListInterfaces = cmdListInterfaces
 runCommand (ArgsExport out) = CLI.cmdExport out
 runCommand (ArgsPlotGeneric plotSettings plotArgs) = runPlotCommand plotSettings plotArgs
 runCommand (ArgsMapTcpConnections cmd False) = CLI.cmdMapTcpConnection cmd
@@ -359,13 +391,20 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
               eFrame <- buildAFrameFromStreamIdMptcp defaultTsharkPrefs pcapFilename (StreamId streamId)
               case eFrame of
                 Left err -> return $ CMD.Error err
-                Right frame -> Plots.cmdPlotMptcpAttribute attr tempPath handle destinations frame
+                Right frame -> Plots.cmdPlotMptcpAttribute attr tempPath destinations frame
 
             else do
               eFrame <- buildAFrameFromStreamIdTcp defaultTsharkPrefs pcapFilename (StreamId streamId)
               case eFrame of
                 Left err -> return $ CMD.Error err
-                Right frame -> Plots.cmdPlotTcpAttribute attr tempPath handle destinations frame
+                Right frame -> do
+                  l <- Plots.cmdPlotTcpAttribute attr destinations frame
+                  -- toRenderable
+                  P.embed $ toFile defaultImageOptions tempPath l
+                  -- embed $ void $ renderableToFile defaultImageOptions tempPath (toRenderable l)
+                      -- layout_title .= "TCP " ++ attr
+                      -- l
+                  return CMD.Continue
         return res
 
       -- Destinations
@@ -397,7 +436,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
         eframe1 <- buildAFrameFromStreamIdMptcp defaultTsharkPrefs pcap1 streamId1
         eframe2 <- buildAFrameFromStreamIdMptcp defaultTsharkPrefs pcap2 streamId2
 
-        res <- case (eframe1, eframe2 ) of
+        case (eframe1, eframe2 ) of
           (Right aframe1, Right aframe2) -> do
               mergedRes <- mergeMptcpConnectionsFromKnownStreams aframe1 aframe2
               -- let mbRecs = map recMaybe mergedRes
@@ -406,17 +445,19 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
               error "not implemented"
           (Left err, _) -> return $ CMD.Error err
           (_, Left err) -> return $ CMD.Error err
-        return res
 
-
-    _ <- P.embed $ case mbOut of
-            -- user specified a file move the file
-            Just outFilename -> renameFile tempPath outFilename
-            Nothing -> return ()
+    P.embed $ forM_ mbOut (renameFile tempPath)
+    -- _ <- P.embed $ case mbOut of
+    --         -- user specified a file move the file
+    --         Just outFilename -> renameFile tempPath outFilename
+    --         Nothing -> return ()
     if displayPlot then do
         let
           createProc :: CreateProcess
-          createProc = proc "xdg-open" [ tempPath ]
+          -- for some reason it recognizes the image as application/octet-stream
+          -- and I can't manage to make it use my image/png application
+          -- createProc = proc "xdg-open" [ tempPath ]
+          createProc = proc "sxiv" [ tempPath ]
 
         Log.info $ "Launching " <> tshow createProc
         (_, _, mbHerr, ph) <- P.embed $ createProcess createProc
@@ -426,7 +467,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
     else
       return Continue
     where
-      getDests mbDest = maybe [RoleClient, RoleServer] (\x -> [x]) mbDest
+      getDests mbDest = maybe [RoleClient, RoleServer] (: []) mbDest
 
 
 -- TODO use genericRunCommand
@@ -448,7 +489,7 @@ runIteration fullCmd = do
                 -- last arg is progname
                 let (h, exit) = renderFailure failure ""
                 -- Log.debug h
-                P.trace $ h
+                P.trace h
                 Log.debug $ "Exit code " <> tshow exit
                 Log.debug $ "Passed args " <> tshow args
                 return $ case exit of

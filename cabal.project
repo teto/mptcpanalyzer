@@ -14,9 +14,11 @@ source-repository-package
   --sha256:sha256-7Z79t9XBBGata6r1bzGH95ro2UcIhdxJnFtbXBIRDQQ=
 
 profiling: True
+documentation: True
+-- ghc options -ddump-timings
 
 -- -- Frames for colDecExplicit
 packages:
   -- ../mptcppm/
-  ./*.cabal
+   ./*.cabal
   -- ../Frames

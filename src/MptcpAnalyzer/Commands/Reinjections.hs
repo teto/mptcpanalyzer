@@ -1,8 +1,20 @@
-{-
-Command to analyze reinjections
+{-|
+
+Module      : MptcpAnalyzer.Commands.Reinjections
+Description : Command to analyze reinjections
+Maintainer  : matt
+
 
 -}
-module MptcpAnalyzer.Commands.Reinjections
+{-# LANGUAGE PackageImports         #-}
+module MptcpAnalyzer.Commands.Reinjections (
+
+  piListReinjections
+  , piQualifyReinjections
+  , qualifyReinjections
+  , cmdListReinjections
+  , cmdQualifyReinjections
+)
 where
 
 import MptcpAnalyzer.Cache
@@ -14,7 +26,7 @@ import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Merge
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.ArtificialFields
-import Net.Mptcp
+import "this" Net.Mptcp
 
 import Prelude hiding (log)
 import Options.Applicative
@@ -34,7 +46,7 @@ import Data.Maybe
 import Control.Lens ((^.))
 import Data.Foldable (toList)
 import qualified Data.Foldable as F
-import qualified Pipes as Pipes
+import qualified Pipes
 import qualified Pipes.Prelude as Pipes
 import Control.Lens hiding (argument)
 
@@ -43,7 +55,7 @@ import Control.Monad
 
 piListReinjections :: ParserInfo CommandArgs
 piListReinjections = info (
-    (parserListReinjections )
+    parserListReinjections
     <**> helper)
   ( progDesc "List MPTCP reinjections"
   )
@@ -63,7 +75,7 @@ piListReinjections = info (
 
 piQualifyReinjections :: ParserInfo CommandArgs
 piQualifyReinjections = info (
-    (parserQualifyReinjections) <**> helper)
+    parserQualifyReinjections <**> helper)
   ( progDesc "Qualifies MPTCP reinjections"
   <> footer "analyze examples/client_2_redundant.pcapng 0 examples/server_2_redundant.pcapng 0"
   )
@@ -110,7 +122,7 @@ cmdListReinjections streamId = do
 
 -- Analyzes row of reinject packets
 -- Compares arrival time of the first send of a segment with the
-analyzeReinjection :: (FrameRec SenderReceiverCols) -> Record SenderReceiverCols -> Double
+analyzeReinjection :: FrameRec SenderReceiverCols -> Record SenderReceiverCols -> Double
 analyzeReinjection mergedFrame row =
   let
     -- a list of packetIds
@@ -122,7 +134,7 @@ analyzeReinjection mergedFrame row =
     originalPkt :: Record SenderReceiverCols
     originalPkt = let
           originalFrame = filterFrame (\x -> x ^. sndPacketId == initialPktId) mergedFrame
-      in case frameLength (originalFrame) of
+      in case frameLength originalFrame of
       0 -> error "empty frame"
       _ -> frameRow originalFrame 0
 
@@ -312,7 +324,7 @@ qualifyReinjections frame (aframeH1, aframeH2) dest = do
                 "Efficient reinjection: latency gain: " ++ show reinj_delta
 
             else
-              "Redundant reinjection : latency delta = " ++ show reinj_delta
+              "Redundant reinjection" ++ show reinj_delta
               --
 
             --     # print("GOT A failed reinjection")

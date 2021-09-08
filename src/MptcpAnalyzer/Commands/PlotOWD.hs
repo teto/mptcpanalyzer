@@ -1,6 +1,6 @@
 {-
-Module      : MptcpAnalyzer.Merge
-Description : Merges 2 dataframes into a single one with the format sender -> receiver
+Module      : MptcpAnalyzer.Commands.PlotOwd
+Description : Plot One way delays
 Maintainer  : matt
 -}
 {-# LANGUAGE AllowAmbiguousTypes   #-}
@@ -11,13 +11,20 @@ Maintainer  : matt
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE PackageImports   #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module MptcpAnalyzer.Commands.PlotOWD
+module MptcpAnalyzer.Commands.PlotOWD (
+  cmdPlotTcpOwd
+  , cmdPlotMptcpOwd
+  , plotParserOwd
+  , piPlotTcpOwd
+)
 where
 
 import MptcpAnalyzer.ArtificialFields
@@ -34,8 +41,8 @@ import MptcpAnalyzer.Merge
 -- for retypeColumn
 import MptcpAnalyzer.Frames.Utils
 -- for fields
-import Net.Tcp
-import Net.Mptcp
+import "this" Net.Tcp
+import "this" Net.Mptcp
 
 import Prelude hiding (filter, lookup, repeat, log)
 import Options.Applicative
@@ -300,7 +307,7 @@ cmdPlotMptcpOwd tempPath _ destinations con mergedRes = do
     -- mbRecs = map recMaybe mergedRes
     -- justRecs = catMaybes mbRecs
     sndRcvFrame = convertToSenderReceiver mergedRes
-    dumpRec x = putStrLn $ show x
+    dumpRec x = print x
     -- add dest to the whole frame
     -- frameDest = addMptcpDest (ffFrame aFrame) (ffCon aFrame)
     plotAttr dest =

@@ -1,5 +1,12 @@
+{-|
+Module      : Net.Mptcp.Connection
+Description : Basic MPTCP connection description
+Maintainer  : matt
+License     : GPL-3
+-}
 {-# LANGUAGE OverloadedStrings #-}
 module Net.Mptcp.Connection (
+  -- * Types
   MptcpConnection(..)
   , MptcpSubflow(..)
   , showMptcpConnectionText
