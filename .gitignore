@@ -24,3 +24,27 @@ cabal.project.local~
 .direnv
 tests/*.json
 *.csv
+# Object files
+*.o
+*.ko
+*.symvers
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# misc
+*.cmd
+*.mod
+*.order
