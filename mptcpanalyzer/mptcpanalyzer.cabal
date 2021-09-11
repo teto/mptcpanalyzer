@@ -1,4 +1,4 @@
-cabal-version: 3.0
+cabal-version: 3.4
 name: mptcpanalyzer
 version: 0.0.1
 license: GPL-3.0-only
@@ -108,7 +108,7 @@ common shared-properties
     ghc-options:
         -Wall
         -Werror=missing-methods
-        -Werror=warn-missing-methods
+        -- -Werror=warn-missing-methods
         -Wpartial-fields
         -- -dth-dec-file
         -fwrite-ide-info
@@ -148,6 +148,7 @@ library libmptcpanalyzer
         , Net.Tcp
         , Net.Mptcp
         , Net.Mptcp.Stats
+        , Net.Mptcp.Flags
         , Net.Mptcp.Connection
         -- reexport the rest
         , MptcpAnalyzer
@@ -200,6 +201,9 @@ executable mptcpanalyzer
         -- , MptcpAnalyzer.Pcap
         -- , MptcpAnalyzer.Cache
         -- , MptcpAnalyzer.Merge
+        Net.Tcp
+        , Net.Mptcp
+        , MptcpAnalyzer.ArtificialFields
         , MptcpAnalyzer.Commands
         , MptcpAnalyzer.Commands.Definitions
         , MptcpAnalyzer.Commands.Load
@@ -227,7 +231,7 @@ benchmark map-stream
   type:             exitcode-stdio-1.0
   main-is:          Map.hs
   hs-source-dirs:   benchmarks
-  build-depends:    base, Frames, criterion
+  build-depends:    base, Frames, criterion, libmptcpanalyzer
   ghc-options:      -O2
   default-language: Haskell2010
 

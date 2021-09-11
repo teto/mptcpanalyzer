@@ -7,6 +7,7 @@ License     : GPL-3
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 module MptcpAnalyzer.Commands.Plot (
   -- * Actual commands that plot
   cmdPlotMptcpAttribute
@@ -301,12 +302,13 @@ cmdPlotTcpAttribute field destinations aFrame = do
 
 
 -- it should be possible to get something more abstract
-getData :: forall t a2. (Num a2,
+getData :: forall f a2. (Num a2
             -- RecElem
             --   Rec TcpLen TcpLen rs rs (Data.Vinyl.TypeLevel.RIndex TcpLen rs),
             -- (Record HostCols) <: (Record rs)
-            Foldable t, Functor t) =>
-            t (Record (TcpDest ': HostCols) ) -> String -> ([Double], [a2])
+            -- Foldable t, Functor t
+            ) =>
+            FrameRec (TcpDest ': HostCols) -> String -> [(Double, a2)]
 getData frame attr =
   getAttr
   where
@@ -314,12 +316,12 @@ getData frame attr =
     timeData = F.toList $ view relTime <$> frame
 
     getAttr = case attr of
-      "tcpSeq" -> (timeData, getTcpData tcpSeq)
+      "tcpSeq" -> [ (t, v) | (t, v) <- zip timeData (getTcpData tcpSeq) ]
       -- "tcpLen" -> fromIntegral. view tcpLen
       -- "rwnd" -> fromIntegral. view rwnd
       -- "tcpAck" -> fromIntegral. view tcpAck
       -- "tsval" -> tsval
-      -- "mptcpSeq" -> getMptcpData frame mptcpSeq
+      "mptcpDsn" -> getMptcpData frame mptcpDsn
 
       _          -> error "unsupported attr"
 
@@ -328,11 +330,13 @@ getData frame attr =
 
     getTcpData getter = F.toList ((fromIntegral . view getter) <$> frame)
 
---
-getMptcpData  frame getter =
-  (timeData, view relTime <$> justFrame)
+getMptcpData :: _
+getMptcpData frame getter =
+  [ (t, v) | (t, v) <- zip timeData values ]
+  -- (timeData, view relTime <$> justFrame)
   where
     timeData = F.toList $ view relTime <$> justFrame
+    values = catMaybes $ F.toList $ view getter <$> justFrame
     -- filter on the field
     justFrame = filterFrame (\x -> isJust $ x ^. getter) frame
 
@@ -368,17 +372,19 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
     -- add dest to the whole frame
     frameDest = addMptcpDest (ffFrame aFrame) (ffCon aFrame)
     plotAttr (dest, sf) =
-      plot (line lineLabel [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
-
-        where
+      -- plot (line lineLabel [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
+      plot (line lineLabel [ frameData ])
+      where
+          -- frameData :: ([Double], [
+          frameData = getData unidirectionalFrame field
           -- show sf
           lineLabel = "subflow " ++ show (conTcpStreamId (sfConn sf))  ++ " seq (" ++ show dest ++ ")"
           -- frameDest = frame2
           unidirectionalFrame = filterFrame (\x -> x ^. mptcpDest == dest
                     && x ^. tcpStream == conTcpStreamId (sfConn sf) ) frameDest
 
-          seqData :: [Double]
-          seqData = map fromIntegral (F.toList $ view tcpSeq <$> unidirectionalFrame)
-          timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> unidirectionalFrame
+          -- seqData :: [Double]
+          -- seqData = map fromIntegral (F.toList $ view tcpSeq <$> unidirectionalFrame)
+          -- timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> unidirectionalFrame
 
 

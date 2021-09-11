@@ -5,7 +5,7 @@ where
 
 data MptcpFlag = MptcpFlagFin | MptcpFlagSyn | MptcpFlagRst | MptcpFlagPsh
     | MptcpFlagAck | MptcpFlagUrg | MptcpFlagEcn | MptcpFlagCwr | MptcpFlagNonce
-        deriving (Eq, Show, Bounded, Generic)
+        deriving (Eq, Show, Bounded)
 
 -- values are power of 2 of the flag
 instance Enum MptcpFlag where

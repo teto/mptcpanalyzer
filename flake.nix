@@ -4,11 +4,11 @@
   nixConfig = {
     substituters = [
       # https://iohk.cachix.org
-      https://hydra.iohk.io
+      # https://hydra.iohk.io
     ];
-    trusted-public-keys = [
-      hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
-    ];
+    # trusted-public-keys = [
+    #   hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+    # ];
     # bash-prompt = "toto";
   };
 
@@ -22,7 +22,6 @@
     flake-utils.url = "github:numtide/flake-utils";
 
     hls.url = "github:haskell/haskell-language-server";
-    # hls.url = "github:teto/haskell-language-server/flake-debug";
 
     # haskellNix.url = "github:input-output-hk/haskell.nix?ref=hkm/nixpkgs-unstable-update";
     haskellNix.url = "github:input-output-hk/haskell.nix";
@@ -33,26 +32,25 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, poetry, haskellNix, replica, ... }@inputs:
+  outputs = { self, nixpkgs, flake-utils, poetry, replica, ... }@inputs:
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
 
-      compilerVersion = "8104";
+      compilerVersion = "8107";
       # compilerVersion = "901";
 
       ## haskell.nix trial
       overlays = [
-        haskellNix.overlay
-        (final: prev: {
-          # This overlay adds our project to pkgs
-          mptcpanalyzer =
-            final.haskell-nix.project' {
-              src = ./.;
-              compiler-nix-name = "ghc${compilerVersion}";
-            };
-        })
+        # haskellNix.overlay
+        # (final: prev: {
+        #   # This overlay adds our project to pkgs
+        #   mptcpanalyzer =
+        #     final.haskell-nix.project' {
+        #       src = ./.;
+        #       compiler-nix-name = "ghc${compilerVersion}";
+        #     };
+        # })
       ];
-      flake = pkgs.mptcpanalyzer.flake {};
-
+      # flake = pkgs.mptcpanalyzer.flake {};
 
       haskellOverlay = hnew: hold: with pkgs.haskell.lib; {
 
@@ -79,14 +77,14 @@
           };
         });
 
-        mptcp-pm = overrideSrc hold.mptcp-pm {
-          src = pkgs.fetchFromGitHub {
-            owner = "teto";
-            repo = "mptcp-pm";
-            rev = "0cd4cad9bab5713ebbe529e194bddb08948825d7";
-            sha256 = "sha256-7JhrMrv9ld12nx8LyfOuOPTBb7RyWIwSWNB9vWDe/g0=";
-          };
-        };
+        # mptcp-pm = overrideSrc hold.mptcp-pm {
+        #   src = pkgs.fetchFromGitHub {
+        #     owner = "teto";
+        #     repo = "mptcp-pm";
+        #     rev = "0cd4cad9bab5713ebbe529e194bddb08948825d7";
+        #     sha256 = "sha256-7JhrMrv9ld12nx8LyfOuOPTBb7RyWIwSWNB9vWDe/g0=";
+        #   };
+        # };
       };
 
 
@@ -109,11 +107,11 @@
         # myHaskellPackages.hlint
         hs.stan
         pkgs.zlib
-        hs.shelltestrunner
+        # hs.shelltestrunner
       ]);
 
     in rec {
-      packages.mptcpanalyzer2 = flake.packages."mptcpanalyzer:exe:mptcpanalyzer";
+      # packages.mptcpanalyzer2 = flake.packages."mptcpanalyzer:exe:mptcpanalyzer";
 
       packages.mptcpanalyzer = pkgs.haskellPackages.developPackage {
         root = ./.;

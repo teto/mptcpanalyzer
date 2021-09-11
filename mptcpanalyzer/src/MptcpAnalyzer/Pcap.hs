@@ -395,11 +395,11 @@ addMptcpDest frame con =
 
       subflowFrames = map addDestsToSubflowFrames subflows
 
-      addDestsToSubflowFrames sf = addMptcpDestToFrame (addTcpDestToFrame frame (sfConn sf)) sf
+      addDestsToSubflowFrames sf = addMptcpDestToFrame' (addTcpDestToFrame frame (sfConn sf)) sf
 
       addMptcpDest' role x = Col role :& x
 
-      addMptcpDestToFrame frame' sf = fmap (addMptcpDest' (getMptcpDest con sf)) frame'
+      addMptcpDestToFrame' frame' sf = fmap (addMptcpDest' (getMptcpDest con sf)) frame'
 
       startingFrame = fmap setTempDests frame
       setTempDests :: Record rs -> Record ( MptcpDest ': TcpDest ': rs)
@@ -407,10 +407,10 @@ addMptcpDest frame con =
       addMptcpDestToRec x role = (Col $ role) :& x
       subflows = Set.toList $ mpconSubflows con
 
-addMptcpDestToFrame :: MptcpConnection -> FrameFiltered MptcpSubflow Packet -> FrameRec ('[MptcpDest])
+addMptcpDestToFrame :: MptcpConnection -> FrameFiltered MptcpSubflow Packet -> FrameRec '[MptcpDest]
 addMptcpDestToFrame mpcon (FrameTcp sf frame) = fmap (addMptcpDest' (getMptcpDest mpcon sf)) frame
   where
-      addMptcpDest' role x = (Col role) :& RNil
+      addMptcpDest' role x = Col role :& RNil
 
 
 getMptcpDest :: MptcpConnection -> MptcpSubflow -> ConnectionRole

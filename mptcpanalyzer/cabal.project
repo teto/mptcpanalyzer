@@ -19,6 +19,6 @@ documentation: True
 
 -- -- Frames for colDecExplicit
 packages:
-  -- ../mptcppm/
+  ../mptcp-pm/
    ./*.cabal
   -- ../Frames
