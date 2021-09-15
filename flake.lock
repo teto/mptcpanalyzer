@@ -267,11 +267,11 @@
         "pre-commit-hooks": "pre-commit-hooks"
       },
       "locked": {
-        "lastModified": 1631550617,
-        "narHash": "sha256-b3jGxyaORMVGIetPCVFoNSIA+MXFlSrQBQHcYnyWyCY=",
+        "lastModified": 1631726260,
+        "narHash": "sha256-j8rPr3oYI58MZVhirTSjplgDkLmBd74weqlSEbuAgHQ=",
         "owner": "haskell",
         "repo": "haskell-language-server",
-        "rev": "e1075e88f15e2c93e8968f69bacc33356d9db255",
+        "rev": "ec53fcb7b54434d62901a73bbf3e3085a579c487",
         "type": "github"
       },
       "original": {

@@ -1,16 +1,16 @@
 {
   description = "Multipath tcp pcap analyzer tool";
 
-  nixConfig = {
-    substituters = [
-      # https://iohk.cachix.org
-      # https://hydra.iohk.io
-    ];
-    # trusted-public-keys = [
-    #   hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
-    # ];
-    # bash-prompt = "toto";
-  };
+  # nixConfig = {
+  #   substituters = [
+  #     # https://iohk.cachix.org
+  #     # https://hydra.iohk.io
+  #   ];
+  #   # trusted-public-keys = [
+  #   #   hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+  #   # ];
+  #   # bash-prompt = "toto";
+  # };
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/master";
