@@ -28,7 +28,7 @@ import Options.Applicative
 import Data.String
 import Data.Map (Map, fromList)
 
--- |Filters a connection depending on its role
+-- | Filters a connection depending on its role
 data ConnectionRole = RoleServer | RoleClient deriving (Show, Eq, Enum, Read, ShowCSV, Ord)
 
 showConnectionRole :: (IsString a) => ConnectionRole -> a

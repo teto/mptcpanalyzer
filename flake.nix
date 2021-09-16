@@ -13,7 +13,7 @@
   # };
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/master";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     replica.url = "github:berewt/REPLica?rev=31ca9b01c61a0875137c8388fd50f9d70fdc5454";
 
     # temporary until this gets fixed upstream

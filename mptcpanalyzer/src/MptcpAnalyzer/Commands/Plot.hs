@@ -20,6 +20,9 @@ module MptcpAnalyzer.Commands.Plot (
 )
 where
 
+import           Data.Vinyl                     (ElField (..), Rec (..), rapply, rmapX, xrec)
+import           Data.Vinyl.Class.Method
+
 import           MptcpAnalyzer.ArtificialFields
 import           MptcpAnalyzer.Cache
 import           MptcpAnalyzer.Plots.Types
@@ -289,26 +292,28 @@ cmdPlotTcpAttribute field destinations aFrame = do
     frame2 = addTcpDestinationsToAFrame aFrame
     -- plotAttr :: ( PlotValue y) => ConnectionRole -> EC (Layout Double y) ()
     plotAttr dest =
-        plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
+        plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ [ (d,v) | (d,v) <- plotData ] ])
         -- plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ my_data ])
         where
           -- frameDest = ffTcpFrame tcpFrame
           frameDest = frame2
           unidirectionalFrame = filterFrame (\x -> x ^. tcpDest == dest) (ffFrame frameDest)
 
-          plotData :: ([Double], [Double])
-          plotData = getData unidirectionalFrame field
-          (timeData, seqData) = plotData
+          plotData :: [(Double, Double)]
+          plotData = getData (unidirectionalFrame') field
+
+          -- we add a fake mptcpDest column to satisfy
+          unidirectionalFrame' = fmap (\x -> Col RoleServer :& x) unidirectionalFrame
+          -- (timeData, seqData) = plotData
 
 
 -- it should be possible to get something more abstract
-getData :: forall f a2. (Num a2
+getData :: 
             -- RecElem
             --   Rec TcpLen TcpLen rs rs (Data.Vinyl.TypeLevel.RIndex TcpLen rs),
             -- (Record HostCols) <: (Record rs)
             -- Foldable t, Functor t
-            ) =>
-            FrameRec (TcpDest ': HostCols) -> String -> [(Double, a2)]
+            FrameRec (MptcpDest ': TcpDest ': HostCols) -> String -> [(Double, Double)]
 getData frame attr =
   getAttr
   where
@@ -336,7 +341,7 @@ getMptcpData frame getter =
   -- (timeData, view relTime <$> justFrame)
   where
     timeData = F.toList $ view relTime <$> justFrame
-    values = catMaybes $ F.toList $ view getter <$> justFrame
+    values = fmap fromIntegral $ catMaybes $ F.toList $ (view getter) <$> justFrame
     -- filter on the field
     justFrame = filterFrame (\x -> isJust $ x ^. getter) frame
 
@@ -376,6 +381,7 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
       plot (line lineLabel [ frameData ])
       where
           -- frameData :: ([Double], [
+          -- strip down 
           frameData = getData unidirectionalFrame field
           -- show sf
           lineLabel = "subflow " ++ show (conTcpStreamId (sfConn sf))  ++ " seq (" ++ show dest ++ ")"
