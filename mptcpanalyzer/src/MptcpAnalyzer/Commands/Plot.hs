@@ -16,6 +16,7 @@ module MptcpAnalyzer.Commands.Plot (
   -- * parsers
   , piPlotTcpMainParser
   , parserPlotTcpMain
+  , parserPlotTcpLive
   , parserPlotMptcpMain
 )
 where
@@ -36,7 +37,8 @@ import           MptcpAnalyzer.Pcap
 import           "this" Net.Mptcp
 import           "this" Net.Tcp
 import           Tshark.Fields                          (TsharkFieldDesc (tfieldLabel), baseFields)
-
+import Net.IP
+import Net.IPv4
 import           Frames
 import           Frames.CSV
 import           Options.Applicative
@@ -81,6 +83,7 @@ import           Data.Time
 
 -- import Data.Time.Calendar
 import Data.Time.LocalTime
+import MptcpAnalyzer.Stream
 
 mkDate :: Integer -> LocalTime
 mkDate jday =
@@ -120,6 +123,30 @@ piPlotTcpMainParser :: ParserInfo CommandArgs
 piPlotTcpMainParser = info parserPlotTcpMain
   ( progDesc " TCP Plots"
   )
+
+-- piPlotTcpMainParser :: ParserInfo CommandArgs
+-- piPlotTcpMainParser = info parserPlotTcpLive
+--   ( progDesc " TCP Plots"
+--   )
+
+
+plotLiveFilter :: Parser ArgsPlots
+plotLiveFilter = pure $ ArgsPlotLiveTcp (TcpConnection
+  (fromIPv4 localhost)
+  (fromIPv4 localhost)
+  16
+  16
+  (StreamId 0))
+  Nothing
+  "toto"
+
+parserPlotTcpLive :: Parser CommandArgs
+parserPlotTcpLive  = ArgsPlotGeneric <$> parserPlotSettings False
+    <*> hsubparser (
+      command "filter" (info (plotLiveFilter ) (progDesc "toto"))
+      -- <> command "owd" piPlotTcpOwd
+    )
+
 
 -- -> Bool -- ^ for mptcp yes or no
 parserPlotTcpMain :: Parser CommandArgs

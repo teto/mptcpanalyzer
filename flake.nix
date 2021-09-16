@@ -100,14 +100,14 @@
       hsEnv = myHaskellPackages.ghcWithPackages(hs: [
         # hs.cairo
         # hs.diagrams
-        # inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
         hs.cabal-install
-        hs.stylish-haskell
+        # hs.stylish-haskell
         hs.hasktags
         # myHaskellPackages.hlint
         hs.stan
         pkgs.zlib
-        # hs.shelltestrunner
+        hs.threadscope
+        hs.stan
       ]);
 
     in rec {
@@ -130,8 +130,6 @@
           # defaultPackage.inputDerivation
           replica.packages."${system}".build
           inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
-          haskellPackages.stan
-          haskellPackages.threadscope
           cairo # for chart-cairo
           dhall-json  # for dhall-to-json
           glib

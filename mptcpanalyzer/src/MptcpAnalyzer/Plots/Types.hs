@@ -9,6 +9,8 @@ import MptcpAnalyzer.Types
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.ArtificialFields
 import Data.Word (Word32)
+import Net.IP
+import Net.Tcp
 
 -- | Settings shared by all plots
 data PlotSettings = PlotSettings {
@@ -33,3 +35,4 @@ data ArgsPlots =
     -- @pcap1 pcap2 stream1 stream2 destinations whether its tcp or mptcp
     | ArgsPlotOwdTcp (PcapMapping Tcp) (Maybe ConnectionRole)
     | ArgsPlotOwdMptcp (PcapMapping Mptcp) (Maybe ConnectionRole)
+    | ArgsPlotLiveTcp TcpConnection (Maybe ConnectionRole) String -- ^Interface name

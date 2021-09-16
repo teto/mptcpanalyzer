@@ -288,6 +288,7 @@ mainParser = subparser (
     -- Main.piParserGeneric
     <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
     <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "hello"))
+    <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "hello"))
     )
     where
       helpParser = info (pure ArgsHelp) (progDesc "Display help")
@@ -445,6 +446,14 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
               error "not implemented"
           (Left err, _) -> return $ CMD.Error err
           (_, Left err) -> return $ CMD.Error err
+      -- 
+      (ArgsPlotLiveTcp _ liveTcp ifname) -> do
+        (exitCode, ifs) <- P.embed listInterfaces
+        case exitCode of
+          ExitSuccess -> return $ CMD.Error "failed listing interfaces"
+          _  -> return $ CMD.Error "failed listing interfaces"
+
+        -- return $ CMD.Error "toto"
 
     P.embed $ forM_ mbOut (renameFile tempPath)
     -- _ <- P.embed $ case mbOut of
