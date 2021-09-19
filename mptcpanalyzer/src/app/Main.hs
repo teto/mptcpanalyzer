@@ -59,7 +59,7 @@ import MptcpAnalyzer.Plots.Types
 import qualified MptcpAnalyzer.Commands.Load as CL
 -- import Control.Monad (void)
 import Tshark.Interfaces
-import MptcpAnalyzer.Pcap (defaultTsharkPrefs, defaultTsharkOptions, defaultParserOptions)
+import MptcpAnalyzer.Pcap (defaultTsharkPrefs, defaultTsharkOptions, defaultParserOptions, generateCsvCommand)
 
 
 import Polysemy (Sem, Members, runFinal, Final)
@@ -77,18 +77,14 @@ import System.Directory
 import Prelude hiding (concat, init, log)
 import Options.Applicative
 import Options.Applicative.Help (parserHelp)
--- import Colog.Core.IO (logStringStdout)
--- import Colog.Polysemy (Log)
-import Colog.Actions
--- import Control.Lens hiding (argument)
--- import Graphics.Rendering.Chart.Easy hiding (argument)
--- import Data.Default (def)
+-- import Colog.Actions
 import Graphics.Rendering.Chart.Backend.Cairo (toFile,
     renderableToFile, FileOptions(..), FileFormat(..))
 import Graphics.Rendering.Chart.Renderable    (toRenderable)
 -- import           Graphics.Rendering.Chart.Easy          hiding (argument)
 import Graphics.Rendering.Chart.Layout (layout_title)
 import Frames.InCore (toFrame)
+import qualified Data.Map                       as Map
 
 
 -- for noCompletion
@@ -112,6 +108,9 @@ import System.IO (stderr)
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 import Polysemy.Log.Colog (interpretLogStdout)
+import Tshark.Fields (baseFields, TsharkFieldDesc (tfieldFullname))
+import GHC.IO.Handle
+import GHC.Conc (forkIO)
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -237,7 +236,7 @@ main = do
   _ <- runInputT haskelineSettings $
           runFinal @(InputT IO)
           $ P.embedToFinal . P.runEmbedded lift
-          $ P.traceToIO
+          $ P.traceToStdout
           $ P.runState myState
           $ runCache cacheConfig
           $ interpretLogStdout
@@ -446,11 +445,22 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
               error "not implemented"
           (Left err, _) -> return $ CMD.Error err
           (_, Left err) -> return $ CMD.Error err
-      -- 
+
+      -- Starts livestatistics on a connection
       (ArgsPlotLiveTcp _ liveTcp ifname) -> do
         (exitCode, ifs) <- P.embed listInterfaces
         -- Here we would start a process and keep updating some metrics until we get a cancel signal ?
-        generateCsvCommand 
+        let
+          fields = Map.elems $ Map.map tfieldFullname baseFields
+
+          (RawCommand bin args) = generateCsvCommand fields (Left ifname) defaultTsharkPrefs
+          createProc :: CreateProcess
+          createProc = (proc bin args) {
+              std_err = CreatePipe,
+              std_out = UseHandle tmpFileHandle
+              }
+        embed $ startLivePlot createProc
+
         case exitCode of
           ExitSuccess -> return $ CMD.Error "failed listing interfaces"
           _  -> return $ CMD.Error "failed listing interfaces"
@@ -480,6 +490,21 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
     where
       getDests mbDest = maybe [RoleClient, RoleServer] (: []) mbDest
 
+
+startLivePlot :: CreateProcess -> IO ()
+startLivePlot createProc = do
+  -- hSetBuffering tmpFileHandle LineBuffering
+  -- hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
+  -- mb_stdin_hdl, mb_stdout_hdl, mb_stderr_hdl, ph
+  (_, Just hout, Just herr, ph) <-  createProcess_ "error" createProc
+  threadId <- forkIO $ readTsharkOutputAndPlotIt hout herr
+  pure ()
+
+
+-- Accept as input the different handles
+readTsharkOutputAndPlotIt :: Handle -> Handle -> IO ()
+readTsharkOutputAndPlotIt hout herr = do
+  pure ()
 
 -- TODO use genericRunCommand
 runIteration :: ( Members '[Log, Cache, P.Trace, P.State MyState, P.Embed IO] r)

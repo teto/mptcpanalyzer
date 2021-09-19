@@ -143,7 +143,6 @@ data TsharkParams = TsharkParams {
       -- |
       csvDelimiter     :: Char,
       tsharkReadFilter :: Maybe String
-      tsharkReadFromFile :: Maybe String
     }
 
 -- first argument allows to override csv header ("headerOverride")
@@ -176,7 +175,7 @@ generateCsvCommand fieldNames source tsharkParams =
             "-E", "separator=" ++ [csvDelimiter tsharkParams]
           ] ++ (case source of
               Right pcapFilename -> ["-r", pcapFilename]
-              Left ifname  -> [])
+              Left ifname  -> ["-i", ifname])
 
 
         args :: [String]
@@ -198,14 +197,12 @@ generateCsvCommand fieldNames source tsharkParams =
 -- startMonitoring :: IO 
 
 
--- TODO pass a list of options too
 -- TODO need to override 'WIRESHARK_CONFIG_DIR' = tempfile.gettempdir()
 -- (MonadIO m, KatipContext m) =>
 {- Export to CSV
 
 -}
 exportToCsv ::
-  -- Members ()
   TsharkParams
   -> FilePath  -- ^Path to the pcap
   -> FilePath -- ^ temporary file
@@ -214,7 +211,7 @@ exportToCsv ::
   -> IO (FilePath, ExitCode, String)
 exportToCsv params pcapPath path tmpFileHandle = do
     let
-        (RawCommand bin args) = generateCsvCommand fields pcapPath params
+        (RawCommand bin args) = generateCsvCommand fields (Right pcapPath) params
         createProc :: CreateProcess
         createProc = (proc bin args) {
             std_err = CreatePipe,
@@ -239,17 +236,11 @@ exportToCsv params pcapPath path tmpFileHandle = do
       fieldHeader :: Text
       fieldHeader = T.intercalate csvSeparator (Map.keys baseFields)
 
--- "data/server_2_filtered.pcapng.csv"
--- la le probleme c'est que je ne passe pas d'options sur les separators etc
--- ca foire silencieusement ??
--- maybe use a readTableMaybe instead
--- readTable path
 
 loadRows :: (I.RecVec a, ReadRec a) => FilePath -> IO (FrameRec a)
 loadRows path = inCoreAoS (
   eitherProcessed path
   )
-
 
 
 type ManEither = Rec (Either T.Text :. ElField) (RecordColumns Packet)

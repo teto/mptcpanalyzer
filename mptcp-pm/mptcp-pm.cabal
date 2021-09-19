@@ -14,6 +14,7 @@ Description:
   in charge of controlling MPTCP subflow establishement and various behaviors.
 data-files:
 extra-source-files: headers/*.h headers/linux/*.h README.md CHANGELOG
+tested-with:         GHC == 8.10.7
 
 Source-repository head
   type:       git

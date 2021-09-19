@@ -13,6 +13,7 @@ Description: Multipath TCP (www.multipath-tcp.org) protocol analyzer
 extra-source-files:
   README.md CHANGELOG
   tests/integration/list-tcp.test
+tested-with:         GHC == 8.10.7
 
 Source-repository head
   type:       git
@@ -37,10 +38,8 @@ common shared-properties
       , optparse-applicative
       , byteunits
       , containers
-      -- polysemybased logger
       , cereal
-      -- , co-log
-      -- , co-log-core
+      -- polysemybased logger
       , polysemy-log >= 0.2.2.4
       , polysemy-log-co
       , formatting
@@ -50,7 +49,6 @@ common shared-properties
       , bytestring
       , ip
       , utf8-string
-      -- , netlink >= 1.1.1.0
       -- for liftIO
        , mtl
        , template-haskell
