@@ -2,7 +2,13 @@
 -- Description
 --
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Net.IPAddress
+module Net.IPAddress (
+  getAddressFamily
+  , getIPFromByteString
+  , getIPv4FromByteString
+  , getIPv6FromByteString
+  , putIPAddress
+  )
 where
 import Net.IP
 import Net.IPv4

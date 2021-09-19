@@ -1,4 +1,4 @@
-cabal-version: 3.0
+cabal-version: 3.4
 name: mptcp-pm
 version: 0.0.3
 license: GPL-3.0-only
@@ -38,9 +38,9 @@ common shared-properties
     build-depends:
       -- TODO remove that boundary
       netlink >= 1.1.1.0
-      , co-log
-      , co-log-core
-      , co-log-polysemy
+      -- , co-log
+      -- , co-log-core
+      -- , co-log-polysemy
       , formatting
       , readable
       , polysemy
@@ -69,19 +69,27 @@ library
     default-language: Haskell2010
     -- for the .chs => c2hs
     -- apparently this just helps getting a better error messages
-    Includes:          tcp_states.h, linux/sock_diag.h, linux/inet_diag.h, linux/mptcp.h
+    Includes:
+      tcp_states.h
+      , linux/sock_diag.h
+      , linux/inet_diag.h
+      , linux/mptcp.h
     -- TODO try to pass it from CLI instead , Net.TcpInfo
-    include-dirs:    headers
-    default-extensions: DeriveGeneric
-    autogen-modules: Net.Mptcp.Constants, Net.SockDiag.Constants, Net.Tcp.Constants
-    build-depends: base >= 4.12 && < 4.17,
-      containers
+    include-dirs:
+      headers
+    default-extensions:
+      DeriveGeneric
+    autogen-modules:
+      Net.Mptcp.Constants, Net.SockDiag.Constants, Net.Tcp.Constants
+    build-depends:
+      base >= 4.12
+      , containers
       , readable
       , bytestring
        , process
        , cereal
        , enumset
-       , ip
+       , ip >= 1.7.3
        , bytestring-conversion
        , text
        -- todo get rid of it

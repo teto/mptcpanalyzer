@@ -8,12 +8,12 @@ source-repository-package
 -- https://input-output-hk.github.io/haskell.nix/tutorials/source-repository-hashes/#handling-git-repositories-in-projects
 source-repository-package
   type: git
-  location: https://github.com/teto/co-log.git
+  location: https://github.com/kowainik/co-log.git
   subdir: co-log-polysemy
-  tag: 5aecf831b52ee3debc58dc12b3f699fba37ee964
+  tag: 72fbe394b437c698d574cd7604ad3f7f807383e0
   --sha256:sha256-7Z79t9XBBGata6r1bzGH95ro2UcIhdxJnFtbXBIRDQQ=
 
-profiling: True
+-- profiling: True
 documentation: True
 -- ghc options -ddump-timings
 

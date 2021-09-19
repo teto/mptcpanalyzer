@@ -449,6 +449,8 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
       -- 
       (ArgsPlotLiveTcp _ liveTcp ifname) -> do
         (exitCode, ifs) <- P.embed listInterfaces
+        -- Here we would start a process and keep updating some metrics until we get a cancel signal ?
+        generateCsvCommand 
         case exitCode of
           ExitSuccess -> return $ CMD.Error "failed listing interfaces"
           _  -> return $ CMD.Error "failed listing interfaces"

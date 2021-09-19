@@ -86,7 +86,6 @@ import           System.IO.Temp                         ()
 -- to merge MptcpConnection export and Metrics
 import           Data.Aeson.Extra.Merge                 (lodashMerge)
 import           GHC.List                               (init)
-import           Colog.Core.Severity ()
 
 import Polysemy
 import           Polysemy.Trace
@@ -539,7 +538,7 @@ registerMptcpConnection token subflow = (do
             -- let threadId = undefined
             threadId <- liftIO $ forkOS (
             --   -- runLogAction @IO (contramap message logTextStdout) $ interpretDataLogColog @Message $ progData
-              runM $ traceToIO $ interpretLogStdout$
+              runM $ traceToStdout $ interpretLogStdout$
                 startMonitorConnection cliArgs 0 mptcpSock sockMetrics newConn
               )
 
@@ -863,8 +862,8 @@ main = do
 
   -- logTextStdout
   -- logStringStdout
-  -- _ <- runM $ traceToIO $ runLogAction @IO richMessageAction program
-  _ <- runM $ traceToIO $ interpretLogStdout program
+  -- _ <- runM $ traceToStdout $ runLogAction @IO richMessageAction program
+  _ <- runM $ traceToStdout $ interpretLogStdout program
   putStrLn "finished"
 
 program :: (Members '[Log, Trace, Embed IO] r) => Sem r ()

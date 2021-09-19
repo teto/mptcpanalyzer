@@ -143,6 +143,7 @@ data TsharkParams = TsharkParams {
       -- |
       csvDelimiter     :: Char,
       tsharkReadFilter :: Maybe String
+      tsharkReadFromFile :: Maybe String
     }
 
 -- first argument allows to override csv header ("headerOverride")
@@ -161,10 +162,10 @@ getMptcpStreams ps = L.fold L.nub $ catMaybes $ F.toList (view mptcpStream <$> p
 
 -- |Generate the tshark command to export a pcap into a csv
 generateCsvCommand :: [T.Text] -- ^Fields to exports e.g., "mptcp.stream"
-          -> FilePath    -- ^ path towards the pcap file
+          -> Either String FilePath    -- ^ (interface, path towards the pcap file)
           -> TsharkParams
           -> CmdSpec
-generateCsvCommand fieldNames pcapFilename tsharkParams =
+generateCsvCommand fieldNames source tsharkParams =
     RawCommand (tsharkBinary tsharkParams) args
     where
     -- for some reasons, -Y does not work so I use -2 -R instead
@@ -172,9 +173,11 @@ generateCsvCommand fieldNames pcapFilename tsharkParams =
     -- single-quotes, n no quotes (the default).
     -- the -2 is important, else some mptcp parameters are not exported
         start = [
-            "-r", pcapFilename,
             "-E", "separator=" ++ [csvDelimiter tsharkParams]
-          ]
+          ] ++ (case source of
+              Right pcapFilename -> ["-r", pcapFilename]
+              Left ifname  -> [])
+
 
         args :: [String]
         args = (start ++ opts ++ readFilter ) ++ map T.unpack  fields
@@ -191,6 +194,8 @@ generateCsvCommand fieldNames pcapFilename tsharkParams =
         fields = ["-T", "fields"]
             ++ Prelude.foldr (\fieldName l -> ["-e", fieldName] ++ l) [] fieldNames
 
+
+-- startMonitoring :: IO 
 
 
 -- TODO pass a list of options too
