@@ -131,21 +131,19 @@ piPlotTcpMainParser = info parserPlotTcpMain
 
 
 plotLiveFilter :: Parser ArgsPlots
-plotLiveFilter = pure $ ArgsPlotLiveTcp (TcpConnection
+plotLiveFilter = ArgsPlotLiveTcp <$> pure (TcpConnection
   (fromIPv4 localhost)
   (fromIPv4 localhost)
   16
   16
   (StreamId 0))
-  Nothing
-  "toto"
+  <*>
+  pure Nothing
+  <*> strArgument ( metavar "interface" <> help "interface to monitor")
 
 parserPlotTcpLive :: Parser CommandArgs
 parserPlotTcpLive  = ArgsPlotGeneric <$> parserPlotSettings False
-    <*> hsubparser (
-      command "filter" (info (plotLiveFilter ) (progDesc "toto"))
-      -- <> command "owd" piPlotTcpOwd
-    )
+    <*> (plotLiveFilter)
 
 
 -- -> Bool -- ^ for mptcp yes or no
@@ -354,6 +352,7 @@ getData frame attr =
       -- "tcpAck" -> fromIntegral. view tcpAck
       -- "tsval" -> tsval
       "mptcpDsn" -> getMptcpData frame mptcpDsn
+      "mptcpDack" -> getMptcpData frame mptcpDack
 
       _          -> error "unsupported attr"
 

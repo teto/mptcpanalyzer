@@ -140,8 +140,11 @@ data TsharkParams = TsharkParams {
       tsharkBinary     :: String,
       -- |(Name, Value) of tshark options, see 'defaultTsharkOptions'
       tsharkOptions    :: [(String, String)],
-      -- |
+      -- | Flags to add on the command line
+      -- tsharkFlags     :: [String],
+      -- | How to separate the different fields
       csvDelimiter     :: Char,
+      -- | for instance "mptcp" or "tcp"
       tsharkReadFilter :: Maybe String
     }
 
@@ -165,7 +168,7 @@ generateCsvCommand :: [T.Text] -- ^Fields to exports e.g., "mptcp.stream"
           -> TsharkParams
           -> CmdSpec
 generateCsvCommand fieldNames source tsharkParams =
-    RawCommand (tsharkBinary tsharkParams) args
+    RawCommand (tsharkBinary tsharkParams ) args
     where
     -- for some reasons, -Y does not work so I use -2 -R instead
     -- quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
@@ -186,7 +189,9 @@ generateCsvCommand fieldNames source tsharkParams =
 
         readFilter :: [String]
         readFilter = case tsharkReadFilter tsharkParams of
-            Just x  ->["-2", "-R", x]
+            Just x  -> (case source of
+              Right pcapFilename -> ["-2", "-R"]
+              Left ifname  -> ["-Y"]) ++ [x]
             Nothing -> []
 
         fields :: [T.Text]
@@ -211,7 +216,7 @@ exportToCsv ::
   -> IO (FilePath, ExitCode, String)
 exportToCsv params pcapPath path tmpFileHandle = do
     let
-        (RawCommand bin args) = generateCsvCommand fields (Right pcapPath) params
+        (RawCommand bin args) = generateCsvCommand fields (Right pcapPath) (params )
         createProc :: CreateProcess
         createProc = (proc bin args) {
             std_err = CreatePipe,

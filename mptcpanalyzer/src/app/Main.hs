@@ -89,6 +89,7 @@ import qualified Data.Map                       as Map
 
 -- for noCompletion
         -- <> Options.Applicative.value "/tmp"
+-- import System.Posix.Signals -- installHandler
 import System.Console.Haskeline
 import System.Console.ANSI
 import Control.Lens ((^.), view)
@@ -111,6 +112,7 @@ import Polysemy.Log.Colog (interpretLogStdout)
 import Tshark.Fields (baseFields, TsharkFieldDesc (tfieldFullname))
 import GHC.IO.Handle
 import GHC.Conc (forkIO)
+import Data.List (isPrefixOf)
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -222,7 +224,8 @@ main = do
   print $ extraCommands options
 
   let haskelineSettings = (Settings {
-      complete = customCompleteFunc
+      -- complete = customCompleteFunc
+      complete = completeInitialCommand
       , historyFile = Just $ cacheFolderXdg </> "history"
       , autoAddHistory = True
       })
@@ -247,7 +250,27 @@ main = do
   return ()
 
 
-
+-- type CompletionFunc m = (String, String) -> m (String, [Completion])
+completeInitialCommand :: CompletionFunc IO
+completeInitialCommand = completeWord Nothing [' '] genCompletions
+  where
+    genCompletions :: String -> IO [Completion]
+    genCompletions prefix = let filtered = filter (isPrefixOf prefix) commands in pure $ map (genCompletion prefix) filtered
+    genCompletion prefix entry =  Completion entry "toto" True
+    commands :: [String]
+    commands = [
+      "help"
+      , "quit"
+      , "load-csv"
+      , "load-pcap"
+      , "tcp-summary"
+      , "mptcp-summary"
+      , "list-tcp"
+      , "map-tcp"
+      , "map-mptcp"
+      , "list-reinjections"
+      , "list-mptcp"
+      ]
 
 piListInterfaces :: ParserInfo CommandArgs
 piListInterfaces = info (pure ArgsListInterfaces)
@@ -286,8 +309,8 @@ mainParser = subparser (
     -- <> subparser (
     -- Main.piParserGeneric
     <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
-    <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "hello"))
-    <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "hello"))
+    <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "Multipath-tcp plots"))
+    <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "Live plots"))
     )
     where
       helpParser = info (pure ArgsHelp) (progDesc "Display help")
@@ -448,24 +471,27 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
 
       -- Starts livestatistics on a connection
       (ArgsPlotLiveTcp _ liveTcp ifname) -> do
-        (exitCode, ifs) <- P.embed listInterfaces
+        -- (exitCode, ifs) <- P.embed listInterfaces
         -- Here we would start a process and keep updating some metrics until we get a cancel signal ?
+        -- case exitCode of
+        --   ExitSuccess -> return $ CMD.Error "failed listing interfaces"
+        --   _  -> return $ CMD.Error "failed listing interfaces"
+
         let
           fields = Map.elems $ Map.map tfieldFullname baseFields
 
-          (RawCommand bin args) = generateCsvCommand fields (Left ifname) defaultTsharkPrefs
+          (RawCommand bin args) = generateCsvCommand fields (Left ifname) (defaultTsharkPrefs)
           createProc :: CreateProcess
           createProc = (proc bin args) {
               std_err = CreatePipe,
-              std_out = UseHandle tmpFileHandle
+              std_out = CreatePipe
               }
-        embed $ startLivePlot createProc
 
-        case exitCode of
-          ExitSuccess -> return $ CMD.Error "failed listing interfaces"
-          _  -> return $ CMD.Error "failed listing interfaces"
+        trace $ "Command run: " ++ show (RawCommand bin args)
+        -- Log.info $ "Starting " <> tshow bin <> tshow args
+        _ <- P.embed $ startLivePlot createProc
 
-        -- return $ CMD.Error "toto"
+        return CMD.Continue
 
     P.embed $ forM_ mbOut (renameFile tempPath)
     -- _ <- P.embed $ case mbOut of
@@ -497,14 +523,23 @@ startLivePlot createProc = do
   -- hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
   -- mb_stdin_hdl, mb_stdout_hdl, mb_stderr_hdl, ph
   (_, Just hout, Just herr, ph) <-  createProcess_ "error" createProc
-  threadId <- forkIO $ readTsharkOutputAndPlotIt hout herr
+  -- threadId <- forkIO $
+  readTsharkOutputAndPlotIt hout herr
+  exitCode <- waitForProcess ph
+  case exitCode of
+    ExitSuccess -> putStrLn "Success"
+    _  -> do 
+      hGetContents herr >>= putStrLn
   pure ()
 
 
 -- Accept as input the different handles
 readTsharkOutputAndPlotIt :: Handle -> Handle -> IO ()
 readTsharkOutputAndPlotIt hout herr = do
-  pure ()
+  -- use pipeTableEitherOpt to parse 
+  output <- hGetContents hout
+  putStrLn output
+  -- pure ()
 
 -- TODO use genericRunCommand
 runIteration :: ( Members '[Log, Cache, P.Trace, P.State MyState, P.Embed IO] r)

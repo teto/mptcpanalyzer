@@ -84,6 +84,7 @@ common shared-properties
        , Chart-cairo
        , wide-word
        , time
+       , unix
     default-language: Haskell2010
     -- -fno-warn-unused-imports
     -- -fforce-recomp  makes it build twice

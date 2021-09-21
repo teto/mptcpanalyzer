@@ -1,3 +1,9 @@
 packages:
     mptcp-pm
     mptcpanalyzer
+
+source-repository-package
+  type: git
+  location: https://github.com/kowainik/co-log.git
+  subdir: co-log-polysemy
+  tag: 72fbe394b437c698d574cd7604ad3f7f807383e0
