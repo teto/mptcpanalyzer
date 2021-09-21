@@ -29,10 +29,7 @@
 
     flake-utils.url = "github:numtide/flake-utils";
 
-    hls.url = "github:haskell/haskell-language-server";
-
-    # haskellNix.url = "github:input-output-hk/haskell.nix?ref=hkm/nixpkgs-unstable-update";
-    haskellNix.url = "github:input-output-hk/haskell.nix";
+    hls.url = "github:teto/haskell-language-server/fix-flake";
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -68,8 +65,9 @@
 
         # may not be needed anymore ?
         wide-word = unmarkBroken (dontCheck hold.wide-word);
-
+        polysemy = hnew.polysemy_1_6_0_0;
         co-log-polysemy = doJailbreak (hold.co-log-polysemy);
+        polysemy-plugin = hnew.polysemy-plugin_0_4_0_0;
 
         netlink = (overrideSrc hold.netlink {
           # src = builtins.fetchGit {
@@ -85,14 +83,6 @@
           };
         });
 
-        # mptcp-pm = overrideSrc hold.mptcp-pm {
-        #   src = pkgs.fetchFromGitHub {
-        #     owner = "teto";
-        #     repo = "mptcp-pm";
-        #     rev = "0cd4cad9bab5713ebbe529e194bddb08948825d7";
-        #     sha256 = "sha256-7JhrMrv9ld12nx8LyfOuOPTBb7RyWIwSWNB9vWDe/g0=";
-        #   };
-        # };
       };
 
 
@@ -103,34 +93,42 @@
           config = { allowUnfree = true; allowBroken = true; };
         };
 
-      myHaskellPackages = pkgs.haskell.packages."ghc${compilerVersion}";
+      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}";
 
-      hsEnv = myHaskellPackages.ghcWithPackages(hs: [
+      hsEnv = hsPkgs.ghcWithPackages(hs: [
         # hs.cairo
         # hs.diagrams
         hs.cabal-install
         # hs.stylish-haskell
         hs.hasktags
-        # myHaskellPackages.hlint
+        # hsPkgs.hlint
         hs.stan
         pkgs.zlib
         hs.threadscope
         hs.stan
       ]);
 
-    in rec {
-      # packages.mptcpanalyzer2 = flake.packages."mptcpanalyzer:exe:mptcpanalyzer";
+    in {
+      packages = {
 
-      packages.mptcpanalyzer = pkgs.haskellPackages.developPackage {
-        root = ./.;
-        name = "mptcpanalyzer";
-        returnShellEnv = false;
-        withHoogle = true;
-        overrides = haskellOverlay;
+        mptcp-pm = hsPkgs.developPackage {
+          root = ./mptcp-pm;
+          name = "mptcp-pm";
+          returnShellEnv = false;
+          withHoogle = true;
+          overrides = haskellOverlay;
+        };
+
+        mptcpanalyzer = hsPkgs.developPackage {
+          root = ./mptcpanalyzer;
+          name = "mptcpanalyzer";
+          returnShellEnv = false;
+          withHoogle = true;
+          overrides = hold: hnew: (haskellOverlay hold hnew) // { mptcp-pm = self.packages."${system}".mptcp-pm; };
+        };
       };
 
-      defaultPackage = packages.mptcpanalyzer;
-
+      defaultPackage = self.packages.mptcpanalyzer;
 
       devShell = pkgs.mkShell {
         name = "dev-shell";
@@ -138,6 +136,7 @@
           # defaultPackage.inputDerivation
           replica.packages."${system}".build
           inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
+          # inputs.hls.packages."${system}"."hie-bios-${compilerVersion}"
           cairo # for chart-cairo
           dhall-json  # for dhall-to-json
           glib
@@ -152,6 +151,5 @@
           PATH="$(dirname $exe):$PATH"
         '';
       };
-
     });
 }

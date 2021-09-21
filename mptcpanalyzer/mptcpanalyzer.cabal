@@ -1,4 +1,4 @@
-cabal-version: 3.4
+cabal-version: 3.0
 name: mptcpanalyzer
 version: 0.0.1
 license: GPL-3.0-only
@@ -97,8 +97,7 @@ common shared-properties
           -fprof-auto
           -ddump-splices
           -ddump-to-file
-          -- -ddump-timings
-        -- TODO remove
+          -ddump-timings
           -Wno-unused-imports
         -- build-depends: polysemy-plugin
           -fno-warn-unused-binds
