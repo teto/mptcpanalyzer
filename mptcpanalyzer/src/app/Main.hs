@@ -60,6 +60,7 @@ import qualified MptcpAnalyzer.Commands.Load as CL
 -- import Control.Monad (void)
 import Tshark.Interfaces
 import MptcpAnalyzer.Pcap (defaultTsharkPrefs, defaultTsharkOptions, defaultParserOptions, generateCsvCommand)
+import MptcpAnalyzer.Utils.Completion
 
 
 import Polysemy (Sem, Members, runFinal, Final)
@@ -113,6 +114,8 @@ import Tshark.Fields (baseFields, TsharkFieldDesc (tfieldFullname))
 import GHC.IO.Handle
 import GHC.Conc (forkIO)
 import Data.List (isPrefixOf)
+import Control.Monad (unless)
+import Options.Applicative.Types
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -225,7 +228,7 @@ main = do
 
   let haskelineSettings = (Settings {
       -- complete = customCompleteFunc
-      complete = completeInitialCommand
+      complete = generateHaskelineCompleterFromParser mainParser
       , historyFile = Just $ cacheFolderXdg </> "history"
       , autoAddHistory = True
       })
@@ -250,27 +253,11 @@ main = do
   return ()
 
 
--- type CompletionFunc m = (String, String) -> m (String, [Completion])
-completeInitialCommand :: CompletionFunc IO
-completeInitialCommand = completeWord Nothing [' '] genCompletions
-  where
-    genCompletions :: String -> IO [Completion]
-    genCompletions prefix = let filtered = filter (isPrefixOf prefix) commands in pure $ map (genCompletion prefix) filtered
-    genCompletion prefix entry =  Completion entry "toto" True
-    commands :: [String]
-    commands = [
-      "help"
-      , "quit"
-      , "load-csv"
-      , "load-pcap"
-      , "tcp-summary"
-      , "mptcp-summary"
-      , "list-tcp"
-      , "map-tcp"
-      , "map-mptcp"
-      , "list-reinjections"
-      , "list-mptcp"
-      ]
+-- TODO move
+generateHaskelineCompleterFromParser :: Parser a -> CompletionFunc IO
+generateHaskelineCompleterFromParser (OptP opt) = generateHaskelineCompleterFromOption opt
+generateHaskelineCompleterFromParser _ = error "undefined "
+
 
 piListInterfaces :: ParserInfo CommandArgs
 piListInterfaces = info (pure ArgsListInterfaces)
@@ -518,27 +505,49 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
 
 
 startLivePlot :: CreateProcess -> IO ()
-startLivePlot createProc = do
-  -- hSetBuffering tmpFileHandle LineBuffering
-  -- hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
-  -- mb_stdin_hdl, mb_stdout_hdl, mb_stderr_hdl, ph
-  (_, Just hout, Just herr, ph) <-  createProcess_ "error" createProc
-  -- threadId <- forkIO $
-  readTsharkOutputAndPlotIt hout herr
-  exitCode <- waitForProcess ph
-  case exitCode of
-    ExitSuccess -> putStrLn "Success"
-    _  -> do 
-      hGetContents herr >>= putStrLn
-  pure ()
+-- startLivePlot createProc = do
+--   -- hSetBuffering tmpFileHandle LineBuffering
+--   -- hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
+--   -- mb_stdin_hdl, mb_stdout_hdl, mb_stderr_hdl, ph
+--   (_, Just hout, Just herr, ph) <-  createProcess_ "error" createProc
+--   -- threadId <- forkIO $
+--   readTsharkOutputAndPlotIt hout herr
+--   exitCode <- waitForProcess ph
+--   case exitCode of
+--     ExitSuccess -> putStrLn "Success"
+--     _  -> do 
+--       hGetContents herr >>= putStrLn
+--   pure ()
+startLivePlot createProc = runEffect loop
 
+--         +--------+-- A 'Producer' that yields 'String's
+--         |        |
+--         |        |      +-- Every monad transformer has a base monad.
+--         |        |      |   This time the base monad is 'IO'.
+--         |        |      |  
+--         |        |      |  +-- Every monadic action has a return value.
+--         |        |      |  |   This action returns '()' when finished
+--         v        v      v  v
+stdinLn :: Producer String IO ()
+stdinLn = do
+    eof <- lift isEOF        -- 'lift' an 'IO' action from the base monad
+    unless eof $ do
+        res <- lift getLine
+        yield res            -- 'yield' the 'String'
+        stdinLn              -- Loop
 
+loop :: Effect IO ()
+loop = for stdinLn $ \x -> do  -- Read this like: "for str in stdinLn"
+    lift $ putStrLn x
+
+-- for
 -- Accept as input the different handles
 readTsharkOutputAndPlotIt :: Handle -> Handle -> IO ()
 readTsharkOutputAndPlotIt hout herr = do
   -- use pipeTableEitherOpt to parse 
   output <- hGetContents hout
   putStrLn output
+
   -- pure ()
 
 -- TODO use genericRunCommand

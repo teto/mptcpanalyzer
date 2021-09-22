@@ -173,7 +173,9 @@ library libmptcpanalyzer
         -- , MptcpAnalyzer.Commands.List
         -- , MptcpAnalyzer.Commands.ListMptcp
         -- , MptcpAnalyzer.Commands.Plot
+        -- TODO rename to Utils.Frames
         , MptcpAnalyzer.Frames.Utils
+        , MptcpAnalyzer.Utils.Completion
         , Columns
         -- , Connection
     build-depends:
