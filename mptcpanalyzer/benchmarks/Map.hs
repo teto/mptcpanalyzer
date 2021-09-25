@@ -29,8 +29,6 @@ main = do
   frame2 <- loadPcapIntoFrame defaultTsharkPrefs "examples/server_2_cleaned.pcapng"
 
   let aframe = buildFrameFromStreamId  frame1 (StreamId 0)
-  -- mapTcpConnection 
-  -- mapMptcpConnection 
 
   defaultMain [
     bench "inner1a" $ mapTcpConnection aframe frame2

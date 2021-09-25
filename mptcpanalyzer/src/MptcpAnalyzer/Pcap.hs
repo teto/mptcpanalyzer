@@ -220,7 +220,8 @@ exportToCsv params pcapPath path tmpFileHandle = do
         createProc :: CreateProcess
         createProc = (proc bin args) {
             std_err = CreatePipe,
-            std_out = UseHandle tmpFileHandle
+            std_out = UseHandle tmpFileHandle,
+            delegate_ctlc = True
             }
     putStrLn $ "Exporting fields " ++ show fields
     putStrLn $ "Command run: " ++ show (RawCommand bin args)

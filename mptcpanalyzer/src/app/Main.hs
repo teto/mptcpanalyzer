@@ -59,6 +59,7 @@ import MptcpAnalyzer.Plots.Types
 import qualified MptcpAnalyzer.Commands.Load as CL
 -- import Control.Monad (void)
 import Tshark.Interfaces
+import Tshark.Live
 import MptcpAnalyzer.Pcap (defaultTsharkPrefs, defaultTsharkOptions, defaultParserOptions, generateCsvCommand)
 import MptcpAnalyzer.Utils.Completion
 
@@ -84,7 +85,6 @@ import Graphics.Rendering.Chart.Backend.Cairo (toFile,
 import Graphics.Rendering.Chart.Renderable    (toRenderable)
 -- import           Graphics.Rendering.Chart.Easy          hiding (argument)
 import Graphics.Rendering.Chart.Layout (layout_title)
-import Frames.InCore (toFrame)
 import qualified Data.Map                       as Map
 
 
@@ -103,6 +103,7 @@ import MptcpAnalyzer.Loader
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Either (fromLeft)
 import Data.Foldable (forM_)
+import Frames.InCore (toFrame)
 import Frames.CSV (writeDSV)
 import Frames (recMaybe, Frame, Record)
 import Frames as F
@@ -114,7 +115,6 @@ import Tshark.Fields (baseFields, TsharkFieldDesc (tfieldFullname))
 import GHC.IO.Handle
 import GHC.Conc (forkIO)
 import Data.List (isPrefixOf)
-import Control.Monad (unless)
 import Options.Applicative.Types
 
 data CLIArguments = CLIArguments {
@@ -491,7 +491,9 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           -- for some reason it recognizes the image as application/octet-stream
           -- and I can't manage to make it use my image/png application
           -- createProc = proc "xdg-open" [ tempPath ]
-          createProc = proc "sxiv" [ tempPath ]
+          createProc = (proc "sxiv" [ tempPath ]) {
+              delegate_ctlc = True 
+              }
 
         Log.info $ "Launching " <> tshow createProc
         (_, _, mbHerr, ph) <- P.embed $ createProcess createProc
@@ -518,35 +520,9 @@ startLivePlot :: CreateProcess -> IO ()
 --     _  -> do 
 --       hGetContents herr >>= putStrLn
 --   pure ()
-startLivePlot createProc = runEffect loop
-
---         +--------+-- A 'Producer' that yields 'String's
---         |        |
---         |        |      +-- Every monad transformer has a base monad.
---         |        |      |   This time the base monad is 'IO'.
---         |        |      |  
---         |        |      |  +-- Every monadic action has a return value.
---         |        |      |  |   This action returns '()' when finished
---         v        v      v  v
-stdinLn :: Producer String IO ()
-stdinLn = do
-    eof <- lift isEOF        -- 'lift' an 'IO' action from the base monad
-    unless eof $ do
-        res <- lift getLine
-        yield res            -- 'yield' the 'String'
-        stdinLn              -- Loop
-
-loop :: Effect IO ()
-loop = for stdinLn $ \x -> do  -- Read this like: "for str in stdinLn"
-    lift $ putStrLn x
-
--- for
--- Accept as input the different handles
-readTsharkOutputAndPlotIt :: Handle -> Handle -> IO ()
-readTsharkOutputAndPlotIt hout herr = do
-  -- use pipeTableEitherOpt to parse 
-  output <- hGetContents hout
-  putStrLn output
+startLivePlot createProc = do
+  (_, Just hout, Just herr, ph) <-  createProcess_ "error" createProc
+  runEffect (tsharkLoop hout)
 
   -- pure ()
 

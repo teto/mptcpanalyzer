@@ -22,6 +22,12 @@ test: build $(TEST_FILES)
 	# export PATH=$(dirname $(fd -u --glob  mptcpanalyzer -tx));${PATH}
 	tests/run.sh
 
+# regen golden tests
+test-update: build $(TEST_FILES)
+	# TODO run $(TEST_FILES)
+	# export PATH=$(dirname $(fd -u --glob  mptcpanalyzer -tx));${PATH}
+	tests/run.sh
+
 .PHONY: gen-autocompletion
 gen-autocompletion:
 	cabal run mptcpanalyzer -- --bash-completion-script toto

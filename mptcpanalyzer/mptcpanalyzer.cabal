@@ -141,6 +141,7 @@ library libmptcpanalyzer
         Tshark.TH
         , Tshark.Fields
         , Tshark.Interfaces
+        , Tshark.Live
         , Net.Mptcp.Types
         , Net.Tcp.Stats
         , Net.Tcp.Connection

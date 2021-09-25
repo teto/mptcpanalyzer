@@ -1,16 +1,6 @@
 {
   description = "Multipath tcp pcap analyzer tool";
 
-  # nixConfig = {
-  #   substituters = [
-  #     # https://iohk.cachix.org
-  #     # https://hydra.iohk.io
-  #   ];
-  #   # trusted-public-keys = [
-  #   #   hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
-  #   # ];
-  #   # bash-prompt = "toto";
-  # };
   nixConfig = {
     substituters = [
         "https://haskell-language-server.cachix.org"
@@ -22,14 +12,11 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    replica.url = "github:berewt/REPLica?rev=31ca9b01c61a0875137c8388fd50f9d70fdc5454";
-
-    # temporary until this gets fixed upstream
-    # poetry.url = "github:teto/poetry2nix/fix_tag";
+    replica.url = "github:ReplicaTest/REPLica";
 
     flake-utils.url = "github:numtide/flake-utils";
 
-    hls.url = "github:teto/haskell-language-server/fix-flake";
+    hls.url = "github:haskell/haskell-language-server";
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -43,19 +30,8 @@
       compilerVersion = "8107";
       # compilerVersion = "901";
 
-      ## haskell.nix trial
       overlays = [
-        # haskellNix.overlay
-        # (final: prev: {
-        #   # This overlay adds our project to pkgs
-        #   mptcpanalyzer =
-        #     final.haskell-nix.project' {
-        #       src = ./.;
-        #       compiler-nix-name = "ghc${compilerVersion}";
-        #     };
-        # })
       ];
-      # flake = pkgs.mptcpanalyzer.flake {};
 
       haskellOverlay = hnew: hold: with pkgs.haskell.lib; {
 
@@ -101,7 +77,6 @@
         hs.cabal-install
         # hs.stylish-haskell
         hs.hasktags
-        # hsPkgs.hlint
         hs.stan
         pkgs.zlib
         hs.threadscope
@@ -138,6 +113,7 @@
           inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
           # inputs.hls.packages."${system}"."hie-bios-${compilerVersion}"
           cairo # for chart-cairo
+          dhall  # for the repl
           dhall-json  # for dhall-to-json
           glib
           hsEnv
@@ -148,7 +124,7 @@
 
         shellHook = ''
           exe=$(cabal list-bin exe:mptcpanalyzer)
-          PATH="$(dirname $exe):$PATH"
+          export PATH="$(dirname $exe):$PATH"
         '';
       };
     });

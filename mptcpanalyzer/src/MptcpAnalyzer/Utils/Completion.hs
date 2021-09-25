@@ -53,9 +53,20 @@ completeInitialCommand = completeWord Nothing [' '] genCompletions
       ]
 
 -- p
-generateHaskelineCompleterFromOptreader (CmdReader mbStr arrStr func) = \(left, right) -> pure (
-  "replaced", if left == "pl" then [ Completion (show mbStr) "displayed msg" False ]
-  else [])
+generateHaskelineCompleterFromOptreader (CmdReader mbGrpCommand arrStr func) =
+  \(rleft, right) -> let
+    filtered = filter (isPrefixOf prefix) arrStr
+    -- genCompletions :: String -> IO [Completion]
+    -- genCompletions prefix = map (genCompletion prefix)
+    genCompletion entry =  Completion entry ("TODO show help for " ++ entry) True
+    prefix = reverse rleft
+    longestCommonPrefix entries = rleft
+    completions = map (genCompletion) filtered
+  in
+    pure (
+    -- return longest common prefixes
+    "", completions
+    )
 generateHaskelineCompleterFromOptreader _ = error "undefined generateHaskelineCompleterFromOptreader"
 
 
