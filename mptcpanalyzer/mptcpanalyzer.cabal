@@ -13,6 +13,7 @@ Description: Multipath TCP (www.multipath-tcp.org) protocol analyzer
 extra-source-files:
   README.md CHANGELOG
   tests/integration/list-tcp.test
+  -- benchmarks/*
 tested-with:         GHC == 8.10.7
 
 Source-repository head
@@ -233,7 +234,14 @@ benchmark map-stream
   type:             exitcode-stdio-1.0
   main-is:          Map.hs
   hs-source-dirs:   benchmarks
-  build-depends:    base, Frames, criterion, libmptcpanalyzer
+  build-depends:
+      base
+      , Frames
+      , criterion
+      , mptcpanalyzer:libmptcpanalyzer
+      , polysemy
+      , polysemy-log >= 0.2.2.4
+      , polysemy-log-co
   ghc-options:      -O2
   default-language: Haskell2010
 

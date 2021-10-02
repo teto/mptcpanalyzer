@@ -60,6 +60,7 @@ piLoadPcapOpts = info (loadPcapArgs <**> helper)
 
 
 
+-- |Load a .csv file
 cmdLoadCsv :: (Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] m)
     => FilePath   -- ^ csv file to load
     -> Sem m CMD.RetCode
