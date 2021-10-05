@@ -82,6 +82,7 @@ import Debug.Trace
 import GHC.TypeLits (Symbol)
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
+import Tshark.Main (defaultTsharkPrefs)
 
 -- data PlotTypes = PlotTcpAttribute {
 --     pltAttrField :: Text

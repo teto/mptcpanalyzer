@@ -8,7 +8,8 @@ import MptcpAnalyzer.Map
 import Criterion.Main
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Loader (loadPcapIntoFrame)
-import MptcpAnalyzer.Pcap (buildFrameFromStreamId, defaultTsharkPrefs)
+import MptcpAnalyzer.Pcap (buildFrameFromStreamId, )
+import Tshark.Main (defaultTsharkPrefs)
 
 import Polysemy (Sem, Members, runFinal, Final)
 import qualified Polysemy as P

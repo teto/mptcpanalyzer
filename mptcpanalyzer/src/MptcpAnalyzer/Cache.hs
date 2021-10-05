@@ -46,9 +46,12 @@ data CacheId = CacheId {
   , cacheSuffix :: String
 } deriving (Generic, Show, Eq, Hashable)
 
--- | Cache config
+-- | Cache config (this is a test)
+-- test
 data CacheConfig = CacheConfig {
+  -- | Folder where to store stuff
   cacheFolder :: FilePath
+  -- | Whether the cachie is fixed
   , cacheEnabled :: Bool
 } deriving Show
 

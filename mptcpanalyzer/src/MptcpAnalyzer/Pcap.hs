@@ -26,17 +26,13 @@ License     : GPL-3
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE PackageImports         #-}
 module MptcpAnalyzer.Pcap (
-    TsharkParams(..)
-    , addTcpDestToFrame
+    addTcpDestToFrame
     , addMptcpDestToFrame
     , addMptcpDest
     , addTcpDestinationsToAFrame
     , buildTcpConnectionFromStreamId
     , buildMptcpConnectionFromStreamId
-    , defaultTsharkPrefs
-    , defaultTsharkOptions
     , defaultParserOptions
-    , generateCsvCommand
     , genTcpDestFrame
     , exportToCsv
     , loadRows
@@ -107,7 +103,9 @@ import           Data.Either                    (lefts, rights)
 import qualified Data.Map                       as Map
 import           Debug.Trace
 import qualified Frames.InCore                  as I
-
+import Tshark.Main
+import System.Environment (getEnvironment)
+import System.IO.Temp
 
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 
@@ -134,20 +132,6 @@ import qualified Frames.InCore                  as I
 
 -- shadow type to know if it was filtered or not
 -- Make it a record ?
-
--- |
-data TsharkParams = TsharkParams {
-      tsharkBinary     :: String,
-      -- |(Name, Value) of tshark options, see 'defaultTsharkOptions'
-      tsharkOptions    :: [(String, String)],
-      -- | Flags to add on the command line
-      -- tsharkFlags     :: [String],
-      -- | How to separate the different fields
-      csvDelimiter     :: Char,
-      -- | for instance "mptcp" or "tcp"
-      tsharkReadFilter :: Maybe String
-    }
-
 -- first argument allows to override csv header ("headerOverride")
 defaultParserOptions :: ParserOptions
 defaultParserOptions = ParserOptions Nothing (T.pack [csvDelimiter defaultTsharkPrefs]) NoQuoting
@@ -162,50 +146,11 @@ getMptcpStreams :: FrameRec HostCols -> [StreamId Mptcp]
 getMptcpStreams ps = L.fold L.nub $ catMaybes $ F.toList (view mptcpStream <$> ps)
 -- filterFrame  (\x -> x ^. mptcpStream == Just streamId) frame
 
--- |Generate the tshark command to export a pcap into a csv
-generateCsvCommand :: [T.Text] -- ^Fields to exports e.g., "mptcp.stream"
-          -> Either String FilePath    -- ^ (interface, path towards the pcap file)
-          -> TsharkParams
-          -> CmdSpec
-generateCsvCommand fieldNames source tsharkParams =
-    RawCommand (tsharkBinary tsharkParams ) args
-    where
-    -- for some reasons, -Y does not work so I use -2 -R instead
-    -- quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
-    -- single-quotes, n no quotes (the default).
-    -- the -2 is important, else some mptcp parameters are not exported
-        start = [
-            "-E", "separator=" ++ [csvDelimiter tsharkParams]
-          ] ++ (case source of
-              Right pcapFilename -> ["-r", pcapFilename]
-              Left ifname  -> ["-i", ifname])
 
 
-        args :: [String]
-        args = (start ++ opts ++ readFilter ) ++ map T.unpack  fields
-
-        opts :: [String]
-        opts = foldr (\(opt, val) l -> l ++ ["-o", opt ++ ":" ++ val]) [] (tsharkOptions tsharkParams)
-
-        readFilter :: [String]
-        readFilter = case tsharkReadFilter tsharkParams of
-            Just x  -> (case source of
-              Right pcapFilename -> ["-2", "-R"]
-              Left ifname  -> ["-Y"]) ++ [x]
-            Nothing -> []
-
-        fields :: [T.Text]
-        fields = ["-T", "fields"]
-            ++ Prelude.foldr (\fieldName l -> ["-e", fieldName] ++ l) [] fieldNames
-
-
--- startMonitoring :: IO 
-
-
--- TODO need to override 'WIRESHARK_CONFIG_DIR' = tempfile.gettempdir()
--- (MonadIO m, KatipContext m) =>
+-- TODO need to override '' = tempfile.gettempdir()
 {- Export to CSV
-
+sets WIRESHARK_CONFIG_DIR so that the user profile doesn't influence the output
 -}
 exportToCsv ::
   TsharkParams
@@ -214,26 +159,30 @@ exportToCsv ::
   -> Handle -- ^ temporary file
 -- ^See haskell:readCreateProcessWithExitCode
   -> IO (FilePath, ExitCode, String)
-exportToCsv params pcapPath path tmpFileHandle = do
-    let
-        (RawCommand bin args) = generateCsvCommand fields (Right pcapPath) (params )
-        createProc :: CreateProcess
-        createProc = (proc bin args) {
-            std_err = CreatePipe,
-            std_out = UseHandle tmpFileHandle,
-            delegate_ctlc = True
-            }
-    putStrLn $ "Exporting fields " ++ show fields
-    putStrLn $ "Command run: " ++ show (RawCommand bin args)
-    -- TODO write header
-    -- TODO redirect stdout towards the out handle
-    hSetBuffering tmpFileHandle LineBuffering
-    hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
-    (_, _, Just herr, ph) <-  createProcess_ "error" createProc
-    exitCode <- waitForProcess ph
-    -- TODO do it only in case of error ?
-    err <- hGetContents herr
-    return (path, exitCode, err)
+exportToCsv params pcapPath tempPath tmpFileHandle = do
+    curEnv <- getEnvironment
+    withSystemTempFile "tshark-profile" $ \tempDir _ -> do
+      -- 
+      let
+          (RawCommand bin args) = generateCsvCommand fields (Right pcapPath) (params )
+          createProc :: CreateProcess
+          createProc = (proc bin args) {
+              std_err = CreatePipe,
+              std_out = UseHandle tmpFileHandle,
+              env = Just $ curEnv ++ [ ("WIRESHARK_CONFIG_DIR", tempDir) ],
+              delegate_ctlc = True
+              }
+      putStrLn $ "Exporting fields " ++ show fields
+      putStrLn $ "Command run: " ++ show (RawCommand bin args)
+      -- TODO write header
+      -- TODO redirect stdout towards the out handle
+      hSetBuffering tmpFileHandle LineBuffering
+      hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
+      (_, _, Just herr, ph) <-  createProcess_ "error" createProc
+      exitCode <- waitForProcess ph
+      -- TODO do it only in case of error ?
+      err <- hGetContents herr
+      return (tempPath, exitCode, err)
     where
       fields :: [T.Text]
       fields = Map.elems $ Map.map tfieldFullname baseFields
@@ -273,35 +222,12 @@ eitherProcessed path = produceTextLines path
 -- recEither :: Rec (Either Text :. ElField) cs -> Either Text (Record cs)
 -- recEither = rtraverse getCompose
 
--- http://acowley.github.io/Frames/#orgf328b25
-defaultTsharkOptions :: [(String, String)]
-defaultTsharkOptions = [
-      -- TODO join these
-      ("gui.column.format", intercalate "," [ "Time","%At","ipsrc","%s","ipdst","%d"]),
-      -- "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
-      ("tcp.analyze_sequence_numbers", "true"),
-      ("mptcp.analyze_mappings", "true"),
-      ("mptcp.relative_sequence_numbers", "true"),
-      ("mptcp.intersubflows_retransmission", "true"),
-      -- # Disable DSS checks which consume quite a lot
-      ("mptcp.analyze_mptcp", "true")
-      ]
-
 -- data TsharkPrefs = TsharkPrefs {
 --     analyzeTcpSeq :: Bool
 --     , analyzeMptcp :: Bool
 --     , mptcpRelSeq :: Bool
 --     , analyzeMptcp :: Bool
 --   } deriving Show
-
-defaultTsharkPrefs :: TsharkParams
-defaultTsharkPrefs = TsharkParams {
-      tsharkBinary = "tshark",
-      tsharkOptions = defaultTsharkOptions,
-      csvDelimiter = '|',
-      tsharkReadFilter = Just "mptcp or tcp and not icmp"
-    }
-
 
 {-
 -}
@@ -312,9 +238,7 @@ getTcpFrame = buildTcpConnectionFromStreamId
 buildTcpConnectionFromRecord :: (
   IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
     -- rs ⊆ HostCols
-
-  )
-  => Record rs -> TcpConnection
+  ) => Record rs -> TcpConnection
 buildTcpConnectionFromRecord r =
   TcpConnection {
     conTcpClientIp = r ^. ipSource

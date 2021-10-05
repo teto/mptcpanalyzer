@@ -5,6 +5,7 @@ module MptcpAnalyzer.Frame
 where
 
 import MptcpAnalyzer.Types
+-- import Tshark.Main (defaultParserOptions)
 import MptcpAnalyzer.Pcap (defaultParserOptions)
 
 import Data.Serialize

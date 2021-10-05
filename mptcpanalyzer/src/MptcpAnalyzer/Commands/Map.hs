@@ -34,6 +34,7 @@ import System.Console.Haskeline
 import System.Console.ANSI
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
+import Tshark.Main (defaultTsharkPrefs)
 
 -- tshow :: Show a => a -> TS.Text
 -- tshow = TS.pack . Prelude.show

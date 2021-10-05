@@ -11,7 +11,7 @@ module Tshark.Live (
 where
 
 
-import MptcpAnalyzer.Pcap (defaultTsharkPrefs, csvDelimiter)
+import Tshark.Main (defaultTsharkPrefs, csvDelimiter)
 
 import Data.Text as T
 import GHC.IO.Handle

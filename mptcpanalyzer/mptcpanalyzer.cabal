@@ -143,6 +143,7 @@ library libmptcpanalyzer
         , Tshark.Fields
         , Tshark.Interfaces
         , Tshark.Live
+        , Tshark.Main
         , Net.Mptcp.Types
         , Net.Tcp.Stats
         , Net.Tcp.Connection
@@ -228,7 +229,7 @@ executable mptcpanalyzer
     hs-source-dirs: src/
     -- -fprof-auto
     ghc-options:
-      -threaded -rtsopts -O0
+      -threaded -rtsopts -O0 -haddock
 
 benchmark map-stream
   type:             exitcode-stdio-1.0

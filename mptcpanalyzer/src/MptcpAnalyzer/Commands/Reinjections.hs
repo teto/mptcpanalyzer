@@ -52,6 +52,7 @@ import Control.Lens hiding (argument)
 
 import qualified Debug.Trace as D
 import Control.Monad
+import Tshark.Main (defaultTsharkPrefs)
 
 piListReinjections :: ParserInfo CommandArgs
 piListReinjections = info (
