@@ -24,13 +24,14 @@ import qualified Pipes.Parse as P
 import qualified Pipes.Safe as P
 import Frames
 import Frames.Exploration
-import Frames.CSV (columnSeparator, tokenizeRow, defaultParser, pipeTableMaybeOpt, pipeTableEitherOpt)
+import Frames.CSV (columnSeparator, tokenizeRow, defaultParser, pipeTableMaybeOpt, pipeTableEitherOpt, readRecEither)
 import Control.Monad (unless, liftM)
 import           Data.Vinyl.Functor             (Compose (..), (:.))
 import MptcpAnalyzer.Types (Packet, HostCols)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 import Control.Exception (try, IOException)
+import Debug.Trace (traceShow, trace)
 
 
 -- --         +--------+-- A 'Producer' that yields 'String's
@@ -79,20 +80,22 @@ tsharkLoop :: Handle -> Effect IO ()
 tsharkLoop hout = do
   for (tsharkProducer 0 hout) $ \x -> do
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
-      (frame ::  FrameRec HostCols) <- lift (inCoreAoS (P.yield x  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
+      -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
+      (frame ::  FrameRec HostCols) <- liftIO $ inCoreAoS (P.yield x  >-> pipeTableEitherOpt popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
-      lift $ putStrLn $ "mptcpanaluzer" ++  T.unpack x
-      lift $ putStrLn $ "toto"
+      lift $ putStrLn $ "test: " ++  T.unpack x
+      lift $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
+      lift $ putStrLn $ "length " ++ show ( frameLength frame)
 
   where
     -- tokenize = tokenizeRow popts
     popts = defaultParser {
           columnSeparator = T.pack $ [csvDelimiter defaultTsharkPrefs]
-
         }
+    -- readRecEither
     fromEither x = case recEither x of
       Left _txt -> error ( "eitherProcessed failure : " ++ T.unpack _txt)
-      Right pkt -> pkt
+      Right pkt -> trace "pkt !" pkt
 
     recEither = rtraverse getCompose
 
