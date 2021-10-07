@@ -1,3 +1,12 @@
+{-
+Module:  MptcpAnalyzer.Plots.Types
+Description : 
+Maintainer  : matt
+Portability : Linux
+
+Trying to come up with a userspace abstraction for MPTCP path management
+
+-}
 module MptcpAnalyzer.Plots.Types (
   PlotSettings(..)
   , ArgsPlots(..)
@@ -26,6 +35,7 @@ data PlotSettings = PlotSettings {
   }
       -- parser.add_argument('--display', action="store", default="term", choices=["term", "gui", "no"],
 
+-- | The list of possible plots
 data ArgsPlots =
 
     -- actually valid for MPTCP too
@@ -35,4 +45,5 @@ data ArgsPlots =
     -- @pcap1 pcap2 stream1 stream2 destinations whether its tcp or mptcp
     | ArgsPlotOwdTcp (PcapMapping Tcp) (Maybe ConnectionRole)
     | ArgsPlotOwdMptcp (PcapMapping Mptcp) (Maybe ConnectionRole)
-    | ArgsPlotLiveTcp TcpConnection (Maybe ConnectionRole) String -- ^Interface name
+    -- Maybe filename
+    | ArgsPlotLiveTcp TcpConnection (Maybe FilePath) (Maybe ConnectionRole) String -- ^Interface name

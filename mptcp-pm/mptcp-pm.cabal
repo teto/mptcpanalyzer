@@ -64,6 +64,10 @@ common shared-properties
         , TypeOperators
         , TypeFamilies
 
+    if flag(WithPolysemy)
+        ghc-options: -fplugin=Polysemy.Plugin
+        build-depends: polysemy-plugin
+
 
 library
     import: shared-properties

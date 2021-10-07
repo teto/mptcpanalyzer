@@ -130,16 +130,43 @@ piPlotTcpMainParser = info parserPlotTcpMain
 --   )
 
 
+-- loadConnectionsFromFile
 plotLiveFilter :: Parser ArgsPlots
-plotLiveFilter = ArgsPlotLiveTcp <$> pure (TcpConnection
-  (fromIPv4 localhost)
-  (fromIPv4 localhost)
-  16
-  16
-  (StreamId 0))
-  <*>
-  pure Nothing
+plotLiveFilter = ArgsPlotLiveTcp <$> 
+    parserConnection
+    <*> optional (strOption
+      ( long "fake" <> short 'f'
+      <> help "Load data from a pcap. This is used only for testing."
+      <> metavar "PCAP" ))
+    <*> pure Nothing
   <*> strArgument ( metavar "interface" <> help "interface to monitor")
+
+
+-- |Helper to load an IP
+readIP :: ReadM IP
+-- encode or decode available, IP has 
+readIP = eitherReader $ \arg -> case reads arg of
+  [(r, "")] -> return $ IP r
+  _ -> Left $ "readStreamId: cannot parse value `" ++ arg ++ "`"
+
+parserConnection :: Parser TcpConnection
+parserConnection = TcpConnection <$> 
+  argument readIP (metavar "CLIENT_IP" <> help "Client IP (v4 or v6)")
+  <*> argument readIP (metavar "SERVER_IP" <> help "Server IP (v4 or v6)")
+  <*> argument auto (metavar "CLIENT_PORT" <> help "Client port")
+  <*> argument auto (metavar "SERVER_PORT" <> help "Server port")
+  -- Stream id wont be used anyway
+  <*> pure (StreamId 0)
+  
+  -- pure (TcpConnection
+  -- (fromIPv4 localhost)
+  -- (fromIPv4 localhost)
+  -- 16
+  -- 16
+  -- (StreamId 0))
+  -- <*>
+  -- pure Nothing
+  -- <*> strArgument ( metavar "interface" <> help "interface to monitor")
 
 parserPlotTcpLive :: Parser CommandArgs
 parserPlotTcpLive  = ArgsPlotGeneric <$> parserPlotSettings False

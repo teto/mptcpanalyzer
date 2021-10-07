@@ -1,3 +1,13 @@
+{-
+Module:  Net.Mptcp.LogStats
+Description : 
+Maintainer  : matt
+Portability : Linux
+
+Trying to come up with a userspace abstraction for MPTCP path management
+
+-}
+
 module Net.MpTcp.LogStats (
   logStatistics
 )

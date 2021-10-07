@@ -38,15 +38,15 @@ defaultTsharkOptions = [
 defaultTsharkPrefs :: TsharkParams
 defaultTsharkPrefs = TsharkParams {
       tsharkBinary = "tshark",
-      tsharkOptions = defaultTsharkOptions,
-      csvDelimiter = '|'
+      tsharkOptions = defaultTsharkOptions
+      , csvDelimiter = '|'
       , tsharkReadFilter = Just "mptcp or tcp and not icmp"
       , tsharkProfile = Nothing
     }
 
 
 
--- |
+-- | Basic wireshark settings to enforce reproducible results across users
 data TsharkParams = TsharkParams {
       tsharkBinary     :: String,
       -- |(Name, Value) of tshark options, see 'defaultTsharkOptions'
@@ -58,9 +58,21 @@ data TsharkParams = TsharkParams {
       -- | for instance "mptcp" or "tcp"
       , tsharkReadFilter :: Maybe String
 
+      -- | Path towards the tshark profile to use (passed as `tshark -C ...`)
       , tsharkProfile :: Maybe FilePath
-      -- ^ Path towards the tshark profile to use (passed as `tshark -C ...`)
     }
+
+
+-- split into live ?
+-- inspired by TcpConnection
+-- data TsharkFilter =  TsharkFilter {
+--   tfTcpClientIp :: IP -- ^Client ip
+--   , tfTcpServerIp :: IP -- ^Server ip
+--   , tfTcpClientPort :: Word16  -- ^ Source port
+--   , tfTcpServerPort :: Word16  -- ^Destination port
+--   -- tfProto :: 
+--   -- tfStreamId :: 
+-- }
 
 
 -- |Generate the tshark command to export a pcap into a csv

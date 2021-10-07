@@ -61,12 +61,10 @@
 
       };
 
-
-      # pkgs = nixpkgs.legacyPackages."${system}";
       pkgs = import nixpkgs {
           inherit system overlays;
           # overlays = pkgs.lib.attrValues (self.overlays);
-          config = { allowUnfree = true; allowBroken = true; };
+          config = { allowUnfree = false; allowBroken = true;};
         };
 
       hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}";
@@ -87,7 +85,7 @@
       packages = {
 
         mptcp-pm = hsPkgs.developPackage {
-          root = ./mptcp-pm;
+          root =  pkgs.lib.cleanSource ./mptcp-pm;
           name = "mptcp-pm";
           returnShellEnv = false;
           withHoogle = true;
@@ -95,7 +93,7 @@
         };
 
         mptcpanalyzer = hsPkgs.developPackage {
-          root = ./mptcpanalyzer;
+          root = pkgs.lib.cleanSource ./mptcpanalyzer;
           name = "mptcpanalyzer";
           returnShellEnv = false;
           withHoogle = true;
@@ -103,7 +101,7 @@
         };
       };
 
-      defaultPackage = self.packages.mptcpanalyzer;
+      defaultPackage = self.packages.${system}.mptcpanalyzer;
 
       devShell = pkgs.mkShell {
         name = "dev-shell";

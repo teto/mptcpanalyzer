@@ -9,12 +9,18 @@ Maintainer:  teto
 Category:   Network
 Synopsis: A Multipath TCP analyzer
 Homepage:   https://github.com/teto/quantum
-Description: Multipath TCP (www.multipath-tcp.org) protocol analyzer
+Description:
+  Multipath TCP (www.multipath-tcp.org) protocol analyzer. This software can
+  automatically plot MPTCP characteristics such as Data Sequence Numbers, Data Acknowledgements etc.
+  It can also map one packet capture to another to give more detailed statistics such
+  as One-Way delays and reinjection qualifications.
+
 extra-source-files:
   README.md CHANGELOG
   tests/integration/list-tcp.test
   -- benchmarks/*
-tested-with:         GHC == 8.10.7
+tested-with:
+  GHC == 8.10.7
 
 Source-repository head
   type:       git
@@ -34,7 +40,6 @@ Flag Dev {
 -- text is used to convert from string and in aeson
 -- http://hackage.haskell.org/package/bitset-1.4.8/docs/Data-BitSet-Word.html
 common shared-properties
-    ghc-options: -haddock
     build-depends: base >= 4.12
       , optparse-applicative
       , byteunits
@@ -114,6 +119,7 @@ common shared-properties
         -fwrite-ide-info
         -O0
         -hiedir=.hie
+        -haddock
         -- -fplugin=Polysemy.Plugin
     default-extensions:
         -- , OverloadedStrings
@@ -179,7 +185,6 @@ library libmptcpanalyzer
         -- TODO rename to Utils.Frames
         , MptcpAnalyzer.Frames.Utils
         , MptcpAnalyzer.Utils.Completion
-        , Columns
         -- , Connection
     build-depends:
         Chart
@@ -216,7 +221,6 @@ executable mptcpanalyzer
         , MptcpAnalyzer.Commands.Plot
         , MptcpAnalyzer.Commands.PlotOWD
         , MptcpAnalyzer.Commands.Map
-        , Columns
         , MptcpAnalyzer.Commands.List
         , MptcpAnalyzer.Types
         -- , Connection
@@ -253,6 +257,7 @@ Test-Suite test
   main-is:            PcapSpec.hs
   hs-source-dirs:     tests
   -- Other-modules:     Pcap, Columns
+  default-language: Haskell2010
 
   build-depends:      base >=4.12 && <4.20
                      , HUnit

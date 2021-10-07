@@ -1,6 +1,11 @@
--- |
--- Description
---
+{-
+Module:  Net.IPAddress
+Description :  Description
+Maintainer  : matt
+Portability : Linux
+
+Cereal instances for Net.IP
+-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Net.IPAddress (
   getAddressFamily

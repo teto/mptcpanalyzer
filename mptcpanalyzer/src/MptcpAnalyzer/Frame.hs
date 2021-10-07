@@ -1,7 +1,12 @@
--- TODO reexport stuff ?
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances #-}
-module MptcpAnalyzer.Frame
+{-|
+Description : 
+Maintainer  : matt
+Stability   : testing
+Portability : Linux
+-}
+module MptcpAnalyzer.Frame ()
 where
 
 import MptcpAnalyzer.Types
@@ -40,9 +45,7 @@ newtype Test a = FrameRec a
 
 -- TODO here we want to put a bytestring
 instance (ColumnHeaders rs, V.RecMapMethod Show ElField rs, V.RecordToList rs) => Serialize (Frame (Record rs)) where
-  -- 
   -- putByteString
-  
   put f = do
       -- (csvDelimiter defaultTsharkPrefs)
       let bs = BLU.fromString $ showFrame "|" f
@@ -53,20 +56,10 @@ instance (ColumnHeaders rs, V.RecMapMethod Show ElField rs, V.RecordToList rs) =
       putByteString $ LBS.toStrict bs
       -- where
       --   tmpFile = "tmp.csv"
-
   -- put f = undefined
   get = undefined
 
-consumeTextLines :: P.MonadSafe m => FilePath -> P.Consumer BS.ByteString m r
-consumeTextLines fp = Safe.withFile fp WriteMode $ \h ->
-  let loop = P.await >>= P.liftIO . BS.hPut h >> loop
-  in loop
-
--- | Write a header row with column names followed by a line of text
--- for each 'Record' to the given file.
--- doWriteDSV:: (ColumnHeaders ts, Foldable f, RecordToList ts,
---              RecMapMethod ShowCSV ElField ts)
---          => ParserOptions -> FilePath -> f (Record ts) -> IO ()
--- doWriteDSV opts fp recs = P.runSafeT . P.runEffect $
---                    produceDSV opts recs >-> P.map (TSE.encodeUtf8 . T.pack) >-> consumeTextLines fp
-
+-- consumeTextLines :: P.MonadSafe m => FilePath -> P.Consumer BS.ByteString m r
+-- consumeTextLines fp = Safe.withFile fp WriteMode $ \h ->
+--   let loop = P.await >>= P.liftIO . BS.hPut h >> loop
+--   in loop

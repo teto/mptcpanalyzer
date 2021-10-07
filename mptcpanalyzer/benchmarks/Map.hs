@@ -47,11 +47,10 @@ cacheConfig = CacheConfig {
 main :: IO ()
 main = do
 
-  --  P.runEmbedded liftIO @IO
-  _ <- P.runM 
+  _ <- P.runM
     $ interpretLogStdout
     $ runCache cacheConfig
-      inputLoop 
+      inputLoop
   putStrLn "finished"
 
 

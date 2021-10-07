@@ -1,3 +1,9 @@
+{-|
+Description : Implementation of mptcp netlink path manager
+module: Net.Mptcp.PathManager.Default
+Maintainer  : matt
+Portability : Linux
+-}
 module Net.Mptcp.PathManager.Default (
     -- TODO don't export / move to its own file
     ndiffports

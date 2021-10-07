@@ -1,11 +1,10 @@
 {-|
 
-Module      : MptcpAnalyzer.Commands.Reinjections
-Description : Command to analyze reinjections
+Module      : MptcpAnalyzer.Commands.List
+Description : List (MP)TCP connections in a pcap
 Maintainer  : matt
 
 -}
--- {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE PackageImports           #-}
 
 module MptcpAnalyzer.Commands.List (

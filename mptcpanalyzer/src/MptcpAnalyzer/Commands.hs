@@ -1,3 +1,9 @@
+{-
+Module:  MptcpAnalyzer.Commands
+Description :  Description
+Maintainer  : matt
+Portability : Linux
+-}
 module MptcpAnalyzer.Commands (
   module MptcpAnalyzer.Commands.Load
   , module MptcpAnalyzer.Commands.Export
@@ -17,16 +23,3 @@ import MptcpAnalyzer.Commands.Export
 import qualified MptcpAnalyzer.Commands.List as CL
 import qualified MptcpAnalyzer.Commands.ListMptcp as CL
 import qualified MptcpAnalyzer.Commands.Plot as PL
-
-
--- data Command m a where
---   LoadCsv :: CL.ArgsLoadPcap -> Command m RetCode
-  -- LoadPcap :: ArgsLoadPcap -> Command m ()
-  -- PrintHelp :: ParserArgsLoadCsv -> Command m ()
--- makeSem ''Command
-
-
-printHelpTemp :: Members '[Log, Cache, P.Embed IO] r => Sem r RetCode
-printHelpTemp = do
-  P.embed $ putStrLn "temporary help"
-  return Continue

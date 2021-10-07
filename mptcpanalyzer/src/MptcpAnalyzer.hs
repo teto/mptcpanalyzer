@@ -1,8 +1,13 @@
 {-|
 Module      : MptcpAnalyzer
-Description : TODO
+Description : Top level module
 Maintainer  : matt
 License     : GPL-3
+
+
+* Tutorial
+
+How to use ?
 -}
 module MptcpAnalyzer (
   -- * Core Types

@@ -4,6 +4,8 @@ Description : Compute basic MPTCP statistics
 Maintainer  : matt
 License     : GPL-3
 -}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Net.Mptcp.Stats (
   TcpSubflowUnidirectionalStats(..)
   , MptcpUnidirectionalStats(..)
@@ -38,7 +40,7 @@ data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
   -- tss
   -- add DSN stats
 
-  }
+  } deriving Show
 -- newtype TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats
 
 
@@ -49,7 +51,13 @@ data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
   , musMaxDsn :: Word64
   , musMinDsn :: Word64
   , musSubflowStats :: Map MptcpSubflow TcpSubflowUnidirectionalStats
-  }
+  } deriving Show
+
+instance Monoid MptcpUnidirectionalStats where
+  mempty = MptcpUnidirectionalStats RoleServer 0 0 0 mempty
+
+instance Semigroup MptcpUnidirectionalStats where
+  (<>) s1 s2 = s1
 
 
     -- ''' application data = goodput = useful bytes '''

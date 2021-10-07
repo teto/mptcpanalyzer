@@ -20,10 +20,13 @@ To interact
 GENL_ADMIN_PERM
 The operation requires the CAP_NET_ADMIN privilege
 iproute2/misc/ss.c to see how `ss` utility interacts with the kernel
+
+
+Capture netlink packets in your computer ?
 -}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings  #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveAnyClass     #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
 module Main where
@@ -37,8 +40,8 @@ import           Net.SockDiag
 import           Net.SockDiag.Constants
 import           Net.Tcp
 
-import Control.Monad.Trans (liftIO)
 import           Control.Monad                          (foldM)
+import           Control.Monad.Trans                    (liftIO)
 -- import           Control.Monad.Trans                    (liftIO)
 import           Control.Monad.Trans.State              (State, StateT, execStateT, get, put)
 import           Data.Maybe                             (catMaybes)
@@ -69,13 +72,13 @@ import           System.Process
 import           Data.Serialize.Get                     (runGet)
 import           Data.Serialize.Put
 -- import Data.Either (fromRight)
+import           Control.Concurrent
+import           Data.Bits                              (Bits (..))
 import           Data.ByteString                        (ByteString)
 import qualified Data.ByteString.Lazy                   as BL
 import qualified Data.Map                               as Map
 import qualified Data.Set                               as Set
-import qualified Data.Text as TS
-import           Control.Concurrent
-import           Data.Bits                              (Bits (..))
+import qualified Data.Text                              as TS
 -- import           Debug.Trace
 -- import System.IO.Unsafe
 import           Data.Aeson
@@ -87,13 +90,21 @@ import           System.IO.Temp                         ()
 import           Data.Aeson.Extra.Merge                 (lodashMerge)
 import           GHC.List                               (init)
 
-import Polysemy
-import           Polysemy.Trace
-import Polysemy.Log (Log)
-import qualified Polysemy.Log as Log
-import Polysemy.Log.Colog (interpretLogStdout)
-import GHC.Generics (Generic)
-import Data.Either (fromRight)
+import           Polysemy
+-- import           Polysemy.Trace
+import           Polysemy                               (Final, Members, Sem, runFinal)
+import qualified Polysemy                               as P
+import qualified Polysemy.Embed                         as P
+import qualified Polysemy.IO                            as P
+import qualified Polysemy.State                         as P
+-- import qualified Polysemy.Internal as P
+import           Data.Either                            (fromRight)
+import           GHC.Generics                           (Generic)
+import           Polysemy.Log                           (Log)
+import qualified Polysemy.Log                           as Log
+import           Polysemy.Log.Colog                     (interpretLogStdout)
+import           Polysemy.Trace                         (Trace, trace)
+import qualified Polysemy.Trace                         as P
 
 -- for getEnvDefault, to get TMPDIR value.
 -- we could pass it as an argument
@@ -117,12 +128,12 @@ pathManager = meshPathManager
 
 -- |Helper to pass information across functions
 data MyState = MyState {
-  socket                :: MptcpSocket -- ^Socket
+  -- |Socket
+  socket                :: MptcpSocket
   -- ThreadId/MVar
   , connections         :: Map.Map MptcpToken (ThreadId, MVar MptcpConnection)
   -- |Arguments passed to the program
   , cliArguments        :: CLIArguments
-
   -- |Connections to accept, loaded via cli's --filter
   , filteredConnections :: Maybe [TcpConnection]
 }
@@ -144,22 +155,23 @@ dumpMptcpCommands MPTCP_CMD_EXIST = dumpCommand MPTCP_CMD_EXIST
 dumpMptcpCommands x               = dumpCommand x ++ "\n" ++ dumpMptcpCommands (succ x)
 
 
+-- | Arguments expected on startup
 data CLIArguments = CLIArguments {
 
   -- | Path to a program in charge of generating congestion window limits on a
   -- per path basis
   -- The program will be called with a json file as input and must echo on stdout
   -- an array of the form [ 10, 30, 40]
-  optimizer  :: Maybe FilePath
+  cliOptimizer  :: Maybe FilePath
 
   -- | to filter
-  , filter   :: Maybe FilePath
+  , cliFilter   :: Maybe FilePath
 
   -- | Folder where to log files
   , out      :: FilePath
 
   -- , clientIP      :: IPv4
-  , quiet    :: Bool
+  , cliQuiet    :: Bool
 
   -- Priority
   , logLevel :: Log.Severity
@@ -169,7 +181,7 @@ data CLIArguments = CLIArguments {
 -- loggerName :: String
 -- loggerName = "main"
 
-dumpSystemInterfaces :: IO()
+dumpSystemInterfaces :: IO ()
 dumpSystemInterfaces = do
   putStrLn "Dumping interfaces"
   -- isEmptyMVar globalInterfaces
@@ -217,14 +229,14 @@ readConnectionRole :: ReadM Log.Severity
 readConnectionRole = eitherReader $ \arg -> case reads arg of
   [(a, "")] -> return $ a
   -- [("client", "")] -> return $ RoleClient
-  _ -> Left $ "readConnectionRole: cannot parse value `" ++ arg ++ "`"
+  _         -> Left $ "readConnectionRole: cannot parse value `" ++ arg ++ "`"
 
 
 opts :: ParserInfo CLIArguments
 opts = info (sample <**> helper)
   ( fullDesc
-  <> progDesc "Print a greeting for TARGET"
-  <> header "hello - a test for optparse-applicative" )
+  <> progDesc "MPTCP path manager"
+  <> header "Take control of your subflows now !" )
 
 
 
@@ -295,7 +307,7 @@ recvMulti sock = do
 FilePath -- ^Path towards the program to get cwnd limits
 -}
 startMonitorConnection ::
-  (Members '[Log, Trace, Embed IO ] r) =>
+  (Members '[Log, P.Trace, Embed IO ] r) =>
   CLIArguments
   --  | elapsed time since starting the thread (very coarse approximation)
   -> Natural
@@ -324,7 +336,7 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
     let filename = tmpdir ++ "/" ++ "mptcp_" ++ show (connectionToken mptcpConn) ++ "_" ++ show elapsed ++ ".json"
     -- logStatistics filename elapsed mptcpConn lastMetrics
 
-    duration <- case optimizer cliArgs of
+    duration <- case cliOptimizer cliArgs of
       Nothing -> return onSuccessSleepingDelayMs
       Just prog -> do
 
@@ -360,7 +372,7 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
 
 -}
 getCapsForConnection :: FilePath     -- ^Statistics file
-                        -> FilePath  -- ^Path towards the PM optimizer
+                        -> FilePath  -- ^Path towards the PM cliOptimizer
                         -> MptcpConnection
                         -> [SockDiagMetrics]
                         -> IO (Maybe [Word32])
@@ -526,7 +538,7 @@ registerMptcpConnection token subflow = (do
             let fixedSubflow = subflow { subflowInterface = mappedInterface }
             -- let newMptcpConn = (MptcpConnection token [] Set.empty Set.empty)
             let newMptcpConn = mptcpConnAddSubflow (
-                    MptcpConnection token Set.empty Set.empty Set.empty (optimizer cliArgs)
+                    MptcpConnection token Set.empty Set.empty Set.empty (cliOptimizer cliArgs)
                     ) fixedSubflow
 
             newConn <- liftIO $ newMVar newMptcpConn
@@ -538,7 +550,7 @@ registerMptcpConnection token subflow = (do
             -- let threadId = undefined
             threadId <- liftIO $ forkOS (
             --   -- runLogAction @IO (contramap message logTextStdout) $ interpretDataLogColog @Message $ progData
-              runM $ traceToStdout $ interpretLogStdout$
+              runM $ P.traceToStdout $ interpretLogStdout$
                 startMonitorConnection cliArgs 0 mptcpSock sockMetrics newConn
               )
 
@@ -558,7 +570,7 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
         -- i suppose token is always available right ?
         token :: MptcpToken
         token = case Map.lookup (fromEnum MPTCP_ATTR_TOKEN) attributes of
-          Nothing -> error "Could not retreive token "
+          Nothing   -> error "Could not retreive token "
           Just bstr -> fromRight (error "could not retreive token") (readToken bstr)
         maybeMatch = Map.lookup token (connections oldState)
     in do
@@ -684,6 +696,9 @@ inspectResult myState result = case result of
 
 -- |Infinite loop basically
 doDumpLoop :: MyState -> IO MyState
+-- doDumpLoop :: Members '[
+--   Log, P.Trace, P.State MyState, P.Embed IO
+--   ] r => Sem r ()
 doDumpLoop myState = do
     let (MptcpSocket simpleSock fid) = socket myState
     results <- recvOne' simpleSock ::  IO [Either String MptcpPacket]
@@ -695,14 +710,21 @@ doDumpLoop myState = do
     doDumpLoop modifiedState
 
 
-listenToEvents :: MyState -> CtrlAttrMcastGroup -> IO ()
-listenToEvents state my_group = do
-  joinMulticastGroup sock (grpId my_group)
-  putStrLn $ "Joined grp " ++ grpName my_group
-  _ <- doDumpLoop state
-  putStrLn "end of listenToEvents"
-  where
-    (MptcpSocket sock fid) = socket state
+-- TODO use polysemy State / log / trace
+
+listenToEvents :: Members '[
+  Log, P.Trace, P.State MyState, P.Embed IO
+  ] r
+  => CtrlAttrMcastGroup
+  -> Sem r ()
+listenToEvents my_group = do
+  myState <- P.get
+  let     (MptcpSocket sock fid) = socket myState
+
+  embed $ joinMulticastGroup sock (grpId my_group)
+  trace $ "Joined grp " ++ grpName my_group
+  _ <- P.embed $ doDumpLoop myState
+  trace "end of listenToEvents"
 
 
 -- testing
@@ -835,7 +857,7 @@ instance ToJSON SockDiagMetrics where
 
 -- |Updates the list of interfaces
 -- should run in background
-trackSystemInterfaces :: IO()
+trackSystemInterfaces :: IO ()
 trackSystemInterfaces = do
   -- check routing information
   routingSock <- NLS.makeNLHandle (const $ pure ()) =<< NL.makeSocket
@@ -860,19 +882,21 @@ main = do
 
   putStrLn "Starting program"
 
+  -- Log.info "Parsing command line..." :: TS.Text
+  options <- execParser opts
+  -- mptcpSocket <- makeMptcpSocket
+  -- let (MptcpSocket sock fid) = mptcpSocket
+
   -- logTextStdout
   -- logStringStdout
   -- _ <- runM $ traceToStdout $ runLogAction @IO richMessageAction program
-  _ <- runM $ traceToStdout $ interpretLogStdout program
+  _ <- runM $ P.traceToStdout $ interpretLogStdout $ program options
   putStrLn "finished"
 
-program :: (Members '[Log, Trace, Embed IO] r) => Sem r ()
-program = do
+program :: (Members '[Log, Trace, Embed IO] r) => CLIArguments -> Sem r ()
+program options = do
 
-  -- Log.info "Parsing command line..." :: TS.Text
-  options <- embed $ execParser opts
-  Log.info ("Creating MPTCP netlink socket..." :: Text)
-
+  Log.info "Creating MPTCP netlink socket..."
 
   Log.info "Now Tracking system interfaces..."
   embed $ putMVar globalInterfaces Map.empty
@@ -883,23 +907,24 @@ program = do
   mptcpSocket <- embed makeMptcpSocket
   let (MptcpSocket sock fid) = mptcpSocket
   mcastMptcpGroups <- embed $ getMulticastGroups sock fid
+  -- TODO Log.debug
   embed $ mapM_ Prelude.print mcastMptcpGroups
 
 
   -- use fmap instead
-  filteredConns <- case Main.filter options of
+  filteredConns <- case Main.cliFilter options of
       Nothing -> return Nothing
       Just filename -> do
           Log.info ("Loading connections whitelist from " <> tshow filename <> "...")
           filteredConnectionsStr <- embed $ BL.readFile filename
           case Data.Aeson.eitherDecode filteredConnectionsStr of
-          -- case Data.Aeson.eitherDecode "[]" of
             Left errMsg -> error ("Failed loading " ++ filename ++ ":\n" ++ errMsg)
             Right list  -> return list
 
   Log.info ("Loading connections whitelisted connections..." <> (tshow filteredConns))
 
+  -- TODO update the state
   let globalState = MyState mptcpSocket Map.empty options filteredConns
 
-  embed $ mapM_ (listenToEvents globalState) mcastMptcpGroups
+  mapM_ (\x -> P.evalState globalState (listenToEvents x)) mcastMptcpGroups
   -- putStrLn $ " Groups: " ++ unwords ( map grpName mcastMptcpGroups )

@@ -1,6 +1,13 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DerivingVia #-}
+{-
+Module:  Net.Tcp.stats
+Description : Uni/bidirectional statistics for subflows
+Maintainer  : matt
+Portability : Linux
+-}
+
 module Net.Tcp.Stats (
   TcpUnidirectionalStats (..)
   , getTcpGoodput
@@ -10,10 +17,6 @@ module Net.Tcp.Stats (
 where
 
 import MptcpAnalyzer.ArtificialFields
--- import MptcpAnalyzer.Types
--- import MptcpAnalyzer.Pcap
--- import MptcpAnalyzer.Frame
--- import MptcpAnalyzer.Stream
 import Net.Tcp.Connection
 import qualified Data.Map as Map
 
@@ -68,7 +71,7 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     -- TODO this should be updated
     -- For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
     -- , tusGoodput :: Byte
-    } 
+    }  deriving Show
     -- deriving Semigroup via WrappedMonoid TcpUnidirectionalStats
 
 -- deriving instance Semigroup TcpUnidirectionalStats

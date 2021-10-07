@@ -58,6 +58,7 @@ import           "mptcp-pm" Net.Tcp             (TcpFlag (..))
 import           Tshark.Fields
 import           Tshark.TH
 
+import Data.Kind (Type)
 import           Data.Monoid                    (First (..))
 import qualified Data.Text                      as T
 import qualified Data.Text.IO                   as T
@@ -491,6 +492,7 @@ buildMptcpConnectionFromStreamId frame streamId = do
 -}
 class StreamConnection a b | a -> b where
   -- | How
+  -- type ConnectionType :: Type
   showConnectionText :: a -> Text
   -- describeConnection :: a -> Text
   buildFrameFromStreamId :: Frame Packet -> StreamId b -> Either String (FrameFiltered a Packet)

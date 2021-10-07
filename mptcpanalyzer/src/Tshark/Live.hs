@@ -1,12 +1,13 @@
-{-
-   -}
+{-# LANGUAGE DataKinds #-}
+{-|
+Module: Tshark.Live
+Description : Load incrementally a PCAP into a frame
+Maintainer  : matt
+Portability : Linux
+-}
 module Tshark.Live (
-  -- declarePrefixedColumns
-  -- , genExplicitRecord
-  -- , genRecordFrom
-  -- , genRecordFromHeaders
-  -- , genRecHashable
   tsharkLoop
+  , LiveStats(..)
 )
 where
 
@@ -24,15 +25,21 @@ import qualified Pipes.Parse as P
 import qualified Pipes.Safe as P
 import Frames
 import Frames.Exploration
-import Frames.CSV (columnSeparator, tokenizeRow, defaultParser, pipeTableMaybeOpt, pipeTableEitherOpt, readRecEither)
-import Control.Monad (unless, liftM)
+import Frames.CSV (columnSeparator, tokenizeRow, defaultParser, pipeTableMaybeOpt, pipeTableEitherOpt, readRecEither, ReadRec, ParserOptions, headerOverride, readRow)
+import Control.Monad (unless, liftM, when)
 import           Data.Vinyl.Functor             (Compose (..), (:.))
 import MptcpAnalyzer.Types (Packet, HostCols)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 import Control.Exception (try, IOException)
 import Debug.Trace (traceShow, trace)
+import Data.Maybe (isNothing)
 
+import Net.Mptcp.Connection (MptcpConnection (MptcpConnection))
+import Net.Mptcp (MptcpUnidirectionalStats)
+import Control.Monad.State (StateT, modify')
+import MptcpAnalyzer (FrameFiltered)
+import Net.Tcp (TcpConnection)
 
 -- --         +--------+-- A 'Producer' that yields 'String's
 -- --         |        |
@@ -73,19 +80,36 @@ pipeLines pgetLine h =
 -- produceTextLines = pipeLines (try . T.hGetLine)
 
 
+-- copy/pasted 
+pipeTableEitherOpt' :: (Monad m, ReadRec rs)
+                   => ParserOptions
+                   -> P.Pipe T.Text (Rec (Either T.Text :. ElField) rs) m ()
+pipeTableEitherOpt' opts = do
+  -- when (isNothing (headerOverride opts)) (() <$ P.await)
+  P.map (readRow opts)
+
+
+
+
 -- produceFrameChunks
 -- inCoreAoS
 -- --capture-comment
-tsharkLoop :: Handle -> Effect IO ()
+-- TODO return the frame/ stats
+tsharkLoop :: Handle -> Effect (StateT LiveStats IO) ()
 tsharkLoop hout = do
-  for (tsharkProducer 0 hout) $ \x -> do
+
+  ls <- for (tsharkProducer hout) $ \(x) -> do
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
-      (frame ::  FrameRec HostCols) <- liftIO $ inCoreAoS (P.yield x  >-> pipeTableEitherOpt popts >-> P.map fromEither )
+      (frame ::  FrameRec HostCols) <- liftIO $ inCoreAoS (yield x >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
-      lift $ putStrLn $ "test: " ++  T.unpack x
-      lift $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
-      lift $ putStrLn $ "length " ++ show ( frameLength frame)
+      liftIO $ putStrLn $ "test: " ++  T.unpack x
+      liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
+      liftIO $ putStrLn $ "length " ++ show ( frameLength frame)
+      modify' (\stats -> stats {  lsPackets = lsPackets stats + 1})
+      -- lift $ print liveStats
+
+  pure ls
 
   where
     -- tokenize = tokenizeRow popts
@@ -95,25 +119,39 @@ tsharkLoop hout = do
     -- readRecEither
     fromEither x = case recEither x of
       Left _txt -> error ( "eitherProcessed failure : " ++ T.unpack _txt)
-      Right pkt -> trace "pkt !" pkt
+      Right pkt -> pkt
 
     recEither = rtraverse getCompose
 
 
-tsharkProducer :: Int -> Handle -> Producer Text IO ()
-tsharkProducer acc hout = do
-  eof <- lift $ hIsEOF hout
-  -- eof <- pure False
-  unless eof $ do
-    output <- lift $ hGetLine hout
-    yield (T.pack output)
-    tsharkProducer (acc+1) hout
 
--- for
---
--- Accept as input the different handles
-readTsharkOutputAndPlotIt :: Handle -> Handle -> IO ()
-readTsharkOutputAndPlotIt hout herr = do
-  -- use pipeTableEitherOpt to parse 
-  output <- hGetContents hout
-  putStrLn output
+-- type UpdateFrameFunc a b = Frame a -> Frame a -> (Frame a, b)
+
+-- | Hold information on a connection
+data LiveStats = LiveStats {
+  -- lsCon :: MptcpConnection,
+  lsStats :: MptcpUnidirectionalStats
+  , lsPackets :: Int
+  -- , lsFrame :: FrameFiltered TcpConnection Packet
+  , lsFrame :: FrameFiltered TcpConnection Packet
+  }
+
+
+tsharkProducer :: Handle -> Producer Text (StateT LiveStats IO) ()
+tsharkProducer hout = do
+  -- let liveStats = LiveStats mempty 0 mempty
+  eof <- liftIO $ hIsEOF hout
+  if eof == True then
+    return ()
+  else do
+    output <- liftIO $ hGetLine hout
+    yield (T.pack output)
+    tsharkProducer hout
+  -- return ls
+
+---- Accept as input the different handles
+--readTsharkOutputAndPlotIt :: Handle -> Handle -> IO ()
+--readTsharkOutputAndPlotIt hout herr = do
+--  -- use pipeTableEitherOpt to parse 
+--  output <- hGetContents hout
+--  putStrLn output
