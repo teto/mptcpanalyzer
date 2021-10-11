@@ -137,9 +137,17 @@ plotLiveFilter = ArgsPlotLiveTcp <$>
     <*> optional (strOption
       ( long "fake" <> short 'f'
       <> help "Load data from a pcap. This is used only for testing."
+      -- this is a filename !
+      -- TODO create a completer inspired by haskeline
+      -- completer ( String -> IO [String])
+      -- <> completeWith ["eno1"]
       <> metavar "PCAP" ))
     <*> pure Nothing
-  <*> strArgument ( metavar "interface" <> help "interface to monitor")
+  <*> strArgument (
+    metavar "interface" <> help "interface to monitor"
+    -- TODO fetch list of interfaces in advance !
+    <> completeWith ["eno1"]
+    )
 
 
 -- |Helper to load an IP
@@ -147,7 +155,7 @@ readIP :: ReadM IP
 -- encode or decode available, IP has 
 readIP = eitherReader $ \arg -> case reads arg of
   [(r, "")] -> return $ IP r
-  _ -> Left $ "readStreamId: cannot parse value `" ++ arg ++ "`"
+  _ -> Left $ "readID: cannot parse value `" ++ arg ++ "`"
 
 parserConnection :: Parser TcpConnection
 parserConnection = TcpConnection <$> 
