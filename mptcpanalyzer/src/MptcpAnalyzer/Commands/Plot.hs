@@ -152,12 +152,11 @@ plotLiveFilter = ArgsPlotLiveTcp <$>
 
 -- |Helper to load an IP
 readIP :: ReadM IP
--- encode or decode available, IP has 
-readIP = eitherReader $ \arg -> case reads arg of
-  [(r, "")] -> case decode r of
+-- encode or decode available, IP has
+readIP = eitherReader $ \arg -> case decode $ T.pack arg of
     Just ip -> Right ip
     _otherwise -> Left $ "Could not decode ip " ++ arg
-  _ -> Left $ "readID: cannot parse value `" ++ arg ++ "`"
+  -- _ -> Left $ "readID: cannot parse value `" ++ arg ++ "`"
 
 parserConnection :: Parser TcpConnection
 parserConnection = TcpConnection <$> 
