@@ -39,9 +39,6 @@ common shared-properties
     build-depends:
       -- TODO remove that boundary
       netlink >= 1.1.1.0
-      -- , co-log
-      -- , co-log-core
-      -- , co-log-polysemy
       , formatting
       , readable
       , polysemy

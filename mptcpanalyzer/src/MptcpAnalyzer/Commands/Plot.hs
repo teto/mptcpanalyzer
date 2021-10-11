@@ -38,7 +38,7 @@ import           "this" Net.Mptcp
 import           "this" Net.Tcp
 import           Tshark.Fields                          (TsharkFieldDesc (tfieldLabel), baseFields)
 import Net.IP
-import Net.IPv4
+-- import Net.IPv4
 import           Frames
 import           Frames.CSV
 import           Options.Applicative
@@ -154,7 +154,9 @@ plotLiveFilter = ArgsPlotLiveTcp <$>
 readIP :: ReadM IP
 -- encode or decode available, IP has 
 readIP = eitherReader $ \arg -> case reads arg of
-  [(r, "")] -> return $ IP r
+  [(r, "")] -> case decode r of
+    Just ip -> Right ip
+    _otherwise -> Left $ "Could not decode ip " ++ arg
   _ -> Left $ "readID: cannot parse value `" ++ arg ++ "`"
 
 parserConnection :: Parser TcpConnection
@@ -165,7 +167,7 @@ parserConnection = TcpConnection <$>
   <*> argument auto (metavar "SERVER_PORT" <> help "Server port")
   -- Stream id wont be used anyway
   <*> pure (StreamId 0)
-  
+
   -- pure (TcpConnection
   -- (fromIPv4 localhost)
   -- (fromIPv4 localhost)

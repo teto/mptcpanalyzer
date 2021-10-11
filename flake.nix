@@ -69,18 +69,25 @@
 
       hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}";
 
-      hsEnv = hsPkgs.ghcWithPackages(hs: [
-        # hs.cairo
-        # hs.diagrams
-        hs.cabal-install
-        # hs.stylish-haskell
-        hs.hasktags
-        hs.stan
-        pkgs.zlib
-        hs.threadscope
-        hs.stan
-      ]);
-
+      # modifier used in haskellPackages.developPackage
+      myModifier = drv:
+            pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
+              cabal-install
+                ghcid
+                replica.packages."${system}".build
+                inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
+                # inputs.hls.packages."${system}"."hie-bios-${compilerVersion}"
+                cairo # for chart-cairo
+                dhall  # for the repl
+                pkgs.dhall-json  # for dhall-to-json
+                glib
+                hasktags
+                stan
+                # pkg-config
+                zlib
+                pkgs.dhall-lsp-server
+              #   threadscope
+              ]);
     in {
       packages = {
 
@@ -90,40 +97,33 @@
           returnShellEnv = false;
           withHoogle = true;
           overrides = haskellOverlay;
+          modifier = myModifier;
         };
 
         mptcpanalyzer = hsPkgs.developPackage {
           root = pkgs.lib.cleanSource ./mptcpanalyzer;
           name = "mptcpanalyzer";
-          returnShellEnv = false;
+          returnShellEnv = true;
           withHoogle = true;
           overrides = hold: hnew: (haskellOverlay hold hnew) // { mptcp-pm = self.packages."${system}".mptcp-pm; };
+          modifier = myModifier;
         };
       };
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
 
-      devShell = pkgs.mkShell {
-        name = "dev-shell";
-        buildInputs = with pkgs; [
-          # defaultPackage.inputDerivation
-          replica.packages."${system}".build
-          inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
-          # inputs.hls.packages."${system}"."hie-bios-${compilerVersion}"
-          cairo # for chart-cairo
-          dhall  # for the repl
-          dhall-json  # for dhall-to-json
-          glib
-          hsEnv
-          pkg-config
-          zlib
-          dhall-lsp-server
-        ];
+      devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
 
         shellHook = ''
           exe=$(cabal list-bin exe:mptcpanalyzer)
           export PATH="$(dirname $exe):$PATH"
         '';
-      };
+      });
+
+      #   shellHook = ''
+      #     exe=$(cabal list-bin exe:mptcpanalyzer)
+      #     export PATH="$(dirname $exe):$PATH"
+      #   '';
+      # };
     });
 }

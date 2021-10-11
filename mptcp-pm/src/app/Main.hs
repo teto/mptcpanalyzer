@@ -45,7 +45,7 @@ import           Control.Monad.Trans                    (liftIO)
 -- import           Control.Monad.Trans                    (liftIO)
 import           Control.Monad.Trans.State              (State, StateT, execStateT, get, put)
 import           Data.Maybe                             (catMaybes)
-import           Data.Text                              (Text)
+-- import           Data.Text                              (Text)
 import           Foreign.C.Types                        (CInt)
 import           Options.Applicative                    hiding (ErrorMsg, empty, value)
 import qualified Options.Applicative                    (value)
@@ -80,7 +80,6 @@ import qualified Data.Map                               as Map
 import qualified Data.Set                               as Set
 import qualified Data.Text                              as TS
 -- import           Debug.Trace
--- import System.IO.Unsafe
 import           Data.Aeson
 import           Numeric.Natural
 import           System.FilePath                        ()
@@ -91,13 +90,8 @@ import           Data.Aeson.Extra.Merge                 (lodashMerge)
 import           GHC.List                               (init)
 
 import           Polysemy
--- import           Polysemy.Trace
-import           Polysemy                               (Final, Members, Sem, runFinal)
 import qualified Polysemy                               as P
-import qualified Polysemy.Embed                         as P
-import qualified Polysemy.IO                            as P
 import qualified Polysemy.State                         as P
--- import qualified Polysemy.Internal as P
 import           Data.Either                            (fromRight)
 import           GHC.Generics                           (Generic)
 import           Polysemy.Log                           (Log)
@@ -861,7 +855,7 @@ trackSystemInterfaces :: IO ()
 trackSystemInterfaces = do
   -- check routing information
   routingSock <- NLS.makeNLHandle (const $ pure ()) =<< NL.makeSocket
-  let cb = NLS.NLCallback (pure ()) (handleAddr . runGet getGenPacket)
+  let cb = NLS.NLCallback (pure ()) (handleAddr defaultPathManagerConfig . runGet getGenPacket)
   NLS.nlPostMessage routingSock queryAddrs cb
   NLS.nlWaitCurrent routingSock
   dumpSystemInterfaces
