@@ -13,15 +13,17 @@ parseError peut renvoyer un missingArgP qui du coup aura le completer, qu'on n'a
 module MptcpAnalyzer.Utils.Completion (
   -- completeInitialCommand
   generateHaskelineCompleterFromParser
+  , generateHaskelineCompleterFromParserInfo
   -- , generateHaskelineCompleterFromOption
 )
 where
 
 import Options.Applicative
 import System.Console.Haskeline (CompletionFunc, completeFilename, noCompletion, Completion(..))
+import System.Console.Haskeline.Completion (listFiles)
 import Options.Applicative.Types
 import Data.List (isPrefixOf)
-import Debug.Trace 
+import Debug.Trace
 -- import Options.Applicative.Help (parserHelp)
 
 defaultCompleteFunc :: CompletionFunc IO
@@ -72,25 +74,8 @@ generateHaskelineCompleterFromOptreader :: OptReader a -> CompletionFunc IO
 -- type CompletionFunc m = (String, String) -> m (String, [Completion])
 -- completeInitialCommand :: CompletionFunc IO
 -- completeInitialCommand = completeWord Nothing [' '] genCompletions
---   where
---     genCompletions :: String -> IO [Completion]
---     genCompletions prefix = let filtered = filter (isPrefixOf prefix) commands in pure $ map (genCompletion prefix) filtered
---     genCompletion prefix entry =  Completion entry "toto" True
---     commands :: [String]
---     commands = [
---       "help"
---       , "quit"
---       , "load-csv"
---       , "load-pcap"
---       , "tcp-summary"
---       , "mptcp-summary"
---       , "list-tcp"
---       , "map-tcp"
---       , "map-mptcp"
---       , "list-reinjections"
---       , "list-mptcp"
---       ]
 
+-- se baser sur completeFilename aussi
 -- TODO call the parser on it and check where it fails
 generateHaskelineCompleterFromOptreader (CmdReader mbGrpCommand arrStr func) =
   \(rleft, right) -> let
@@ -104,6 +89,7 @@ generateHaskelineCompleterFromOptreader (CmdReader mbGrpCommand arrStr func) =
     completions = map (genCompletion) filtered
   in
     -- TODO call execParserPure ParserInfo a 
+    
     trace "completion called" (pure (
     -- return longest common prefixes
     "", completions

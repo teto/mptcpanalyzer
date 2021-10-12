@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE DerivingVia         #-}
@@ -179,7 +180,7 @@ data FrameFiltered a rs = FrameTcp {
     -- StreamConnection b => b
     -- Frame of sthg maybe even bigger with TcpDest / MptcpDest
     , ffFrame :: Frame rs
-  }
+  } deriving Functor
 
 aframeLength :: FrameFiltered a rs -> Int
 aframeLength = frameLength . ffFrame

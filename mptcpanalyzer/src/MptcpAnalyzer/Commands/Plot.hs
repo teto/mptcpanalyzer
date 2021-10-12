@@ -156,7 +156,6 @@ readIP :: ReadM IP
 readIP = eitherReader $ \arg -> case decode $ T.pack arg of
     Just ip -> Right ip
     _otherwise -> Left $ "Could not decode ip " ++ arg
-  -- _ -> Left $ "readID: cannot parse value `" ++ arg ++ "`"
 
 parserConnection :: Parser TcpConnection
 parserConnection = TcpConnection <$> 
@@ -166,15 +165,6 @@ parserConnection = TcpConnection <$>
   <*> argument auto (metavar "SERVER_PORT" <> help "Server port")
   -- Stream id wont be used anyway
   <*> pure (StreamId 0)
-
-  -- pure (TcpConnection
-  -- (fromIPv4 localhost)
-  -- (fromIPv4 localhost)
-  -- 16
-  -- 16
-  -- (StreamId 0))
-  -- <*>
-  -- pure Nothing
   -- <*> strArgument ( metavar "interface" <> help "interface to monitor")
 
 parserPlotTcpLive :: Parser CommandArgs
@@ -274,12 +264,14 @@ plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
       <*> argument (validateField _validAttributes) (
           metavar "TCP_ATTR"
           <> help "A TCP attr in the list: "
+          <> completeWith _validAttributes
       )
       -- TODO ? if nothing prints both directions
       <*> optional (argument readConnectionRole (
           metavar "Destination"
         -- <> Options.Applicative.value RoleServer
         <> help "Only show in a specific direction"
+        <> completeWith _validAttributes
       ))
       -- <*> option auto (
       --     metavar "MPTCP"

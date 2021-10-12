@@ -37,8 +37,8 @@ import Data.Maybe (isNothing)
 
 import Net.Mptcp.Connection (MptcpConnection (MptcpConnection))
 import Net.Mptcp (MptcpUnidirectionalStats)
-import Control.Monad.State (StateT, modify')
-import MptcpAnalyzer (FrameFiltered)
+import Control.Monad.State (StateT, modify', gets)
+import MptcpAnalyzer (FrameFiltered (ffFrame))
 import Net.Tcp (TcpConnection)
 
 -- --         +--------+-- A 'Producer' that yields 'String's
@@ -89,8 +89,6 @@ pipeTableEitherOpt' opts = do
   P.map (readRow opts)
 
 
-
-
 -- produceFrameChunks
 -- inCoreAoS
 -- --capture-comment
@@ -101,12 +99,16 @@ tsharkLoop hout = do
   ls <- for (tsharkProducer hout) $ \(x) -> do
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
-      (frame ::  FrameRec HostCols) <- liftIO $ inCoreAoS (yield x >-> pipeTableEitherOpt' popts >-> P.map fromEither )
+      (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield x >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
       liftIO $ putStrLn $ "test: " ++  T.unpack x
       liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
-      liftIO $ putStrLn $ "length " ++ show ( frameLength frame)
-      modify' (\stats -> stats {  lsPackets = lsPackets stats + 1})
+      modify' (\stats -> stats { 
+        lsPackets = lsPackets stats + 1,
+        lsFrame = (lsFrame stats)  <> frame
+        })
+      stFrame <- gets lsFrame
+      liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
       -- lift $ print liveStats
 
   pure ls
@@ -133,7 +135,7 @@ data LiveStats = LiveStats {
   lsStats :: MptcpUnidirectionalStats
   , lsPackets :: Int
   -- , lsFrame :: FrameFiltered TcpConnection Packet
-  , lsFrame :: FrameFiltered TcpConnection Packet
+  , lsFrame :: FrameRec HostCols
   }
 
 

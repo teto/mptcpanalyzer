@@ -40,10 +40,17 @@ data ArgsPlots =
 
     -- actually valid for MPTCP too
     -- | Expects a filename/streamId attr and maybe destination
-    ArgsPlotTcpAttr FilePath Word32 String (Maybe ConnectionRole)
+    ArgsPlotTcpAttr
+        FilePath -- ^ The pcap file to load
+        Word32
+        String   -- ^ The parameter to plot (e.g., "seq", "ack")
+        (Maybe ConnectionRole)
     -- |
     -- @pcap1 pcap2 stream1 stream2 destinations whether its tcp or mptcp
     | ArgsPlotOwdTcp (PcapMapping Tcp) (Maybe ConnectionRole)
     | ArgsPlotOwdMptcp (PcapMapping Mptcp) (Maybe ConnectionRole)
     -- Maybe filename
-    | ArgsPlotLiveTcp TcpConnection (Maybe FilePath) (Maybe ConnectionRole) String -- ^Interface name
+    | ArgsPlotLiveTcp TcpConnection   -- ^the connection to filter
+                      (Maybe FilePath) -- ^a pcap file used to test, when set, ignore interface name
+                      (Maybe ConnectionRole) -- % to filter destination
+                      String -- ^Interface name

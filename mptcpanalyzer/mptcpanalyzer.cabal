@@ -10,10 +10,24 @@ Category:   Network
 Synopsis: A Multipath TCP analyzer
 Homepage:   https://github.com/teto/quantum
 Description:
-  Multipath TCP (www.multipath-tcp.org) protocol analyzer. This software can
-  automatically plot MPTCP characteristics such as Data Sequence Numbers, Data Acknowledgements etc.
+  __mptcpanalyzer__ is a multipath TCP (www.multipath-tcp.org) protocol analyzer.
+  Multipath TCP is an extension of the Transmission Control Protocol that allows applications to send
+  one single stream of data over multiple TCP connections.
+
+  This software can automatically plot MPTCP characteristics such as Data Sequence Numbers, Data Acknowledgements etc.
   It can also map one packet capture to another to give more detailed statistics such
   as One-Way delays and reinjection qualifications.
+  * list the MPTCP connections in the pcap
+  * display chosen statistics on a specific MPTCP connection (list of subflows, number of reinjections, etc)
+  * convert packet capture files (\*.pcap) to \*.csv files
+  * plot data sequence numbers, dataacks for all subflows
+  * can map packets between the client and server pcaps to plot one-way delays
+    -- |prog| looks for files in certain directories. will try to load your configuration from `$XDG_CONFIG_HOME/mptcpanalyzer/config`
+  -- TODO restore
+  -- * caching mechanism: mptcpanalyzer compares your pcap creation time and will
+    -- regenerate the cache if it exists in `$XDG_CACHE_HOME/mptcpanalyzer/<path_to_the_file>`
+extra-doc-files:     CHANGELOG.md
+                     README.md
 
 extra-source-files:
   README.md CHANGELOG
