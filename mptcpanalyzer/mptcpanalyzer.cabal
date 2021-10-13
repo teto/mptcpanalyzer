@@ -55,56 +55,46 @@ Flag Dev {
 -- http://hackage.haskell.org/package/bitset-1.4.8/docs/Data-BitSet-Word.html
 common shared-properties
     build-depends: base >= 4.12
-      , optparse-applicative
+      , Cabal
+      , Chart >= 1.5
+      , Chart-cairo
+      , Frames
+      , bytestring
       , byteunits
-      , containers
       , cereal
-      -- polysemybased logger
+      , containers
+      , directory
+      , doctest
+      , filepath
+      , foldl
+      , formatting
+      , hashable
+      , haskeline >= 0.8.0.0
+      , ip
+      , lens
+      , mptcp-pm >= 0.0.3
+      , mtl
+      , optparse-applicative
+      , pipes
+      , pipes-parse
+      , pipes-safe
+      , polysemy
       , polysemy-log >= 0.2.2.4
       , polysemy-log-co
-      , formatting
+      , process
       , readable
-      , polysemy
-      , hashable
-      , bytestring
-      , ip
+      , template-haskell
+      , temporary
+      , text
+      , time
+      , unix
       , utf8-string
-      -- for liftIO
-       , mtl
-       , template-haskell
-       -- , ghc-prim
-       -- for L.nub / L.fold
-       , foldl
-       , text
-       -- microlens taken from Frames
-       -- , microlens
-       , lens
-       , pipes
-       , process
-       -- to create temp folder/files
-       , temporary
-       -- , singletons
-       , filepath
-       -- , repline
-       , Frames
-       -- could be interesting in the future
-        -- , Frames-map-reduce
-       , Cabal
-       , directory
-       , vinyl
-       , vector
-       , haskeline >= 0.8.0.0
-       , mptcp-pm >= 0.0.3
-       , pipes-safe
-       , pipes-parse
-
-       -- for plotting that's what is used in Frames
-       , Chart >= 1.5
-       -- , Chart-diagrams >= 1.5
-       , Chart-cairo
-       , wide-word
-       , time
-       , unix
+      , vector
+      , vinyl
+      , wide-word
+      -- , Chart-diagrams >= 1.5
+      -- for plotting that's what is used in Frames
+      -- polysemybased logger
     default-language: Haskell2010
     -- -fno-warn-unused-imports
     -- -fforce-recomp  makes it build twice
@@ -115,9 +105,9 @@ common shared-properties
     if flag(Dev)
         ghc-options:
           -fprof-auto
-          -ddump-splices
-          -ddump-to-file
-          -ddump-timings
+          -- -ddump-splices
+          -- -ddump-to-file
+          -- -ddump-timings
           -Wno-unused-imports
         -- build-depends: polysemy-plugin
           -fno-warn-unused-binds
@@ -270,6 +260,20 @@ Test-Suite test
   -- 2 types supported, exitcode is based on ... exit codes ....
   type:               exitcode-stdio-1.0
   main-is:            PcapSpec.hs
+  hs-source-dirs:     tests
+  -- Other-modules:     Pcap, Columns
+  default-language: Haskell2010
+
+  build-depends:      base >=4.12 && <4.20
+                     , HUnit
+                     , hspec
+                     , QuickCheck
+                     , libmptcpanalyzer
+
+Test-Suite stats
+  -- 2 types supported, exitcode is based on ... exit codes ....
+  type:               exitcode-stdio-1.0
+  main-is:            StatsSpec.hs
   hs-source-dirs:     tests
   -- Other-modules:     Pcap, Columns
   default-language: Haskell2010

@@ -8,17 +8,20 @@ WIRESHARK_CONFIG_DIR'
 
 -}
 module Tshark.Main (
-  TsharkParams(csvDelimiter)
+  TsharkParams(csvDelimiter, tsharkReadFilter)
   , generateCsvCommand
   , defaultTsharkPrefs
-    , defaultTsharkOptions
-
+  , defaultTsharkOptions
+  , genReadFilterFromTcpConnection
 )
 where
 
 import qualified Data.Text as T
 import System.Process
 import           Data.List                      (intercalate)
+import Net.Tcp (TcpConnection(..))
+import MptcpAnalyzer.ArtificialFields (ConnectionRole)
+import qualified Net.IP
 
 -- http://acowley.github.io/Frames/#orgf328b25
 defaultTsharkOptions :: [(String, String)]
@@ -43,6 +46,31 @@ defaultTsharkPrefs = TsharkParams {
       , tsharkReadFilter = Just "mptcp or tcp and not icmp"
       , tsharkProfile = Nothing
     }
+
+showIP :: Net.IP.IP -> String
+showIP = T.unpack . Net.IP.encode
+
+-- |Create a tshark read filter from a 'TcpConnection'
+-- >>> let x = 4
+-- 4
+genReadFilterFromTcpConnection ::
+  TcpConnection
+  -> Maybe ConnectionRole   -- ^If we care about direction (ignored for now)
+  -> String
+genReadFilterFromTcpConnection con dest =
+  case dest of
+    Just x -> error "not implemented"
+      -- TODO should depend on destination
+      -- "ip.src==" ++ (show . conTcpClientIp) con ++ "ip.dst==" ++ (show . conTcpServerIp) con
+      --   ++ " tcp.srcport==" ++ show (conTcpSou con) ++ " and tcp.dstport==" ++ show (conTcpClientPort con)
+
+        -- error "not implemented"
+    _ -> "tcp and ip.addr==" ++ (showIP . conTcpClientIp) con ++ " and ip.addr==" ++ (showIP . conTcpServerIp) con 
+        ++ " tcp.port==" ++ show (conTcpServerPort con) ++ " and tcp.port==" ++ show (conTcpClientPort con)
+
+-- |Create a tshark read filter from a 'MptcpConnection'
+-- genReadFilterFromMptcpConnection :: MptcpConnection -> String
+-- genReadFilterFromMptcpConnection con =
 
 
 
