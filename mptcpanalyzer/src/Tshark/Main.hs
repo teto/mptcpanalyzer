@@ -51,8 +51,6 @@ showIP :: Net.IP.IP -> String
 showIP = T.unpack . Net.IP.encode
 
 -- |Create a tshark read filter from a 'TcpConnection'
--- >>> let x = 4
--- 4
 genReadFilterFromTcpConnection ::
   TcpConnection
   -> Maybe ConnectionRole   -- ^If we care about direction (ignored for now)

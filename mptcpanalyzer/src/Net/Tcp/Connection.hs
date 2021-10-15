@@ -25,8 +25,6 @@ tshow :: Show a => a -> TS.Text
 tshow = TS.pack . Prelude.show
 
 -- | Pretty print
--- >>> con = TcpConnection
--- >>> showTcpConnectionText
 showTcpConnectionText :: TcpConnection -> Text
 showTcpConnectionText con =
   showIp (conTcpClientIp con) <> ":" <> tshow (conTcpClientPort con) <> " -> "

@@ -168,6 +168,9 @@ import qualified Polysemy.State as P
 import qualified Polysemy.Embed as P
 import qualified Polysemy.Internal as P
 import qualified Polysemy.Trace as P
+import Polysemy.Log (Log)
+import qualified Polysemy.Log as Log
+import Polysemy.Log.Colog (interpretLogStdout)
 import Polysemy.Trace (trace)
 import System.FilePath
 import System.Directory
@@ -205,9 +208,6 @@ import Frames (recMaybe, Frame, Record)
 import Frames as F
 -- withOpenFile
 import System.IO (openFile, stderr)
-import Polysemy.Log (Log)
-import qualified Polysemy.Log as Log
-import Polysemy.Log.Colog (interpretLogStdout)
 import Tshark.Fields (baseFields, TsharkFieldDesc (tfieldFullname))
 import GHC.IO.Handle
 import GHC.Conc (forkIO)

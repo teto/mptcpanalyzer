@@ -1,26 +1,22 @@
-module PcapSpec where
+module Main where
 -- import           Test.Tasty
 -- import           Test.Tasty.HUnit
 import           Test.Hspec
 import           Test.QuickCheck                    hiding (Success)
 import           MptcpAnalyzer.Pcap
+import           Tshark.Main
+import           Net.Tcp.Connection
+import           Net.IP
+import Net.IPv4 (localhost)
+import MptcpAnalyzer.Stream
 
 
+
+exampleTcpConnection :: TcpConnection
+exampleTcpConnection = TcpConnection (fromIPv4 localhost) (fromIPv4 localhost) 24 42 (StreamId 0)
 
 main :: IO ()
 main = hspec $ do
   describe "absolute" $ do
-    it "returns the original number when given a positive input" $
-      numberToTcpFlags 2 `shouldBe` [TcpFlagSyn]
-      -- numberToTcpFlags 8 `shouldBe` [TcpFlagAck]
-      -- numberToTcpFlags 10 `shouldBe` [TcpFlagAck, TcpFlagSyn]
-
--- spec :: Spec
--- spec = do
---   describe "JSON bi-directional conversion" $ do
---     it "ResType"      . property $ (propJSON :: ResType -> Property)
---     it "ExtraInfo"    . property $ (propJSON :: ExtraInfo -> Property)
---     it "ResVals"      . property $ (propJSON :: ResVals -> Property)
---     it "OneRes"       . property $ (propJSON :: OneResIDU -> Property)
---     it "SolverResult" . property $ (propJSON :: SolverResult -> Property)
---     it "ModelResult"  . property $ (propJSON :: ModelResult -> Property)
+    it "Generate the correct tshark filter" $
+      genReadFilterFromTcpConnection exampleTcpConnection Nothing `shouldBe` "tcp and ip.addr==127.0.0.1 and ip.addr==127.0.0.1 and tcp.port==42 and tcp.port==24"

@@ -17,12 +17,14 @@ import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import Debug.Trace
 
+-- | Opens several subflows on each interface
 ndiffports :: PathManager
 ndiffports = PathManager {
   name = "ndiffports"
   , onMasterEstablishement = nportsOnMasterEstablishement
 }
 
+-- | Creates a subflow between each pair of (client, server) interfaces
 meshPathManager :: PathManager
 meshPathManager = PathManager {
   name = "mesh"
