@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-
 Module:  StatsSpec
 Description :  Description
@@ -28,6 +29,10 @@ import Polysemy.Log.Colog (interpretLogStdout)
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Types
 import Net.Tcp
+import Tshark.Main (defaultTsharkPrefs)
+import Frames
+import Data.Either (fromRight)
+import MptcpAnalyzer.Stream
 
 -- import           MptcpAnalyzer.Stats
 
@@ -64,11 +69,20 @@ splitAFrame aframe chunkSize  =
 
 runTests :: (Members '[P.Embed IO, Log , Cache] r) => Sem r ()
 runTests = do
-  -- frame1 <- loadPcapIntoFrame defaultTsharkPrefs "examples/client_2_cleaned.pcapng"
+  -- :: Either String (Frame Packet)
+  frame1 <- loadPcapIntoFrame defaultTsharkPrefs "examples/client_2_cleaned.pcapng"
 
-  -- let aframe = case buildFrameFromStreamId (fromRight undefined frame1) (StreamId 0) of
-  --   Left err -> error err
-  --   Right aframe -> aframe
+  (aframe :: FrameFiltered TcpConnection Packet) <- case buildFrameFromStreamId (fromRight (error "should not happen") frame1) (StreamId 0) of
+    Left err -> error err
+    Right aframe -> return aframe
+
+  -- TODO run hspec and check FrameLength is the same ?
+  -- check stats over the whole file
+  P.embed $ hspec $ do
+    describe "absolute" $ do
+      it "Check generated stats" $
+        pendingWith "test"
+
   return ()
 
   -- hspec $ do

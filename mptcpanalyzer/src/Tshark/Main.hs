@@ -64,7 +64,7 @@ genReadFilterFromTcpConnection con dest =
 
         -- error "not implemented"
     _ -> "tcp and ip.addr==" ++ (showIP . conTcpClientIp) con ++ " and ip.addr==" ++ (showIP . conTcpServerIp) con 
-        ++ " tcp.port==" ++ show (conTcpServerPort con) ++ " and tcp.port==" ++ show (conTcpClientPort con)
+        ++ " and tcp.port==" ++ show (conTcpServerPort con) ++ " and tcp.port==" ++ show (conTcpClientPort con)
 
 -- |Create a tshark read filter from a 'MptcpConnection'
 -- genReadFilterFromMptcpConnection :: MptcpConnection -> String

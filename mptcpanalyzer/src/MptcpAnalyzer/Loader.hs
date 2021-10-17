@@ -57,7 +57,11 @@ loadPcapIntoFrame params path = do
       Left err -> do
           Log.debug $ "cache miss: " <> tshow  err
           Log.debug "Calling tshark"
-          (tempPath , exitCode, stdErr) <- liftIO $ withTempFileEx opts "/tmp" "mptcp.csv" (exportToCsv params path)
+          (tempPath , exitCode, stdErr) <- liftIO $ do
+            withTempFileEx opts "/tmp" "mptcp.csv" $ \tmpPath handle -> do
+                (exitCode, herr) <- exportToCsv params path handle
+                return (tmpPath, exitCode, herr)
+
           if exitCode == ExitSuccess
               then do
                 Log.debug $ "exported to file " <> tshow tempPath

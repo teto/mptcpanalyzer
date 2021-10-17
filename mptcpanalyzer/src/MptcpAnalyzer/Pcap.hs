@@ -52,7 +52,7 @@ where
 import           MptcpAnalyzer.ArtificialFields
 import           MptcpAnalyzer.Stream
 import           MptcpAnalyzer.Types
-import           Net.Mptcp
+import           Net.Mptcp.Connection
 import           Net.Tcp
 import           "mptcp-pm" Net.Tcp             (TcpFlag (..))
 import           Tshark.Fields
@@ -149,21 +149,18 @@ getMptcpStreams ps = L.fold L.nub $ catMaybes $ F.toList (view mptcpStream <$> p
 
 
 
--- TODO need to override '' = tempfile.gettempdir()
 {- Export to CSV
 sets WIRESHARK_CONFIG_DIR so that the user profile doesn't influence the output
 -}
 exportToCsv ::
   TsharkParams
   -> FilePath  -- ^Path to the pcap
-  -> FilePath -- ^ temporary file
   -> Handle -- ^ temporary file
 -- ^See haskell:readCreateProcessWithExitCode
-  -> IO (FilePath, ExitCode, String)
-exportToCsv params pcapPath tempPath tmpFileHandle = do
+  -> IO (ExitCode, String)
+exportToCsv params pcapPath tmpFileHandle = do
     curEnv <- getEnvironment
     withSystemTempFile "tshark-profile" $ \tempDir _ -> do
-      -- 
       let
           (RawCommand bin args) = generateCsvCommand fields (Right pcapPath) (params )
           createProc :: CreateProcess
@@ -175,7 +172,6 @@ exportToCsv params pcapPath tempPath tmpFileHandle = do
               }
       putStrLn $ "Exporting fields " ++ show fields
       putStrLn $ "Command run: " ++ show (RawCommand bin args)
-      -- TODO write header
       -- TODO redirect stdout towards the out handle
       hSetBuffering tmpFileHandle LineBuffering
       hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
@@ -183,7 +179,7 @@ exportToCsv params pcapPath tempPath tmpFileHandle = do
       exitCode <- waitForProcess ph
       -- TODO do it only in case of error ?
       err <- hGetContents herr
-      return (tempPath, exitCode, err)
+      return (exitCode, err)
     where
       fields :: [T.Text]
       fields = Map.elems $ Map.map tfieldFullname baseFields

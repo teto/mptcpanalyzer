@@ -27,8 +27,8 @@ import "mptcp-pm" Net.Tcp (TcpFlag(..))
 import Net.Bitset (fromBitMask, toBitMask)
 import Net.IP
 import Net.IPv6 (IPv6(..))
-import "this" Net.Tcp
-import "this" Net.Mptcp
+-- import "this" Net.Tcp 
+-- import "this" Net.Mptcp
 
 import Data.Hashable
 import qualified Data.Hashable as Hash
@@ -182,8 +182,10 @@ data FrameFiltered a rs = FrameTcp {
     , ffFrame :: Frame rs
   } deriving Functor
 
+
 aframeLength :: FrameFiltered a rs -> Int
 aframeLength = frameLength . ffFrame
+
 
 -- data FrameMerged = FrameMerged {
 --     ffCon :: !Connection

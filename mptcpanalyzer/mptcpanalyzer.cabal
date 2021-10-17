@@ -273,6 +273,7 @@ Test-Suite test
   default-language: Haskell2010
 
   build-depends:      base >=4.12 && <4.20
+                    , Cabal
                      , HUnit
                      , hspec
                      , QuickCheck
