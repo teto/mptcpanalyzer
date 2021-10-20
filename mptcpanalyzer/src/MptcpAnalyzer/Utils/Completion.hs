@@ -22,14 +22,14 @@ import Options.Applicative
 import System.Console.Haskeline (CompletionFunc, completeFilename, noCompletion, Completion(..))
 import System.Console.Haskeline.Completion (listFiles)
 import Options.Applicative.Types
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, stripPrefix)
 import Debug.Trace
 import Options.Applicative.Help (Doc)
 import Options.Applicative.Help.Pretty (displayS)
 import Options.Applicative.Help (renderPretty)
-import Data.Maybe (fromMaybe, listToMaybe)
+import Data.Maybe (fromMaybe, listToMaybe, fromJust)
 import Options.Applicative.Common
-import Options.Applicative.Internal
+import Options.Applicative.Internal hiding (Completion)
 import Options.Applicative.Help.Chunk
 -- import Options.Applicative.Help (parserHelp)
 
@@ -53,16 +53,18 @@ data Richness
   deriving (Eq, Ord, Show)
 
 
-haskelineCompletionQuery :: ParserInfo a -> ParserPrefs -> Richness -> [String] -> Int -> String -> IO [String]
-haskelineCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl pprefs of
-  Just (Left (SomeParser p, a))
-    -> list_options a p
-  Just (Right c)
-    -> run_completer c
-  Nothing
-    -> return []
+-- TODO make it so that it returns [Completion] instead
+haskelineCompletionQuery :: ParserInfo a -> ParserPrefs -> Richness -> [String] -> Int -> String -> IO [Completion]
+haskelineCompletionQuery pinfo pprefs richness ws i rest = case runCompletion compl pprefs of
+  -- keep parsing
+  Just (Left (SomeParser p, a)) -> list_options a p
+  -- terminal case
+  Just (Right c) -> run_completer c
+  Nothing -> return []
   where
-    compl = runParserInfo pinfo (drop 1 ws')
+    --current word
+    -- runParserInfo te renvoie une (Completion a)
+    compl = trace ("runCompleter: ws=" ++ show ws ++ " i=" ++ show i ++ "ws''= " ++ show ws'' ++ " rest=" ++ show rest) runParserInfo pinfo (traceShowId (drop 1 ws'))
 
     list_options a
       = fmap concat
@@ -80,6 +82,7 @@ haskelineCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl
     --
     -- For options and flags, ensure that the user
     -- hasn't disabled them with `--`.
+    -- opt_completions :: ArgPolicy -> ArgumentReachability -> Option a -> m [Completion]
     opt_completions argPolicy reachability opt = case optMain opt of
       OptReader ns _ _
          | argPolicy /= AllPositionals -> return . add_opt_help opt $ show_names ns
@@ -88,35 +91,40 @@ haskelineCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl
          | argPolicy /= AllPositionals -> return . add_opt_help opt $ show_names ns
          | otherwise -> return []
       ArgReader rdr
-         | argumentIsUnreachable reachability
-        -> return []
-         | otherwise
-        -> run_completer (crCompleter rdr)
+         | argumentIsUnreachable reachability -> return []
+         -- TODO restore arg Reader with file autocomplete
+         | otherwise -> return []
+         -- otherwise -> run_completer (crCompleter rdr)
+         -- >>= \x -> return $ Completion x "argreader help" True
       CmdReader _ ns p
          | argumentIsUnreachable reachability -> return []
          | otherwise -> return . add_cmd_help p $ filter_names ns
 
     -- When doing enriched completions, add any help specified
     -- to the completion variables (tab separated).
-    add_opt_help :: Functor f => Option a -> f String -> f String
+    add_opt_help :: Functor f => Option a -> f String -> f Completion
     add_opt_help opt = case richness of
-      Standard ->
-        id
-      Enriched len _ ->
+      -- Standard -> id
+      -- Enriched len _ ->
+      _ ->
         fmap $ \o ->
           let h = unChunk $ optHelp opt
-          in  maybe o (\h' -> o ++ "\t" ++ render_line len h') h
+              len = 80
+          in  maybe (Completion o "option help" True) (\h' -> Completion o (o ++ "\t" ++ render_line len h' ) False) h
 
     -- When doing enriched completions, add the command description
     -- to the completion variables (tab separated).
-    add_cmd_help :: Functor f => (String -> Maybe (ParserInfo a)) -> f String -> f String
+    add_cmd_help :: Functor f => (String -> Maybe (ParserInfo a)) -> f String -> f Completion
     add_cmd_help p = case richness of
-      Standard ->
-        id
-      Enriched _ len ->
-        fmap $ \cmd ->
-          let h = p cmd >>= unChunk . infoProgDesc
-          in  maybe cmd (\h' -> cmd ++ "\t" ++ render_line len h') h
+      -- Standard -> id
+      -- Enriched _ len ->
+      _ ->
+        fmap $ \cmd -> let
+            len = 80
+            h = p cmd >>= unChunk . infoProgDesc
+          in
+            -- if there is a parser info we add help
+            maybe (Completion cmd "cmd help" True) (\h' -> Completion cmd (cmd ++ "\t" ++ render_line len h') False) h
 
     show_names :: [OptName] -> [String]
     show_names = filter_names . map showOption
@@ -133,17 +141,18 @@ haskelineCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl
     filter_names :: [String] -> [String]
     filter_names = filter is_completion
 
-    run_completer :: Completer -> IO [String]
-    run_completer c = runCompleter c (fromMaybe "" (listToMaybe ws''))
+    run_completer :: Completer -> IO [Completion]
+    run_completer c = runCompleter c (fromMaybe "" (listToMaybe ws'')) >>= \x -> return $ map (\y -> Completion y "TODO help" True) x
 
     (ws', ws'') = splitAt i ws
 
     is_completion :: String -> Bool
-    is_completion =
-      case ws'' of
-        w:_ -> isPrefixOf w
-        _ -> const True
+    is_completion = 
+      case trace ("comparing ws''" ++ show ws'' ) ws'' of
+        w:_ -> trace ("checking if " ++ w ++ " is a prefix of ") isPrefixOf w
+        _ -> trace "is_completion=true" const False
 
+-- The output String is the unused portion of the left half of the line, reversed.
 -- type CompletionFunc m = (String, String) -> m (String, [Completion]
 -- haskeline System.Console.Haskeline.Completion
 -- Performs completions from the given line state. The first String argument is the
@@ -154,9 +163,10 @@ generateHaskelineCompleterFromParserInfo :: ParserPrefs -> ParserInfo a -> Compl
 generateHaskelineCompleterFromParserInfo parserPrefs pinfo = 
   \(rleft, right) -> 
   let
-    args = words $ reverse rleft
+    leftArgs = words $ reverse rleft
     fullArgs = words $ reverse rleft ++ right
-    parserResult = trace ("\nParsing args " ++ reverse rleft ++ "\n") execParserPure parserPrefs pinfo args
+    currentWord = last leftArgs
+    parserResult = trace ("\nParsing args " ++ reverse rleft ++ "\n") execParserPure parserPrefs pinfo leftArgs
   in do
     -- case parserResult of
     --   -- TODO convert the optparse applicative completer into an haskeline one !!
@@ -167,9 +177,17 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
     --       trace "autocomplete failure" completeFilename (rleft, right)
     --   _ ->  trace "no completion" (noCompletion (rleft, right))
 
-    candidates <- haskelineCompletionQuery pinfo parserPrefs Standard fullArgs (length args) ""
+    -- TODO restore length
+    candidates <- haskelineCompletionQuery pinfo parserPrefs Standard fullArgs (0) ""
+    putStrLn $ "Returned candidates : " ++ show candidates
     -- now onto converting candidates
-    pure (rleft, map (\x -> System.Console.Haskeline.Completion x x False) candidates)
+    -- TODO stripper le commonPrefix
+    -- map (\x -> System.Console.Haskeline.Completion x x False)
+    pure ("",  map (
+      id
+      -- \x -> x { replacement = fromMaybe "error" (stripPrefix currentWord (display x)) }
+      )
+      candidates)
 
 -- generateHaskelineCompleterFromParserInfo = haskelineCompletionQuery
 -- generateHaskelineCompleterFromParser pprefs (infoParser pinfo)

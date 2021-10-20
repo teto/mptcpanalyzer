@@ -254,6 +254,8 @@ benchmark map-stream
   build-depends:
       base
       , Frames
+      -- criterion depends on optparse-applicative so be careful
+      -- to rely on 0.16.1 fork (master has breaking changes)
       , criterion
       , mptcpanalyzer:mptcpanalyzer
       , polysemy

@@ -22,4 +22,6 @@ benchmarks: True
 packages:
   ../mptcp-pm/
    ./*.cabal
+  ../../optparse-applicative
+
   -- ../Frames
