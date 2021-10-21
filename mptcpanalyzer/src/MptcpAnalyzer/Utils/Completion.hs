@@ -53,9 +53,16 @@ data Richness
   deriving (Eq, Ord, Show)
 
 
+-- drop 1 was for progname ?
 -- TODO make it so that it returns [Completion] instead
-haskelineCompletionQuery :: ParserInfo a -> ParserPrefs -> Richness -> [String] -> Int -> String -> IO [Completion]
-haskelineCompletionQuery pinfo pprefs richness ws i rest = case runCompletion compl pprefs of
+-- runParser and runParserStep
+haskelineCompletionQuery :: ParserInfo a -> ParserPrefs
+  -> [String]
+  -- ^ words , Should be Args ?
+  -> Int
+  -- ^ current word (to remove ?)
+  -> String -> IO [Completion]
+haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl pprefs of
   -- keep parsing
   Just (Left (SomeParser p, a)) -> list_options a p
   -- terminal case
@@ -64,7 +71,10 @@ haskelineCompletionQuery pinfo pprefs richness ws i rest = case runCompletion co
   where
     --current word
     -- runParserInfo te renvoie une (Completion a)
-    compl = trace ("runCompleter: ws=" ++ show ws ++ " i=" ++ show i ++ "ws''= " ++ show ws'' ++ " rest=" ++ show rest) runParserInfo pinfo (traceShowId (drop 1 ws'))
+    -- drop 1 looks necesary here ?
+    compl = runParserInfo pinfo (traceShowId (drop 1 leftArgs))
+      -- trace ("runCompleter: ws=" ++ show ws ++ " i=" ++ show i ++ "ws''= " ++ show ws'' ++ " rest=" ++ show rest)
+      
 
     list_options a
       = fmap concat
@@ -161,7 +171,7 @@ haskelineCompletionQuery pinfo pprefs richness ws i rest = case runCompletion co
 --  String is the unused portion of the left half of the line, reversed
 generateHaskelineCompleterFromParserInfo :: ParserPrefs -> ParserInfo a -> CompletionFunc IO
 generateHaskelineCompleterFromParserInfo parserPrefs pinfo = 
-  \(rleft, right) -> 
+  \(rleft, right) ->
   let
     leftArgs = words $ reverse rleft
     fullArgs = words $ reverse rleft ++ right
@@ -178,7 +188,7 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
     --   _ ->  trace "no completion" (noCompletion (rleft, right))
 
     -- TODO restore length
-    candidates <- haskelineCompletionQuery pinfo parserPrefs Standard fullArgs (0) ""
+    candidates <- haskelineCompletionQuery pinfo parserPrefs (traceShowId fullArgs) (0) ""
     putStrLn $ "Returned candidates : " ++ show candidates
     -- now onto converting candidates
     -- TODO stripper le commonPrefix
