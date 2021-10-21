@@ -72,7 +72,7 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
     --current word
     -- runParserInfo te renvoie une (Completion a)
     -- drop 1 looks necesary here ?
-    compl = runParserInfo pinfo (traceShowId (drop 1 leftArgs))
+    compl = runParserInfo pinfo (traceShowId (drop 1 ws))
       -- trace ("runCompleter: ws=" ++ show ws ++ " i=" ++ show i ++ "ws''= " ++ show ws'' ++ " rest=" ++ show rest)
       
 
@@ -113,11 +113,7 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
     -- When doing enriched completions, add any help specified
     -- to the completion variables (tab separated).
     add_opt_help :: Functor f => Option a -> f String -> f Completion
-    add_opt_help opt = case richness of
-      -- Standard -> id
-      -- Enriched len _ ->
-      _ ->
-        fmap $ \o ->
+    add_opt_help opt = fmap $ \o ->
           let h = unChunk $ optHelp opt
               len = 80
           in  maybe (Completion o "option help" True) (\h' -> Completion o (o ++ "\t" ++ render_line len h' ) False) h
@@ -125,11 +121,7 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
     -- When doing enriched completions, add the command description
     -- to the completion variables (tab separated).
     add_cmd_help :: Functor f => (String -> Maybe (ParserInfo a)) -> f String -> f Completion
-    add_cmd_help p = case richness of
-      -- Standard -> id
-      -- Enriched _ len ->
-      _ ->
-        fmap $ \cmd -> let
+    add_cmd_help p = fmap $ \cmd -> let
             len = 80
             h = p cmd >>= unChunk . infoProgDesc
           in
