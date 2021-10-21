@@ -141,18 +141,22 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
       x : _ -> x ++ "..."
 
     filter_names :: [String] -> [String]
-    filter_names = filter is_completion
+    filter_names = filter (isPrefixOf currentArg)
 
     run_completer :: Completer -> IO [Completion]
-    run_completer c = runCompleter c (fromMaybe "" (listToMaybe ws'')) >>= \x -> return $ map (\y -> Completion y "TODO help" True) x
+    run_completer c = runCompleter c (fromMaybe "" (listToMaybe [currentArg])) >>= \x -> return $ map (\y -> Completion y "TODO help" True) x
 
-    (ws', ws'') = splitAt i ws
+    currentArg :: String
+    currentArg = case ws of
+      [] -> ""
+      ws' -> last ws'
+    -- (ws', ws'') = splitAt i ws
 
-    is_completion :: String -> Bool
-    is_completion = 
-      case trace ("comparing ws''" ++ show ws'' ) ws'' of
-        w:_ -> trace ("checking if " ++ w ++ " is a prefix of ") isPrefixOf w
-        _ -> trace "is_completion=true" const False
+    -- is_completion :: String -> Bool
+    -- is_completion = 
+    --   case trace ("comparing ws''" ++ show ws'' ) ws'' of
+    --     w:_ -> trace ("checking if " ++ w ++ " is a prefix of ") isPrefixOf w
+    --     _ -> trace "is_completion=true" const False
 
 -- The output String is the unused portion of the left half of the line, reversed.
 -- type CompletionFunc m = (String, String) -> m (String, [Completion]
