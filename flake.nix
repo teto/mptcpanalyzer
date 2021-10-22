@@ -105,25 +105,20 @@
           name = "mptcpanalyzer";
           returnShellEnv = true;
           withHoogle = true;
-          overrides = hold: hnew: (haskellOverlay hold hnew) // { mptcp-pm = self.packages."${system}".mptcp-pm; };
+          overrides = hold: hnew: (haskellOverlay hold hnew) // {
+            mptcp-pm = self.packages."${system}".mptcp-pm;
+          };
           modifier = myModifier;
         };
       };
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
 
-      devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
-
-        shellHook = ''
-          exe=$(cabal list-bin exe:mptcpanalyzer)
-          export PATH="$(dirname $exe):$PATH"
-        '';
-      });
-
-      #   shellHook = ''
-      #     exe=$(cabal list-bin exe:mptcpanalyzer)
-      #     export PATH="$(dirname $exe):$PATH"
-      #   '';
-      # };
+      # devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
+      #  # shellHook = ''
+      #   #   # exe=$(cabal list-bin exe:mptcpanalyzer)
+      #   #   # export PATH="$(dirname $exe):$PATH"
+      #   # '';
+      # });
     });
 }

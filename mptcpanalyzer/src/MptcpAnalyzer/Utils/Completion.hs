@@ -170,7 +170,8 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
   \(rleft, right) ->
   let
     leftArgs = words $ reverse rleft
-    fullArgs = words $ reverse rleft ++ right
+    fullArgs = reverse rleft ++ right
+    fullArgs' = words fullArgs ++ when (isSpace last fullArgs) []
     currentWord = last leftArgs
     parserResult = trace ("\nParsing args " ++ reverse rleft ++ "\n") execParserPure parserPrefs pinfo leftArgs
   in do
