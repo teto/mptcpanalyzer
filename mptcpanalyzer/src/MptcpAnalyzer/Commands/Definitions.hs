@@ -28,7 +28,7 @@ data CommandMapPcap = CommandMapPcap {
 -- | Registered commands
 -- TODO make it possible to add some from a plugin
 data CommandArgs =
-    ArgsLoadCsv FilePath
+    ArgsLoadCsv FilePath Bool
     | ArgsHelp
     | ArgsQuit
     | ArgsLoadPcap FilePath

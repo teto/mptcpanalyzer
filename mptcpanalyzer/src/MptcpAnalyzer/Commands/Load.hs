@@ -3,43 +3,57 @@ Module: MptcpAnalyzer.Commands.Load
 Maintainer  : matt
 License     : GPL-3
 -}
-{-# LANGUAGE DataKinds, FlexibleContexts, QuasiQuotes, TemplateHaskell #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeApplications  #-}
 module MptcpAnalyzer.Commands.Load (
   cmdLoadCsv
   , piLoadCsv
   , piLoadPcapOpts
 )
 where
-import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Commands.Definitions as CMD
-import MptcpAnalyzer.Loader
-import MptcpAnalyzer.Cache
-import MptcpAnalyzer.Types
+import           MptcpAnalyzer.Cache
+import           MptcpAnalyzer.Commands.Definitions as CMD
+import           MptcpAnalyzer.Loader
+import           MptcpAnalyzer.Pcap
+import           MptcpAnalyzer.Types
 -- import Control.Lens hiding (argument)
 
-import Frames
-import Options.Applicative
-import Control.Monad.Trans (liftIO)
-import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
-import System.Exit (ExitCode(..))
+import           Control.Monad.Trans                (liftIO)
+import           Distribution.Simple.Utils          (TempFileOptions (..), withTempFileEx)
+import           Frames
+import           Options.Applicative
+import           System.Exit                        (ExitCode (..))
 -- import Prelude hiding (log)
-import Polysemy (Sem, Members, Embed)
-import qualified Polysemy.State as P
-import qualified Polysemy.Trace as P
-import Polysemy.Log (Log)
-import qualified Polysemy.Log as Log
+import           Polysemy                           (Embed, Members, Sem)
+import           Polysemy.Log                       (Log)
+import qualified Polysemy.Log                       as Log
+import qualified Polysemy.State                     as P
+import qualified Polysemy.Trace                     as P
 
 loadPcapArgs :: Parser CommandArgs
-loadPcapArgs =  ArgsLoadPcap <$> argument str (metavar "PCAP" <> completeWith ["toto", "tata"]
-          <> help "Load a Pcap file"
-      )
+loadPcapArgs =  ArgsLoadPcap <$>
+  argument str (metavar "PCAP"
+    <> completeWith ["toto", "tata"]
+    <> action "file"
+    <> help "Load a Pcap file"
+  )
 
 cmdLoadCsvArgs :: Parser CommandArgs
-cmdLoadCsvArgs =  ArgsLoadCsv <$> argument str (metavar "PCAP" <> completeWith ["toto", "tata"]
-          <> help "Load a Csv file"
-      )
+cmdLoadCsvArgs =  ArgsLoadCsv <$> (
+    argument str (
+      metavar "CSV"
+      <> completeWith ["toto", "tata"]
+      -- <> action "file"
+      <> help "Load a Csv file"
+    ))
+    <*> argument auto (metavar "bool"
+      <> completeWith ["true", "false"]
+      <> help "boolean just to test something"
+    )
 
 piLoadCsv :: ParserInfo CommandArgs
 piLoadCsv = info (cmdLoadCsvArgs <**> helper)
@@ -56,7 +70,7 @@ piLoadPcapOpts = info (loadPcapArgs <**> helper)
 
 
 -- myHandleParseResult :: ParserResult a -> m CMD.RetCode
--- myHandleParseResult (Success a) = 
+-- myHandleParseResult (Success a) =
 
 
 

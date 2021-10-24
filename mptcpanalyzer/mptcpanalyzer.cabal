@@ -100,6 +100,10 @@ common shared-properties
       , vector
       , vinyl
       , wide-word
+      -- Debug Adapter Plugins (DAP)
+      , haskell-dap
+      , ghci-dap 
+      , haskell-debug-adapter
       -- , Chart-diagrams >= 1.5
       -- for plotting that's what is used in Frames
       -- polysemybased logger

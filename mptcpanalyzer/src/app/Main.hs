@@ -301,6 +301,25 @@ customCompleteFunc :: CompletionFunc IO
 customCompleteFunc = completeFilename
 -- customCompleteFunc _i = return ("toto", [ Completion "toInsert" "choice 1" False ])
 
+debugParser :: ArgumentReachability -> Option x -> b
+debugParser    opt_completions argPolicy reachability opt = case trace ("argPolicy " ++ show argPolicy ++ "\n") optMain opt of
+      OptReader ns _ _
+         | argPolicy /= AllPositionals -> trace "uinreachable OptReader\n" return . add_opt_help opt $ show_names ns
+         | otherwise -> trace "optreader\n" return []
+      FlagReader ns _
+         | argPolicy /= AllPositionals -> trace "unreachableflag reader\n" return . add_opt_help opt $ show_names ns
+         | otherwise -> trace "flagreader\n" return []
+      ArgReader rdr
+         | argumentIsUnreachable reachability -> trace "unreachable\n " return []
+         -- TODO restore arg Reader with file autocomplete
+         --  | otherwise -> return []
+         | otherwise -> trace "argreader\n" run_completer (crCompleter rdr)
+         -- >>= \x -> return $ Completion x "argreader help" True
+      CmdReader _ ns p
+         | argumentIsUnreachable reachability -> trace "unreachable cmdreader\n" return []
+         | otherwise -> trace "cmdreader\n" return . add_cmd_help p $ filter_names ns
+
+
 main :: IO ()
 main = do
   putStrLn "Starting mptcpanalyzer"
@@ -323,9 +342,14 @@ main = do
   putStrLn "Commands:"
   print $ extraCommands options
 
+  mapParser debugParser mainParserInfo
+
   let haskelineSettings = (Settings {
       -- complete = customCompleteFunc
+      -- TODO test with loadPcapArgs instead
       complete = generateHaskelineCompleterFromParserInfo defaultParserPrefs mainParserInfo
+      -- complete = generateHaskelineCompleterFromParserInfo defaultParserPrefs piLoadCsv
+        -- piLoadPcapOpts
       , historyFile = Just $ cacheFolderXdg </> "history"
       , autoAddHistory = True
       })
@@ -400,7 +424,8 @@ mainParser = subparser (
 
 -- |Main parser
 mainParserInfo :: ParserInfo CommandArgs
-mainParserInfo = info (mainParser <**> helper)
+-- mainParserInfo = info (mainParser <**> helper)
+mainParserInfo = info mainParser
   ( fullDesc
   <> progDesc "Tool to provide insight in MPTCP (Multipath Transmission Control Protocol)\
               \performance via the generation of stats & plots"
@@ -431,7 +456,7 @@ runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
   --       _loadedFile = Just frame
   --     })
   -- return ret
-runCommand (ArgsLoadCsv csvFile) = CL.cmdLoadCsv csvFile
+runCommand (ArgsLoadCsv csvFile _) = CL.cmdLoadCsv csvFile
 runCommand (ArgsParserSummary detailed streamId) = CLI.cmdTcpSummary streamId detailed
 runCommand (ArgsMptcpSummary detailed streamId) = CLI.cmdMptcpSummary streamId detailed
 runCommand (ArgsListSubflows detailed) = CLI.cmdListSubflows detailed
