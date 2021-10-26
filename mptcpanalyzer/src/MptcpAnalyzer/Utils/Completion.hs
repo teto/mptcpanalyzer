@@ -42,18 +42,6 @@ defaultCompleteFunc = completeFilename
 -- bashCompletionQuery :: ParserInfo a -> ParserPrefs -> Richness -> [String] -> Int -> String -> IO [String]
 -- bashCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl pprefs of
 
--- | Provide basic or rich command completions
-data Richness
-  = Standard
-  -- ^ Add no help descriptions to the completions
-  | Enriched Int Int
-  -- ^ Include tab separated description for options
-  --   and commands when available.
-  --   Takes option description length and command
-  --   description length.
-  deriving (Eq, Ord, Show)
-
-
 -- myRunCompletion :: Completion r -> ParserPrefs -> Maybe (Either (SomeParser, ArgPolicy) Completer)
 -- myRunCompletion (Completion c) prefs = case runReaderT (runExceptT c) prefs of
 --   ComplResult r -> Nothing
@@ -207,6 +195,21 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
       -- \x -> x { replacement = fromMaybe "error" (stripPrefix currentWord (display x)) }
       )
       candidates)
+
+
+-- runParserInfo on a subparser only goes one level deep
+-- so we need to run it twice
+-- customHaskelineParser :: ParserInfo a -> ParserPrefs -> CompletionFunc IO
+-- customHaskelineParser pinfo pprefs =
+--   \(rleft, right) ->
+--   let
+--     leftArgs = words $ reverse rleft
+--     -- TODO rename to str
+--     fullArgs = reverse rleft ++ right
+--     fullArgs' = words fullArgs ++ if trailingSpace then [""] else []
+--   in do
+--     if len fullArgs' > 1 then
+--       generateHaskelineCompleterFromParserInfo (
 
 -- generateHaskelineCompleterFromParserInfo = haskelineCompletionQuery
 -- generateHaskelineCompleterFromParser pprefs (infoParser pinfo)

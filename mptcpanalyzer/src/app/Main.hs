@@ -176,6 +176,7 @@ import System.FilePath
 import System.Directory
 import Prelude hiding (concat, init, log)
 import Options.Applicative
+import Options.Applicative.Common
 import Options.Applicative.Help (parserHelp)
 -- import Colog.Actions
 import Graphics.Rendering.Chart.Backend.Cairo (toFile,
@@ -292,7 +293,9 @@ finalizePrompt newPrompt = setSGRCode [SetColor Foreground Vivid Red] ++ newProm
 -- alternatively could modify defaultPrefs
 -- subparserInline + multiSuffix helpShowGlobals
 defaultParserPrefs :: ParserPrefs
-defaultParserPrefs = prefs $ showHelpOnEmpty <> showHelpOnError
+defaultParserPrefs = (prefs $ showHelpOnEmpty <> showHelpOnError) {
+                prefBacktrack = NoBacktrack
+                }
 
 
 -- default if complete = completeFilename,
@@ -301,23 +304,13 @@ customCompleteFunc :: CompletionFunc IO
 customCompleteFunc = completeFilename
 -- customCompleteFunc _i = return ("toto", [ Completion "toInsert" "choice 1" False ])
 
-debugParser :: ArgumentReachability -> Option x -> b
-debugParser    opt_completions argPolicy reachability opt = case trace ("argPolicy " ++ show argPolicy ++ "\n") optMain opt of
-      OptReader ns _ _
-         | argPolicy /= AllPositionals -> trace "uinreachable OptReader\n" return . add_opt_help opt $ show_names ns
-         | otherwise -> trace "optreader\n" return []
-      FlagReader ns _
-         | argPolicy /= AllPositionals -> trace "unreachableflag reader\n" return . add_opt_help opt $ show_names ns
-         | otherwise -> trace "flagreader\n" return []
-      ArgReader rdr
-         | argumentIsUnreachable reachability -> trace "unreachable\n " return []
-         -- TODO restore arg Reader with file autocomplete
-         --  | otherwise -> return []
-         | otherwise -> trace "argreader\n" run_completer (crCompleter rdr)
+debugParser :: ArgumentReachability -> Option x -> String
+debugParser reachability opt = case optMain opt of
+      OptReader ns _ _ -> "optreader"
+      FlagReader ns _ -> "flagReader"
+      ArgReader rdr -> "argreader"
          -- >>= \x -> return $ Completion x "argreader help" True
-      CmdReader _ ns p
-         | argumentIsUnreachable reachability -> trace "unreachable cmdreader\n" return []
-         | otherwise -> trace "cmdreader\n" return . add_cmd_help p $ filter_names ns
+      CmdReader _ ns p -> "cmdreader"
 
 
 main :: IO ()
@@ -342,13 +335,15 @@ main = do
   putStrLn "Commands:"
   print $ extraCommands options
 
-  mapParser debugParser mainParserInfo
+  let out = mapParser debugParser mainParser
+  putStrLn $ "out=" ++ show  out
 
   let haskelineSettings = (Settings {
       -- complete = customCompleteFunc
       -- TODO test with loadPcapArgs instead
+      -- complete = customHaskelineParser defaultParserPrefs mainParserInfo
       complete = generateHaskelineCompleterFromParserInfo defaultParserPrefs mainParserInfo
-      -- complete = generateHaskelineCompleterFromParserInfo defaultParserPrefs piLoadCsv
+      -- piLoadCsv
         -- piLoadPcapOpts
       , historyFile = Just $ cacheFolderXdg </> "history"
       , autoAddHistory = True
@@ -382,6 +377,7 @@ piListInterfaces = info (pure ArgsListInterfaces)
   ( fullDesc
   <> progDesc "List interfaces as seen by tshark"
   <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
+  <> forwardOptions
   )
 
 -- |Global parser: contains every available command
@@ -392,30 +388,30 @@ piListInterfaces = info (pure ArgsListInterfaces)
 mainParser :: Parser CommandArgs
 mainParser = subparser (
     commandGroup "Generic"
-    <> command "help" helpParser
+    -- <> command "help" helpParser
     <> command "quit" quit
-    <> commandGroup "Loader commands"
+    -- <> commandGroup "Loader commands"
     <> command "load-csv" CL.piLoadCsv
-    <> command "load-pcap" CL.piLoadPcapOpts
-    <> commandGroup "TCP commands"
-    <> command "tcp-summary" CLI.piTcpSummaryOpts
-    <> command "mptcp-summary" CLI.piMptcpSummaryOpts
-    <> command "list-tcp" CLI.piListTcpOpts
-    <> command "map-tcp" CLI.mapTcpOpts
-    <> command "map-mptcp" CLI.mapMptcpOpts
-    <> commandGroup "MPTCP commands"
-    <> command "list-reinjections" CLI.piListReinjections
-    <> command "list-mptcp" CLI.piListMpTcpOpts
-    <> command "list-interfaces" piListInterfaces
-    <> command "export" CLI.piExportOpts
-    <> command "analyze" CLI.piQualifyReinjections
-    -- <> commandGroup "TCP plots"
-    -- TODO here we should pass a subparser
-    -- <> subparser (
-    -- Main.piParserGeneric
-    <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
-    <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "Multipath-tcp plots"))
-    <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "Live plots"))
+    -- <> command "load-pcap" CL.piLoadPcapOpts
+    -- <> commandGroup "TCP commands"
+    -- <> command "tcp-summary" CLI.piTcpSummaryOpts
+    -- <> command "mptcp-summary" CLI.piMptcpSummaryOpts
+    -- <> command "list-tcp" CLI.piListTcpOpts
+    -- <> command "map-tcp" CLI.mapTcpOpts
+    -- <> command "map-mptcp" CLI.mapMptcpOpts
+    -- <> commandGroup "MPTCP commands"
+    -- <> command "list-reinjections" CLI.piListReinjections
+    -- <> command "list-mptcp" CLI.piListMpTcpOpts
+    -- <> command "list-interfaces" piListInterfaces
+    -- <> command "export" CLI.piExportOpts
+    -- <> command "analyze" CLI.piQualifyReinjections
+    -- -- <> commandGroup "TCP plots"
+    -- -- TODO here we should pass a subparser
+    -- -- <> subparser (
+    -- -- Main.piParserGeneric
+    -- <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
+    -- <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "Multipath-tcp plots"))
+    -- <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "Live plots"))
     )
     where
       helpParser = info (pure ArgsHelp) (progDesc "Display help")
