@@ -11,7 +11,15 @@ https://stackoverflow.com/questions/6689969/how-does-one-interface-with-a-c-enum
 TODO might be best to just use the netlink script and adapt it
 https://github.com/Ongy/netlink-hs/issues/7
 -}
-module Net.Mptcp.Constants
+module Net.Mptcp.Constants (
+  MptcpAttr(..)
+  , MptcpGenlEvent(..)
+
+  , mptcpGenlVer
+  , mptcpGenlName
+  , mptcpGenlCmdGrpName
+  , mptcpGenlEvGrpName
+)
 where
 
 import Data.Word (Word8)

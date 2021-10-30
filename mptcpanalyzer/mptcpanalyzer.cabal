@@ -27,8 +27,9 @@ Description:
   -- TODO restore
   -- * caching mechanism: mptcpanalyzer compares your pcap creation time and will
     -- regenerate the cache if it exists in `$XDG_CACHE_HOME/mptcpanalyzer/<path_to_the_file>`
-extra-doc-files:     CHANGELOG
-                     README.md
+extra-doc-files:
+    CHANGELOG
+    README.md
 
 extra-source-files:
   README.md CHANGELOG

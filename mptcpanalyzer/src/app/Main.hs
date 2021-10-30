@@ -315,13 +315,13 @@ debugParser reachability opt = case optMain opt of
 
 main :: IO ()
 main = do
-  putStrLn "Starting mptcpanalyzer"
 
   cacheFolderXdg <- getXdgDirectory XdgCache "mptcpanalyzer2"
-  -- TODO check if creation fails ?
   -- Create cache if doesn't exist
   doesDirectoryExist cacheFolderXdg >>= \case
-      True -> putStrLn ("cache folder already exists" ++ show cacheFolderXdg)
+      -- TODO log it instead
+      -- putStrLn ("cache folder already exists" ++ show cacheFolderXdg)
+      True -> return ()
       False -> createDirectory cacheFolderXdg
 
   let myState = MyState {

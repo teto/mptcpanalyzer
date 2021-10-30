@@ -874,16 +874,10 @@ main = do
   -- streamHandler vs verboseStreamHandler
   -- myStreamHandler <- verboseStreamHandler stderr INFO
 
-  putStrLn "Starting program"
-
-  -- Log.info "Parsing command line..." :: TS.Text
   options <- execParser opts
   -- mptcpSocket <- makeMptcpSocket
   -- let (MptcpSocket sock fid) = mptcpSocket
 
-  -- logTextStdout
-  -- logStringStdout
-  -- _ <- runM $ traceToStdout $ runLogAction @IO richMessageAction program
   _ <- runM $ P.traceToStdout $ interpretLogStdout $ program options
   putStrLn "finished"
 

@@ -3,7 +3,7 @@
 
   nixConfig = {
     substituters = [
-        "https://haskell-language-server.cachix.org"
+      "https://haskell-language-server.cachix.org"
     ];
     trusted-public-keys = [
       "haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8="
@@ -29,9 +29,6 @@
 
       compilerVersion = "8107";
       # compilerVersion = "901";
-
-      overlays = [
-      ];
 
       haskellOverlay = hnew: hold: with pkgs.haskell.lib; {
 
@@ -62,7 +59,7 @@
       };
 
       pkgs = import nixpkgs {
-          inherit system overlays;
+          inherit system;
           # overlays = pkgs.lib.attrValues (self.overlays);
           config = { allowUnfree = false; allowBroken = true;};
         };
@@ -114,11 +111,14 @@
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
 
-      # devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
-      #  # shellHook = ''
-      #   #   # exe=$(cabal list-bin exe:mptcpanalyzer)
-      #   #   # export PATH="$(dirname $exe):$PATH"
-      #   # '';
-      # });
+      devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
+       postShellHook = ''
+          set -x
+          result=$(cd mptcpanalyzer && cabal list-bin exe:mptcpanalyzer)
+          if [ $? -eq 0 ]; then
+            export PATH="$(dirname $result):$PATH"
+          fi
+        '';
+      });
     });
 }

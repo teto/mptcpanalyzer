@@ -68,7 +68,7 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
     --current word
     -- runParserInfo te renvoie une (Completion a)
     -- drop 1 looks necesary here ?
-    compl = runParserInfo pinfo (traceShow "Passing args\n" (drop 1 ws))
+    compl = traceShow ("Passing args " ++ show ws ++ "\n") runParserInfo pinfo  ws
     -- runParserInfo calls runParserFully
     -- compl = runParserInfo pinfo ws
     -- trace ("runCompleter: ws=" ++ show ws ++ " i=" ++ show i ++ "ws''= " ++ show ws'' ++ " rest=" ++ show rest)
@@ -78,7 +78,6 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
       . sequence
       . mapParser (opt_completions a)
 
-    --
     -- Prior to 0.14 there was a subtle bug which would
     -- mean that completions from positional arguments
     -- further into the parse would be shown.

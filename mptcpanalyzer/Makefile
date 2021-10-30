@@ -29,8 +29,8 @@ test-update: build $(TEST_FILES)
 	tests/run.sh
 
 .PHONY: gen-autocompletion
-gen-autocompletion:
-	cabal run mptcpanalyzer -- --bash-completion-script toto
+gen-completion: build
+	cabal run mptcpanalyzer -- --bash-completion-script mptcpanalyzer > completion.sh
 
 
 %.json: %.dhall
