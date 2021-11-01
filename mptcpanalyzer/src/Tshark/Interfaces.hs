@@ -19,6 +19,7 @@ import qualified Polysemy.Log as Log
 
 
 -- listInterfaces :: (Members [Log, Embed IO ] m) => Sem m (ExitCode, [String])
+-- | List network interfaces (just their names) that are visible by tshark
 listInterfaces :: IO (ExitCode, [String])
 listInterfaces =
     -- defaultTsharkPrefs

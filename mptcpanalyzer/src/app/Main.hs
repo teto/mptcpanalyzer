@@ -214,6 +214,7 @@ import GHC.IO.Handle
 import GHC.Conc (forkIO)
 import Data.List (isPrefixOf)
 import Options.Applicative.Types
+import Options.Applicative.Builder (allPositional)
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -293,7 +294,8 @@ finalizePrompt newPrompt = setSGRCode [SetColor Foreground Vivid Red] ++ newProm
 -- alternatively could modify defaultPrefs
 -- subparserInline + multiSuffix helpShowGlobals
 defaultParserPrefs :: ParserPrefs
-defaultParserPrefs = (prefs $ showHelpOnEmpty <> showHelpOnError) {
+defaultParserPrefs = (prefs $ showHelpOnEmpty <> showHelpOnError)
+              {
                 prefBacktrack = NoBacktrack
                 }
 
@@ -304,13 +306,13 @@ customCompleteFunc :: CompletionFunc IO
 customCompleteFunc = completeFilename
 -- customCompleteFunc _i = return ("toto", [ Completion "toInsert" "choice 1" False ])
 
-debugParser :: ArgumentReachability -> Option x -> String
-debugParser reachability opt = case optMain opt of
-      OptReader ns _ _ -> "optreader"
-      FlagReader ns _ -> "flagReader"
-      ArgReader rdr -> "argreader"
-         -- >>= \x -> return $ Completion x "argreader help" True
-      CmdReader _ ns p -> "cmdreader"
+-- debugParser :: ArgumentReachability -> Option x -> String
+-- debugParser reachability opt = case optMain opt of
+--       OptReader ns _ _ -> "optreader"
+--       FlagReader ns _ -> "flagReader"
+--       ArgReader rdr -> "argreader"
+--          -- >>= \x -> return $ Completion x "argreader help" True
+--       CmdReader _ ns p -> "cmdreader"
 
 
 main :: IO ()
@@ -335,8 +337,8 @@ main = do
   putStrLn "Commands:"
   print $ extraCommands options
 
-  let out = mapParser debugParser mainParser
-  putStrLn $ "out=" ++ show  out
+  -- let out = mapParser debugParser mainParser
+  -- putStrLn $ "out=" ++ show  out
 
   let haskelineSettings = (Settings {
       -- complete = customCompleteFunc
@@ -392,7 +394,7 @@ mainParser = subparser (
     <> command "quit" quit
     -- <> commandGroup "Loader commands"
     <> command "load-csv" CL.piLoadCsv
-    -- <> command "load-pcap" CL.piLoadPcapOpts
+    <> command "load-pcap" CL.piLoadPcapOpts
     -- <> commandGroup "TCP commands"
     -- <> command "tcp-summary" CLI.piTcpSummaryOpts
     -- <> command "mptcp-summary" CLI.piMptcpSummaryOpts
@@ -423,10 +425,13 @@ mainParserInfo :: ParserInfo CommandArgs
 -- mainParserInfo = info (mainParser <**> helper)
 mainParserInfo = info mainParser
   ( fullDesc
+  <> allPositional
   <> progDesc "Tool to provide insight in MPTCP (Multipath Transmission Control Protocol)\
               \performance via the generation of stats & plots"
   <> header "hello - a test for optparse-applicative"
   <> footer "You can report issues/contribute at https://github.com/teto/mptcpanalyzer"
+  -- <> noIntersperse
+  -- <> forwardOptions
   )
 
 

@@ -20,6 +20,8 @@ import           MptcpAnalyzer.Commands.Definitions as CMD
 import           MptcpAnalyzer.Loader
 import           MptcpAnalyzer.Pcap
 import           MptcpAnalyzer.Types
+import           MptcpAnalyzer.Utils.Completion (completePath, readFilename)
+
 -- import Control.Lens hiding (argument)
 
 import           Control.Monad.Trans                (liftIO)
@@ -33,12 +35,17 @@ import           Polysemy.Log                       (Log)
 import qualified Polysemy.Log                       as Log
 import qualified Polysemy.State                     as P
 import qualified Polysemy.Trace                     as P
+import Options.Applicative.Builder (allPositional)
+
+import Control.Monad.Trans.Except
+  (runExcept, runExceptT, withExcept, ExceptT(..), throwE)
 
 loadPcapArgs :: Parser CommandArgs
 loadPcapArgs =  ArgsLoadPcap <$>
-  argument str (metavar "PCAP"
+  argument (eitherReader readFilename) (metavar "PCAP"
     <> completeWith ["toto", "tata"]
-    <> action "file"
+    -- <> completer completePath
+    -- <> action "file"
     <> help "Load a Pcap file"
   )
 
@@ -66,6 +73,8 @@ piLoadPcapOpts = info (loadPcapArgs <**> helper)
   ( fullDesc
   <> progDesc "Load a pcap file via wireshark"
   <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
+  <> allPositional
+
   )
 
 

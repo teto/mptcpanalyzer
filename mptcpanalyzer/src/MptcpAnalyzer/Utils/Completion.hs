@@ -14,6 +14,8 @@ module MptcpAnalyzer.Utils.Completion (
   -- completeInitialCommand
   generateHaskelineCompleterFromParser
   , generateHaskelineCompleterFromParserInfo
+  , completePath
+  , readFilename
   -- , generateHaskelineCompleterFromOption
 )
 where
@@ -33,9 +35,41 @@ import Options.Applicative.Internal hiding (Completion)
 import Options.Applicative.Help.Chunk
 import Data.Char (isSpace)
 -- import Options.Applicative.Help (parserHelp)
+import System.IO.Unsafe (unsafePerformIO)
+import System.Posix (fileExist)
 
 defaultCompleteFunc :: CompletionFunc IO
 defaultCompleteFunc = completeFilename
+
+
+-- | We use unsafePerformIO to work around optparse-applicative limitation
+readFilename :: String -> Either String FilePath
+readFilename path =
+  let exists = unsafePerformIO $ fileExist path
+  in
+  case exists of
+    True -> trace "right path" Right path
+    False -> trace ("path " ++ path ++ " DOES NOT EXIST")
+      Left "Path does not exist" 
+      -- throwE "path does not exist"
+
+
+-- newtype Completer = Completer
+--   { runCompleter :: String -> IO [String] }
+-- type CompletionFunc m = (String, String) -> m (String, [Completion])
+-- "optparse-applicative" wrapper around haskelinec>s 'completeFilename'
+-- The first 'String' argument is the contents of the line to the left of the cursor,
+-- reversed.
+-- The second 'String' argument is the contents of the line to the right of the cursor.
+completePath :: Completer
+completePath = mkCompleter $ \entry -> do
+  -- case words entry of
+  --   [] -> ""
+  --   x -> tail
+  (_, completions) <- completeFilename (reverse entry, "")
+  let completions' = map replacement completions
+  putStrLn $ "completePath called !! with entry: [" ++ entry ++ "]"
+  return $ trace ("completions: " ++ show completions) completions'
 
 -- runCompletion
 --
@@ -54,12 +88,10 @@ defaultCompleteFunc = completeFilename
 haskelineCompletionQuery :: ParserInfo a -> ParserPrefs
   -> [String]
   -- ^ words , Should be Args ?
-  -> Int
+  -- -> Int
   -- ^ current word (to remove ?)
   -> String -> IO [Completion]
-haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl pprefs of
-  -- Maybe (Either (SomeParser, ArgPolicy) Completer)
-  -- keep parsing
+haskelineCompletionQuery pinfo pprefs ws rest = case runCompletion compl pprefs of
   Just (Left (SomeParser p, a)) -> trace "listing options\n" list_options a p
   -- terminal case
   Just (Right c) -> trace "terminal completer\n" run_completer c
@@ -68,7 +100,7 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
     --current word
     -- runParserInfo te renvoie une (Completion a)
     -- drop 1 looks necesary here ?
-    compl = traceShow ("Passing args " ++ show ws ++ "\n") runParserInfo pinfo  ws
+    compl = traceShow ("Passing args " ++ show ws ++ "\n") runParserInfo pinfo ws
     -- runParserInfo calls runParserFully
     -- compl = runParserInfo pinfo ws
     -- trace ("runCompleter: ws=" ++ show ws ++ " i=" ++ show i ++ "ws''= " ++ show ws'' ++ " rest=" ++ show rest)
@@ -91,7 +123,7 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
     -- opt_completions :: ArgPolicy -> ArgumentReachability -> Option a -> m [Completion]
     opt_completions argPolicy reachability opt = case trace ("argPolicy " ++ show argPolicy ++ "\n") optMain opt of
       OptReader ns _ _
-         | argPolicy /= AllPositionals -> trace "uinreachable OptReader\n" return . add_opt_help opt $ show_names ns
+         | argPolicy /= AllPositionals -> trace "unreachable OptReader\n" return . add_opt_help opt $ show_names ns
          | otherwise -> trace "optreader\n" return []
       FlagReader ns _
          | argPolicy /= AllPositionals -> trace "unreachableflag reader\n" return . add_opt_help opt $ show_names ns
@@ -141,7 +173,8 @@ haskelineCompletionQuery pinfo pprefs ws i rest = case runCompletion compl ppref
 
     -- TODO fix the arg
     run_completer :: Completer -> IO [Completion]
-    run_completer c = runCompleter c (fromMaybe "" (listToMaybe [currentArg])) >>= \x -> return $ map (\y -> Completion y "TODO help" True) x
+    -- (fromMaybe "" (listToMaybe [currentArg]))
+    run_completer c = trace ("running completer against " ++ currentArg) runCompleter c currentArg >>= \x -> return $ map (\y -> Completion y "TODO help" True) x
 
     currentArg :: String
     currentArg = case ws of
@@ -167,11 +200,8 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
   \(rleft, right) ->
   let
     leftArgs = words $ reverse rleft
-    -- TODO rename to str
     fullArgs = reverse rleft ++ right
     fullArgs' = words fullArgs ++ if trailingSpace then [""] else []
-      -- (_:s) -> result (isSpace last fullArgs) []
-      -- _else -> []
     currentWord = last leftArgs
     parserResult = trace ("\nParsing args " ++ reverse rleft ++ "\n") execParserPure parserPrefs pinfo leftArgs
     trailingSpace = " " `isSuffixOf` fullArgs
@@ -179,16 +209,13 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
       [] -> ""
       _ -> mconcat (init fullArgs') ++ if trailingSpace then " " else ""
   in do
-    -- TODO restore length
-    -- TODO fix auto
-    candidates <- haskelineCompletionQuery pinfo parserPrefs (trace ("\n" ++ show fullArgs' ++ "\n" ) fullArgs') (0) ""
+    candidates <- haskelineCompletionQuery pinfo parserPrefs (trace ("\n" ++ show fullArgs' ++ "\n" ) fullArgs') ""
     putStrLn $ "Returned candidates : " ++ show candidates
     -- now onto converting candidates
     -- TODO stripper le commonPrefix
     -- map (\x -> System.Console.Haskeline.Completion x x False)
 
-    -- TODO pour les fichiers je peux checker action ptet
-    -- TODO reverse leftRes
+
     pure (reverse leftRes,  map (
       id
       -- \x -> x { replacement = fromMaybe "error" (stripPrefix currentWord (display x)) }
@@ -235,7 +262,6 @@ generateHaskelineCompleterFromOptreader :: OptReader a -> CompletionFunc IO
 -- completeInitialCommand :: CompletionFunc IO
 -- completeInitialCommand = completeWord Nothing [' '] genCompletions
 
--- se baser sur completeFilename aussi
 -- TODO call the parser on it and check where it fails
 generateHaskelineCompleterFromOptreader (CmdReader mbGrpCommand arrStr func) =
   \(rleft, right) -> let
