@@ -216,6 +216,7 @@ executable mptcpanalyzer
     build-depends:
         mptcpanalyzer
         , ansi-terminal
+        , transformers
     Other-modules:
         -- Tshark.TH
         -- , Net.Mptcp.Types
