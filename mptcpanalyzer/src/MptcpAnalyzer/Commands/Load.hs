@@ -40,11 +40,18 @@ import Options.Applicative.Builder (allPositional)
 import Control.Monad.Trans.Except
   (runExcept, runExceptT, withExcept, ExceptT(..), throwE)
 
+filenameReader :: ReadM FilePath
+filenameReader = eitherReader readFilename
+-- case readFilename filename of 
+--   Left err -> ReadM . lift . throwE
+--   Right path -> path
+
+-- (eitherReader readFilename)
 loadPcapArgs :: Parser CommandArgs
 loadPcapArgs =  ArgsLoadPcap <$>
-  argument (eitherReader readFilename) (metavar "PCAP"
-    <> completeWith ["toto", "tata"]
-    -- <> completer completePath
+  argument filenameReader (metavar "PCAP"
+    -- <> completeWith ["toto", "tata"]
+    <> completer completePath
     -- <> action "file"
     <> help "Load a Pcap file"
   )
@@ -69,7 +76,8 @@ piLoadCsv = info (cmdLoadCsvArgs <**> helper)
   )
 
 piLoadPcapOpts :: ParserInfo CommandArgs
-piLoadPcapOpts = info (loadPcapArgs <**> helper)
+-- <**> helper)
+piLoadPcapOpts = info (loadPcapArgs )
   ( fullDesc
   <> progDesc "Load a pcap file via wireshark"
   <> footer "Example: load-pcap examples/client_2_filtered.pcapng"

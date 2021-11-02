@@ -12,8 +12,8 @@ parseError peut renvoyer un missingArgP qui du coup aura le completer, qu'on n'a
 -}
 module MptcpAnalyzer.Utils.Completion (
   -- completeInitialCommand
-  generateHaskelineCompleterFromParser
-  , generateHaskelineCompleterFromParserInfo
+  -- generateHaskelineCompleterFromParser
+  generateHaskelineCompleterFromParserInfo
   , completePath
   , readFilename
   -- , generateHaskelineCompleterFromOption
@@ -23,7 +23,7 @@ where
 import Options.Applicative
 import System.Console.Haskeline (CompletionFunc, completeFilename, noCompletion, Completion(..))
 import System.Console.Haskeline.Completion (listFiles)
-import Options.Applicative.Types
+import Options.Applicative.Types hiding (replacement)
 import Data.List (isPrefixOf, stripPrefix, isSuffixOf)
 import Debug.Trace
 import Options.Applicative.Help (Doc)
@@ -49,10 +49,18 @@ readFilename path =
   in
   case exists of
     True -> trace "right path" Right path
-    False -> trace ("path " ++ path ++ " DOES NOT EXIST")
+    False -> trace ("path " ++ path ++ " DOES NOT EXIST (returning Left)")
       Left "Path does not exist" 
       -- throwE "path does not exist"
 
+-- optparse2haskelineCompletion
+oa2hl :: CompletionItem -> Completion
+oa2hl (CompletionItem replacement' display' isFinished') = 
+  Completion replacement' display' isFinished'
+
+hl2oa :: Completion -> CompletionItem
+hl2oa (Completion replacement' display' isFinished') = 
+  CompletionItem replacement' display' isFinished'
 
 -- newtype Completer = Completer
 --   { runCompleter :: String -> IO [String] }
@@ -67,20 +75,9 @@ completePath = mkCompleter $ \entry -> do
   --   [] -> ""
   --   x -> tail
   (_, completions) <- completeFilename (reverse entry, "")
-  let completions' = map replacement completions
+  let completions' = map hl2oa completions
   putStrLn $ "completePath called !! with entry: [" ++ entry ++ "]"
   return $ trace ("completions: " ++ show completions) completions'
-
--- runCompletion
---
--- bashCompletionQuery :: ParserInfo a -> ParserPrefs -> Richness -> [String] -> Int -> String -> IO [String]
--- bashCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl pprefs of
-
--- myRunCompletion :: Completion r -> ParserPrefs -> Maybe (Either (SomeParser, ArgPolicy) Completer)
--- myRunCompletion (Completion c) prefs = case runReaderT (runExceptT c) prefs of
---   ComplResult r -> Nothing
---   ComplParser p' a' -> Just $ Left (p', a')
---   ComplOption compl -> Just $ Right compl
 
 -- drop 1 was for progname ?
 -- TODO make it so that it returns [Completion] instead
@@ -174,19 +171,12 @@ haskelineCompletionQuery pinfo pprefs ws rest = case runCompletion compl pprefs 
     -- TODO fix the arg
     run_completer :: Completer -> IO [Completion]
     -- (fromMaybe "" (listToMaybe [currentArg]))
-    run_completer c = trace ("running completer against " ++ currentArg) runCompleter c currentArg >>= \x -> return $ map (\y -> Completion y "TODO help" True) x
+    run_completer c = trace ("running completer against " ++ currentArg) runCompleter c currentArg >>= return . map oa2hl
 
     currentArg :: String
     currentArg = case ws of
       [] -> ""
       ws' -> last ws'
-    -- (ws', ws'') = splitAt i ws
-
-    -- is_completion :: String -> Bool
-    -- is_completion = 
-    --   case trace ("comparing ws''" ++ show ws'' ) ws'' of
-    --     w:_ -> trace ("checking if " ++ w ++ " is a prefix of ") isPrefixOf w
-    --     _ -> trace "is_completion=true" const False
 
 -- The output String is the unused portion of the left half of the line, reversed.
 -- type CompletionFunc m = (String, String) -> m (String, [Completion]
@@ -216,7 +206,7 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
     -- map (\x -> System.Console.Haskeline.Completion x x False)
 
 
-    pure (reverse leftRes,  map (
+    pure (" " ++ reverse leftRes,  map (
       id
       -- \x -> x { replacement = fromMaybe "error" (stripPrefix currentWord (display x)) }
       )
@@ -240,9 +230,9 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
 -- generateHaskelineCompleterFromParserInfo = haskelineCompletionQuery
 -- generateHaskelineCompleterFromParser pprefs (infoParser pinfo)
 
-generateHaskelineCompleterFromParser :: ParserPrefs -> Parser a -> CompletionFunc IO
-generateHaskelineCompleterFromParser parserPrefs (OptP opt) = generateHaskelineCompleterFromOption opt
-generateHaskelineCompleterFromParser _ _ = error "undefined "
+-- generateHaskelineCompleterFromParser :: ParserPrefs -> Parser a -> CompletionFunc IO
+-- generateHaskelineCompleterFromParser parserPrefs (OptP opt) = generateHaskelineCompleterFromOption opt
+-- generateHaskelineCompleterFromParser _ _ = error "undefined "
 
 -- argument completeWith / complete
 placeholderCompletion :: System.Console.Haskeline.Completion
@@ -251,51 +241,27 @@ placeholderCompletion = Completion "itworked" "display" False
 constCompletionFunc :: CompletionFunc IO
 constCompletionFunc (left, right) = pure ("worked", [placeholderCompletion])
 
-generateHaskelineCompleterFromOption :: Option a -> CompletionFunc IO
-generateHaskelineCompleterFromOption (Option main _properties) = generateHaskelineCompleterFromOptreader main
+-- generateHaskelineCompleterFromOption :: Option a -> CompletionFunc IO
+-- generateHaskelineCompleterFromOption (Option main _properties) = generateHaskelineCompleterFromOptreader main
 
-generateHaskelineCompleterFromOptreader :: OptReader a -> CompletionFunc IO
--- generateHaskelineCompleterFromOptreader OptReader [OptName] (CReader a) (String -> ParseError)
--- CmdReader (Maybe String) [String] (String -> Maybe (ParserInfo a))
+-- generateHaskelineCompleterFromOptreader :: OptReader a -> CompletionFunc IO
+-- generateHaskelineCompleterFromOptreader (CmdReader mbGrpCommand arrStr func) =
+--   \(rleft, right) -> let
+--     filtered = filter (isPrefixOf prefix) arrStr
+--     -- genCompletions :: String -> IO [Completion]
+--     -- genCompletions prefix = map (genCompletion prefix)
+--     -- "TODO show help for " ++
+--     genCompletion entry =  Completion entry ( entry) True
+--     prefix = reverse rleft
+--     longestCommonPrefix entries = rleft
+--     completions = map (genCompletion) filtered
+--   in
+--     -- TODO call execParserPure ParserInfo a 
+--     trace "completion called" (pure (
+--     -- return longest common prefixes
+--     "", completions
+--     ))
 
--- type CompletionFunc m = (String, String) -> m (String, [Completion])
--- completeInitialCommand :: CompletionFunc IO
--- completeInitialCommand = completeWord Nothing [' '] genCompletions
-
--- TODO call the parser on it and check where it fails
-generateHaskelineCompleterFromOptreader (CmdReader mbGrpCommand arrStr func) =
-  \(rleft, right) -> let
-    filtered = filter (isPrefixOf prefix) arrStr
-    -- genCompletions :: String -> IO [Completion]
-    -- genCompletions prefix = map (genCompletion prefix)
-    -- "TODO show help for " ++
-    genCompletion entry =  Completion entry ( entry) True
-    prefix = reverse rleft
-    longestCommonPrefix entries = rleft
-    completions = map (genCompletion) filtered
-  in
-    -- TODO call execParserPure ParserInfo a 
-    
-    trace "completion called" (pure (
-    -- return longest common prefixes
-    "", completions
-    ))
-
--- generateHaskelineCompleterFromOptreader (FlagReader ns x) = FlagReader ns (f x)
--- ArgReader can have custom completer
--- newtype Completer = Completer
---   { runCompleter :: String -> IO [String] }
-
--- TODO convert the C
--- generateHaskelineCompleterFromOptreader (ArgReader (CReader completer _)) = 
-generateHaskelineCompleterFromOptreader _ = error "undefined generateHaskelineCompleterFromOptreader"
-
-
-
--- ^ option reader
--- | FlagReader [OptName] !a
--- -- ^ flag reader
--- | ArgReader (CReader a)
--- -- ^ argument reader
--- | CmdReader (Maybe String) [String] (String -> Maybe (ParserInfo a))
--- -- ^ command reader
+-- -- TODO convert the C
+-- -- generateHaskelineCompleterFromOptreader (ArgReader (CReader completer _)) = 
+-- generateHaskelineCompleterFromOptreader _ = error "undefined generateHaskelineCompleterFromOptreader"
