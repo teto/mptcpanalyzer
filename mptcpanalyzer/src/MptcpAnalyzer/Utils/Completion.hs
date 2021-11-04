@@ -36,7 +36,7 @@ import Options.Applicative.Help.Chunk
 import Data.Char (isSpace)
 -- import Options.Applicative.Help (parserHelp)
 import System.IO.Unsafe (unsafePerformIO)
-import System.Posix (fileExist)
+import System.Posix (fileExist, isRegularFile, getFileStatus)
 
 defaultCompleteFunc :: CompletionFunc IO
 defaultCompleteFunc = completeFilename
@@ -45,13 +45,18 @@ defaultCompleteFunc = completeFilename
 -- | We use unsafePerformIO to work around optparse-applicative limitation
 readFilename :: String -> Either String FilePath
 readFilename path =
-  let exists = unsafePerformIO $ fileExist path
+  -- fileExist seems to consider files and folders alike
+  let exists = unsafePerformIO $ do
+        t <- fileExist path
+        if t then
+          getFileStatus path >>= return . isRegularFile
+        else
+          return False
   in
   case exists of
     True -> trace "right path" Right path
     False -> trace ("path " ++ path ++ " DOES NOT EXIST (returning Left)")
-      Left "Path does not exist" 
-      -- throwE "path does not exist"
+      Left "Path does not exist"
 
 -- optparse2haskelineCompletion
 oa2hl :: CompletionItem -> Completion
@@ -74,7 +79,7 @@ completePath = mkCompleter $ \entry -> do
   -- case words entry of
   --   [] -> ""
   --   x -> tail
-  (_, completions) <- completeFilename (reverse entry, "")
+  (_, completions) <- trace "completeFilename called with entry" completeFilename (reverse entry, "")
   let completions' = map hl2oa completions
   putStrLn $ "completePath called !! with entry: [" ++ entry ++ "]"
   return $ trace ("completions: " ++ show completions) completions'
@@ -118,22 +123,27 @@ haskelineCompletionQuery pinfo pprefs ws rest = case runCompletion compl pprefs 
     -- For options and flags, ensure that the user
     -- hasn't disabled them with `--`.
     -- opt_completions :: ArgPolicy -> ArgumentReachability -> Option a -> m [Completion]
-    opt_completions argPolicy reachability opt = case trace ("argPolicy " ++ show argPolicy ++ "\n") optMain opt of
+    -- trace ("argPolicy " ++ show argPolicy ++ "\n")
+    opt_completions argPolicy reachability opt = case  optMain opt of
       OptReader ns _ _
          | argPolicy /= AllPositionals -> trace "unreachable OptReader\n" return . add_opt_help opt $ show_names ns
-         | otherwise -> trace "optreader\n" return []
+         -- trace "optreader\n"
+         | otherwise ->  return []
       FlagReader ns _
          | argPolicy /= AllPositionals -> trace "unreachableflag reader\n" return . add_opt_help opt $ show_names ns
-         | otherwise -> trace "flagreader\n" return []
+         -- trace "flagreader\n"
+         | otherwise ->  return []
       ArgReader rdr
          | argumentIsUnreachable reachability -> trace "unreachable\n " return []
          -- TODO restore arg Reader with file autocomplete
          --  | otherwise -> return []
-         | otherwise -> trace "argreader\n" run_completer (crCompleter rdr)
+         -- trace "argreader\n"
+         | otherwise -> run_completer (crCompleter rdr)
          -- >>= \x -> return $ Completion x "argreader help" True
       CmdReader _ ns p
          | argumentIsUnreachable reachability -> trace "unreachable cmdreader\n" return []
-         | otherwise -> trace "cmdreader\n" return . add_cmd_help p $ filter_names ns
+         -- trace "cmdreader\n"
+         | otherwise -> return . add_cmd_help p $ filter_names ns
 
     -- When doing enriched completions, add any help specified
     -- to the completion variables (tab separated).

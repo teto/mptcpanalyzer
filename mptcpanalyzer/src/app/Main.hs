@@ -315,6 +315,11 @@ customCompleteFunc = completeFilename
 --       CmdReader _ ns p -> "cmdreader"
 
 
+{-
+
+Dont display anything before the call to execParser otherwise it gets printed in
+the different shell completion scripts
+-}
 main :: IO ()
 main = do
 
@@ -395,25 +400,25 @@ mainParser = subparser (
     -- <> commandGroup "Loader commands"
     <> command "load-csv" CL.piLoadCsv
     <> command "load-pcap" CL.piLoadPcapOpts
-    -- <> commandGroup "TCP commands"
-    -- <> command "tcp-summary" CLI.piTcpSummaryOpts
-    -- <> command "mptcp-summary" CLI.piMptcpSummaryOpts
-    -- <> command "list-tcp" CLI.piListTcpOpts
-    -- <> command "map-tcp" CLI.mapTcpOpts
-    -- <> command "map-mptcp" CLI.mapMptcpOpts
-    -- <> commandGroup "MPTCP commands"
-    -- <> command "list-reinjections" CLI.piListReinjections
-    -- <> command "list-mptcp" CLI.piListMpTcpOpts
-    -- <> command "list-interfaces" piListInterfaces
-    -- <> command "export" CLI.piExportOpts
-    -- <> command "analyze" CLI.piQualifyReinjections
-    -- -- <> commandGroup "TCP plots"
-    -- -- TODO here we should pass a subparser
-    -- -- <> subparser (
-    -- -- Main.piParserGeneric
-    -- <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
-    -- <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "Multipath-tcp plots"))
-    -- <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "Live plots"))
+    <> commandGroup "TCP commands"
+    <> command "tcp-summary" CLI.piTcpSummaryOpts
+    <> command "mptcp-summary" CLI.piMptcpSummaryOpts
+    <> command "list-tcp" CLI.piListTcpOpts
+    <> command "map-tcp" CLI.mapTcpOpts
+    <> command "map-mptcp" CLI.mapMptcpOpts
+    <> commandGroup "MPTCP commands"
+    <> command "list-reinjections" CLI.piListReinjections
+    <> command "list-mptcp" CLI.piListMpTcpOpts
+    <> command "list-interfaces" piListInterfaces
+    <> command "export" CLI.piExportOpts
+    <> command "analyze" CLI.piQualifyReinjections
+    <> commandGroup "TCP plots"
+    -- TODO here we should pass a subparser
+    -- <> subparser (
+    -- Main.piParserGeneric
+    <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
+    <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "Multipath-tcp plots"))
+    <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "Live plots"))
     )
     where
       helpParser = info (pure ArgsHelp) (progDesc "Display help")
