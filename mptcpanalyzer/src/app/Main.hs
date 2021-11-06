@@ -613,7 +613,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
                 -- ,
                 , std_out = CreatePipe
                 -- lets the child handle Ctrl-c
-                -- delegate_ctlc = True
+                , delegate_ctlc = True
               }
         -- -- openFile
 

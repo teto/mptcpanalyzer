@@ -110,7 +110,7 @@ tsharkLoop hout = do
         })
       stFrame <- gets lsFrame
       liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
-      -- lift $ print liveStats
+      -- liftIO $ putStrLn "toto"
 
   pure ls
 
@@ -143,10 +143,11 @@ data LiveStats = LiveStats {
 tsharkProducer :: Handle -> Producer Text (StateT LiveStats IO) ()
 tsharkProducer hout = do
   -- let liveStats = LiveStats mempty 0 mempty
-  eof <- liftIO $ hIsEOF hout
-  if eof == True then
-    return ()
-  else do
+  -- NOTE: hIsEOF may block, because it has to attempt to read from the stream to determine whether there is any more data to be read.
+  -- eof <- liftIO $ hIsEOF hout
+  -- if eof == True then
+  --   return ()
+  -- else do
     output <- liftIO $ hGetLine hout
     yield (T.pack output)
     tsharkProducer hout
