@@ -1,8 +1,6 @@
 {-|
 Description : Mptcpanalyzer
 Maintainer  : matt
-Stability   : testing
-Portability : Linux
 
  accepts as input(s) capture file(s) (\*.pcap) and depending on from there can :
 
@@ -208,13 +206,15 @@ import Frames.CSV (writeDSV)
 import Frames (recMaybe, Frame, Record)
 import Frames as F
 -- withOpenFile
-import System.IO (openFile, stderr)
+-- withOpenFile
+import System.IO (openFile, stderr, stdout)
 import Tshark.Fields (baseFields, TsharkFieldDesc (tfieldFullname))
 import GHC.IO.Handle
 import GHC.Conc (forkIO)
 import Data.List (isPrefixOf)
 import Options.Applicative.Types
 import Options.Applicative.Builder (allPositional)
+import Debug.Trace (traceShowId)
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -609,10 +609,11 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           args = genArgs
           createProc :: CreateProcess
           createProc = (proc bin args) {
-              std_err = CreatePipe,
-              std_out = CreatePipe,
-              -- lets the child handle Ctrl-c
-              delegate_ctlc = True
+                std_err = CreatePipe
+                -- ,
+                , std_out = CreatePipe
+                -- lets the child handle Ctrl-c
+                -- delegate_ctlc = True
               }
         -- -- openFile
 
@@ -663,7 +664,10 @@ startLivePlot :: LiveStats -> CreateProcess -> IO ()
 --       hGetContents herr >>= putStrLn
 --   pure ()
 startLivePlot initialLiveStats createProc = do
-  (_, Just hout, Just herr, ph) <-  createProcess_ "error" createProc
+  (_, Just hout, Just herr, ph) <-  createProcess_ "error when creating process" createProc
+  -- Just hout
+  -- let hout = System.IO.stdout
+  -- non blocking
   exitCode <- getProcessExitCode ph
   case exitCode of
     Just code -> putStrLn "Finished"

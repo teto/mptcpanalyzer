@@ -124,12 +124,6 @@ piPlotTcpMainParser = info parserPlotTcpMain
   ( progDesc " TCP Plots"
   )
 
--- piPlotTcpMainParser :: ParserInfo CommandArgs
--- piPlotTcpMainParser = info parserPlotTcpLive
---   ( progDesc " TCP Plots"
---   )
-
-
 -- loadConnectionsFromFile
 plotLiveFilter :: Parser ArgsPlots
 plotLiveFilter = ArgsPlotLiveTcp <$> 
@@ -158,7 +152,7 @@ readIP = eitherReader $ \arg -> case decode $ T.pack arg of
     _otherwise -> Left $ "Could not decode ip " ++ arg
 
 parserConnection :: Parser TcpConnection
-parserConnection = TcpConnection <$> 
+parserConnection = TcpConnection <$>
   argument readIP (metavar "CLIENT_IP" <> help "Client IP (v4 or v6)")
   <*> argument readIP (metavar "SERVER_IP" <> help "Server IP (v4 or v6)")
   <*> argument auto (metavar "CLIENT_PORT" <> help "Client port")

@@ -63,6 +63,7 @@ genReadFilterFromTcpConnection con dest =
       --   ++ " tcp.srcport==" ++ show (conTcpSou con) ++ " and tcp.dstport==" ++ show (conTcpClientPort con)
 
         -- error "not implemented"
+    -- TODO 2 requretes srcport dstport puis alterne
     _ -> "tcp and ip.addr==" ++ (showIP . conTcpClientIp) con ++ " and ip.addr==" ++ (showIP . conTcpServerIp) con 
         ++ " and tcp.port==" ++ show (conTcpServerPort con) ++ " and tcp.port==" ++ show (conTcpClientPort con)
 

@@ -32,7 +32,7 @@ import MptcpAnalyzer.Types (Packet, HostCols)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 import Control.Exception (try, IOException)
-import Debug.Trace (traceShow, trace)
+import Debug.Trace (traceShow, trace, traceShowId)
 import Data.Maybe (isNothing)
 
 import Net.Mptcp.Connection (MptcpConnection (MptcpConnection))
@@ -40,6 +40,7 @@ import Net.Mptcp (MptcpUnidirectionalStats)
 import Control.Monad.State (StateT, modify', gets)
 import MptcpAnalyzer (FrameFiltered (ffFrame))
 import Net.Tcp (TcpConnection)
+import Control.Monad.State.Lazy (execStateT)
 
 -- --         +--------+-- A 'Producer' that yields 'String's
 -- --         |        |
