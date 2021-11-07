@@ -100,7 +100,7 @@ tsharkLoop hout = do
   ls <- for (tsharkProducer hout) $ \(x) -> do
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
-      (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield x >-> pipeTableEitherOpt' popts >-> P.map fromEither )
+      (frame :: FrameRec HostCols) <- trace "inCoreAOS" liftIO $ inCoreAoS (yield x >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
       liftIO $ putStrLn $ "test: " ++  T.unpack x
       liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
@@ -148,8 +148,10 @@ tsharkProducer hout = do
   -- if eof == True then
   --   return ()
   -- else do
-    output <- liftIO $ hGetLine hout
-    yield (T.pack output)
+    liftIO $ hSetBuffering hout NoBuffering
+    output <- liftIO $ trace "hgetline" hGetLine hout
+    liftIO $ putStrLn output
+    trace "yield" yield (T.pack output)
     tsharkProducer hout
   -- return ls
 

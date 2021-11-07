@@ -610,12 +610,11 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           createProc :: CreateProcess
           createProc = (proc bin args) {
                 std_err = CreatePipe
-                -- ,
+                -- Inherit,
                 , std_out = CreatePipe
                 -- lets the child handle Ctrl-c
                 , delegate_ctlc = True
               }
-        -- -- openFile
 
         trace $ "Command run: " ++ show (RawCommand bin args)
         -- Log.info $ "Starting " <> tshow bin <> tshow args
@@ -666,19 +665,26 @@ startLivePlot :: LiveStats -> CreateProcess -> IO ()
 startLivePlot initialLiveStats createProc = do
   (_, Just hout, Just herr, ph) <-  createProcess_ "error when creating process" createProc
   -- Just hout
-  -- let hout = System.IO.stdout
+  -- let stdout = System.IO.stdout
+  hSetBuffering stdout NoBuffering
+  -- hSetBuffering hout NoBuffering
   -- non blocking
   exitCode <- getProcessExitCode ph
   case exitCode of
     Just code -> putStrLn "Finished"
     _ -> do
+      -- LineBuffering
+      hSetBuffering hout NoBuffering
+      hSetBuffering herr NoBuffering
       putStrLn $ "Live stats (before): " ++ show (lsPackets initialLiveStats)
       liveStats <- execStateT (runEffect (tsharkLoop hout)) initialLiveStats 
       putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
+      -- blocking
       exitCode2 <- waitForProcess ph
       case exitCode2 of
         ExitSuccess -> putStrLn "Success"
-        _  -> do 
+        _  -> do
+          putStrLn "hGetContents"
           hGetContents herr >>= putStrLn
   putStrLn $ "final exitCode"
 

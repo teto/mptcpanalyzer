@@ -113,8 +113,9 @@
 
       devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
        postShellHook = ''
+          cd mptcpanalyzer
           set -x
-          result=$(cd mptcpanalyzer && cabal list-bin exe:mptcpanalyzer)
+          result=$(cabal list-bin exe:mptcpanalyzer)
           if [ $? -eq 0 ]; then
             export PATH="$(dirname $result):$PATH"
           fi
