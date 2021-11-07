@@ -41,6 +41,9 @@ import Control.Monad.State (StateT, modify', gets)
 import MptcpAnalyzer (FrameFiltered (ffFrame))
 import Net.Tcp (TcpConnection)
 import Control.Monad.State.Lazy (execStateT)
+import Pipes.Prelude (fromHandle)
+import System.IO (stdout)
+import Data.Text.IO (hPutStrLn)
 
 -- --         +--------+-- A 'Producer' that yields 'String's
 -- --         |        |
@@ -90,29 +93,41 @@ pipeTableEitherOpt' opts = do
   P.map (readRow opts)
 
 
+type TsharkMonad = (StateT LiveStats IO)
+-- type TsharkMonad = IO
+
 -- produceFrameChunks
 -- inCoreAoS
 -- --capture-comment
 -- TODO return the frame/ stats
-tsharkLoop :: Handle -> Effect (StateT LiveStats IO) ()
+tsharkLoop :: Handle -> Effect TsharkMonad ()
 tsharkLoop hout = do
+  let initialLiveStats = LiveStats mempty 0 mempty
 
-  ls <- for (tsharkProducer hout) $ \(x) -> do
+  -- hSetBuffering stdout NoBuffering
+  -- ls <- for (tsharkProducer hout) $ \x -> do
+  ls <- for (fromHandle hout) $ \x -> do
+    
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
-      (frame :: FrameRec HostCols) <- trace "inCoreAOS" liftIO $ inCoreAoS (yield x >-> pipeTableEitherOpt' popts >-> P.map fromEither )
+      (frame :: FrameRec HostCols) <- trace "inCoreAOS" liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
-      liftIO $ putStrLn $ "test: " ++  T.unpack x
+      -- liftIO $ putStrLn $ "test: "
+      liftIO $ putStrLn $ "test: " ++  x
+      -- liftIO $ hFlush P.stdoutLn
+      -- x >-> P.stdoutLn "toto"
       liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       modify' (\stats -> stats { 
         lsPackets = lsPackets stats + 1,
         lsFrame = (lsFrame stats)  <> frame
         })
       stFrame <- gets lsFrame
-      liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
-      -- liftIO $ putStrLn "toto"
+      -- liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
+      liftIO $ putStrLn "toto"
+      -- lift $ hPutStrLn stdout "test"
 
   pure ls
+  -- pure ()
 
   where
     -- tokenize = tokenizeRow popts
@@ -140,7 +155,7 @@ data LiveStats = LiveStats {
   }
 
 
-tsharkProducer :: Handle -> Producer Text (StateT LiveStats IO) ()
+tsharkProducer :: Handle -> Producer Text TsharkMonad ()
 tsharkProducer hout = do
   -- let liveStats = LiveStats mempty 0 mempty
   -- NOTE: hIsEOF may block, because it has to attempt to read from the stream to determine whether there is any more data to be read.
@@ -148,9 +163,9 @@ tsharkProducer hout = do
   -- if eof == True then
   --   return ()
   -- else do
-    liftIO $ hSetBuffering hout NoBuffering
+    liftIO $ trace ("show hout " ++ show hout) hSetBuffering hout NoBuffering
     output <- liftIO $ trace "hgetline" hGetLine hout
-    liftIO $ putStrLn output
+    -- liftIO $ putStrLn output
     trace "yield" yield (T.pack output)
     tsharkProducer hout
   -- return ls
