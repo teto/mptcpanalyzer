@@ -177,5 +177,6 @@ getMptcpStats (FrameTcp mptcpConn frame) dest =
     minDsn = minimum dsns
 
 showMptcpUnidirectionalStats :: MptcpUnidirectionalStats -> Text
-showMptcpUnidirectionalStats stats =
+showMptcpUnidirectionalStats stats = T.unlines [
   "MptcpUnidirectionalStats todo"
+  ]

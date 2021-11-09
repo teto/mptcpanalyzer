@@ -168,8 +168,8 @@ deriving instance Hashable IPv6
 type PcapFrame a = Frame Packet
 
 
-tshow :: Show a => a -> TS.Text
-tshow = TS.pack . Prelude.show
+-- tshow :: Show a => a -> TS.Text
+-- tshow = TS.pack . Prelude.show
 -- TODO PcapFrame should be a monoid and a semigroup with a list of Connection []
 
 

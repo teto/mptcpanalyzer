@@ -38,8 +38,9 @@ import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Debug
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Merge
+import MptcpAnalyzer.Utils.Text
 -- for retypeColumn
-import MptcpAnalyzer.Frames.Utils
+-- import MptcpAnalyzer.Frames.Utils
 -- for fields
 import "this" Net.Tcp
 import "this" Net.Mptcp

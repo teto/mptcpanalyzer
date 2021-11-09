@@ -1,0 +1,2 @@
+#  cabal haddock --haddock-executables
+

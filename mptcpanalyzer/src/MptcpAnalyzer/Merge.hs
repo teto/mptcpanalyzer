@@ -60,10 +60,13 @@ import MptcpAnalyzer.Types
 import Tshark.TH
 import MptcpAnalyzer.ArtificialFields
 -- for retypeColumn
-import MptcpAnalyzer.Frames.Utils
+-- import MptcpAnalyzer.Frames.Utils
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Map
+import MptcpAnalyzer.Utils.Text
 -- (addTcpDestToFrame, StreamConnection)
+import Net.IP (IP)
+import Net.Tcp
 
 
 import Frames as F
@@ -76,8 +79,6 @@ import Data.Hashable
 import GHC.TypeLits (KnownSymbol, Symbol)
 import qualified Data.Vinyl as V
 import Language.Haskell.TH (Name)
-import Net.IP (IP)
-import Net.Tcp
 import Net.Mptcp
 import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Maybe (catMaybes)

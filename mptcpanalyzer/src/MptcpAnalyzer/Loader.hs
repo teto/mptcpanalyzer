@@ -15,6 +15,7 @@ import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Frame
+import MptcpAnalyzer.Utils.Text
 import Tshark.Main
 
 import Prelude hiding (log)

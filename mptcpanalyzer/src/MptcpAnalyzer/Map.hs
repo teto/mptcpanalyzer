@@ -25,30 +25,31 @@ module MptcpAnalyzer.Map (
 where
 
 import MptcpAnalyzer.Cache
-import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Types
 import MptcpAnalyzer.Loader
+import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
-import Net.Tcp
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
+import Net.Tcp
 
-import Prelude hiding (log)
 import Options.Applicative
-import Polysemy (Member, Members, Sem, Embed)
+import Polysemy (Embed, Member, Members, Sem)
 import qualified Polysemy as P
 import Polysemy.State as P
--- import Colog.Polysemy (Log, log)
+import Prelude hiding (log)
+import Data.Either (lefts, rights)
 import Data.Function (on)
 import Data.List (sortBy, sortOn)
-import Data.Either (rights, lefts)
 import Data.Ord
-import Frames
 import qualified Data.Set as Set
-import Data.Text (intercalate, Text)
+import Data.Text (Text, intercalate, unlines)
+import qualified Data.Text as T
+import Frames
 
 type MptcpSubflowMapping = [(MptcpSubflow, [(MptcpSubflow, Int)])]
 
--- data MptcpSubflowMapping 
+-- data MptcpSubflowMapping
 
 -- | Returns
 -- TODO we should sort the returned
@@ -65,16 +66,16 @@ mapSubflows con1 con2 =
 -- | show a mapping
 showMptcpSubflowMapping :: MptcpSubflowMapping -> Text
 showMptcpSubflowMapping m =
-  intercalate "\n" $ map showOneSfMapping m
+  T.unlines $ map showOneSfMapping m
   where
     showOneSfMapping (ref, scores) = "Mappings for " <> showMptcpSubflowText ref <> ":\n"
       <> (intercalate "\n-" $ map (\(sf, score) -> showMptcpSubflowText sf <> " SCORE: "<> tshow score) scores)
 
 
 -- |
--- Returns a list of 
+-- Returns a list of
 mapTcpConnection ::
-  -- Members '[Log String, P.State MyState, Cache, Embed IO] r => 
+  -- Members '[Log String, P.State MyState, Cache, Embed IO] r =>
   FrameFiltered TcpConnection Packet
   -> Frame Packet
   -> [(TcpConnection, Int)]

@@ -3,28 +3,28 @@ Module: MptcpAnalyzer.Commands.Load
 Maintainer  : matt
 License     : GPL-3
 -}
-{-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE DataKinds              #-}
-{-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE EmptyCase              #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs                  #-}
-{-# LANGUAGE KindSignatures         #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE PatternSynonyms        #-}
-{-# LANGUAGE PolyKinds              #-}
-{-# LANGUAGE QuasiQuotes            #-}
-{-# LANGUAGE ScopedTypeVariables    #-}
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE TypeApplications       #-}
-{-# LANGUAGE TypeFamilies           #-}
-{-# LANGUAGE TypeOperators          #-}
-{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE PackageImports         #-}
+{-# LANGUAGE PackageImports #-}
 module MptcpAnalyzer.Pcap (
     addTcpDestToFrame
     , addMptcpDestToFrame
@@ -49,64 +49,78 @@ module MptcpAnalyzer.Pcap (
 where
 
 
-import           MptcpAnalyzer.ArtificialFields
-import           MptcpAnalyzer.Stream
-import           MptcpAnalyzer.Types
-import           Net.Mptcp.Connection
-import           Net.Tcp
-import           "mptcp-pm" Net.Tcp             (TcpFlag (..))
-import           Tshark.Fields
-import           Tshark.TH
+import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
+import Net.Mptcp.Connection
+import Net.Tcp
+import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import Tshark.Fields
+import Tshark.TH
 
 import Data.Kind (Type)
-import           Data.Monoid                    (First (..))
-import qualified Data.Text                      as T
-import qualified Data.Text.IO                   as T
-import qualified Data.Vector                    as V
-import           Frames
-import           Frames.TH
-import           System.Exit
-import           System.IO                      (BufferMode (LineBuffering), Handle, SeekMode (AbsoluteSeek),
-                                                 hGetContents, hSeek, hSetBuffering)
-import           System.Process
-import           Frames.CSV                     (ParserOptions (..), QuotingMode (..), ReadRec, pipeTableEitherOpt,
-                                                 produceTextLines, readFileLatin1Ln, readTableMaybeOpt)
-import           Frames.Col
-import           Frames.ColumnTypeable          (Parseable (..), Parsed (..), parseIntish)
-import           Frames.ShowCSV
+import Data.Monoid (First(..))
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+import qualified Data.Vector as V
+import Frames
+import Frames.CSV
+       ( ParserOptions(..)
+       , QuotingMode(..)
+       , ReadRec
+       , pipeTableEitherOpt
+       , produceTextLines
+       , readFileLatin1Ln
+       , readTableMaybeOpt
+       )
+import Frames.Col
+import Frames.ColumnTypeable (Parseable(..), Parsed(..), parseIntish)
+import Frames.ShowCSV
+import Frames.TH
+import System.Exit
+import System.IO
+       ( BufferMode(LineBuffering)
+       , Handle
+       , SeekMode(AbsoluteSeek)
+       , hGetContents
+       , hSeek
+       , hSetBuffering
+       )
+import System.Process
 -- for Record
 -- import Frames.Rec (Record(..))
-import           Data.List                      (intercalate)
-import           Net.IP
+import Data.List (intercalate)
+import Net.IP
 -- for symbol
 -- import GHC.Types
-import qualified Control.Foldl                  as L
-import qualified Data.Set                       as Set
+import qualified Control.Foldl as L
+import qualified Data.Set as Set
 -- import Language.Haskell.TH
 -- import Language.Haskell.TH.Syntax
 -- import Lens.Micro
 -- import Lens.Micro.Extras
-import           Control.Lens
-import qualified Data.Foldable                  as F
-import           Data.Maybe                     (catMaybes, fromJust)
-import           Data.Vinyl                     (ElField (..), Rec (..), rapply, rmapX, xrec)
-import           Data.Vinyl.Class.Method
-import           Data.Vinyl.Functor             (Compose (..), (:.))
-import           Data.Word                      (Word16, Word32, Word64, Word8)
-import           GHC.Base                       (Symbol)
-import           GHC.List                       (foldl')
-import           GHC.TypeLits                   (KnownSymbol)
-import           Numeric                        (readHex)
-import           Pipes                          (Producer, cat, (>->))
-import qualified Pipes.Prelude                  as P
+import Control.Lens
+import qualified Data.Foldable as F
+import Data.Maybe (catMaybes, fromJust)
+import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
+import Data.Vinyl.Class.Method
+import Data.Vinyl.Functor (Compose(..), (:.))
+import Data.Word (Word16, Word32, Word64, Word8)
+import GHC.Base (Symbol)
+import GHC.List (foldl')
+import GHC.TypeLits (KnownSymbol)
+import Numeric (readHex)
+import Pipes (Producer, cat, (>->))
+import qualified Pipes.Prelude as P
 -- import qualified Frames.InCore
-import           Data.Either                    (lefts, rights)
-import qualified Data.Map                       as Map
-import           Debug.Trace
-import qualified Frames.InCore                  as I
-import Tshark.Main
+import Data.Either (lefts, rights)
+import qualified Data.Map as Map
+import Debug.Trace
+import qualified Frames.InCore as I
 import System.Environment (getEnvironment)
 import System.IO.Temp
+import Tshark.Main
 
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 
@@ -528,10 +542,8 @@ instance StreamConnection TcpConnection Tcp where
 scoreMptcpCon :: MptcpConnection -> MptcpConnection -> Int
 scoreMptcpCon con1 con2 =
   let keyScore = if mptcpServerKey con1 == mptcpServerKey con2 && mptcpClientKey con1 == mptcpClientKey con2
-      then
-          200
-      else
-          0
+      then 200
+      else 0
   in
     keyScore
 

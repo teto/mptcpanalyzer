@@ -24,7 +24,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, poetry, replica, ... }@inputs:
+  outputs = { self, nixpkgs, flake-utils, poetry, replica, hls, ... }:
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
 
       compilerVersion = "8107";
@@ -68,23 +68,24 @@
 
       # modifier used in haskellPackages.developPackage
       myModifier = drv:
-            pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
-              cabal-install
-                ghcid
-                replica.packages."${system}".build
-                inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
-                # inputs.hls.packages."${system}"."hie-bios-${compilerVersion}"
-                cairo # for chart-cairo
-                dhall  # for the repl
-                pkgs.dhall-json  # for dhall-to-json
-                glib
-                hasktags
-                stan
-                # pkg-config
-                zlib
-                pkgs.dhall-lsp-server
-              #   threadscope
-              ]);
+        pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
+          cabal-install
+            ghcid
+            replica.packages.${system}.build
+            hls.packages.${system}."haskell-language-server-${compilerVersion}"
+            # hls.packages.${system}."hie-bios-${compilerVersion}"
+            cairo # for chart-cairo
+            dhall  # for the repl
+            pkgs.dhall-json  # for dhall-to-json
+            glib
+            hasktags
+            stan
+            # pkg-config
+            zlib
+            pkgs.dhall-lsp-server
+            pkgs.stylish-haskell
+          #   threadscope
+          ]);
     in {
       packages = {
 

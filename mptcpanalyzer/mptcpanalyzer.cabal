@@ -202,8 +202,9 @@ library
         -- , MptcpAnalyzer.Commands.ListMptcp
         -- , MptcpAnalyzer.Commands.Plot
         -- TODO rename to Utils.Frames
-        , MptcpAnalyzer.Frames.Utils
+        -- , MptcpAnalyzer.Frames.Utils
         , MptcpAnalyzer.Utils.Completion
+        , MptcpAnalyzer.Utils.Text
         -- , Connection
     build-depends:
         Chart

@@ -21,6 +21,7 @@ import           MptcpAnalyzer.Loader
 import           MptcpAnalyzer.Pcap
 import           MptcpAnalyzer.Types
 import           MptcpAnalyzer.Utils.Completion (completePath, readFilename)
+import           MptcpAnalyzer.Utils.Text
 
 -- import Control.Lens hiding (argument)
 

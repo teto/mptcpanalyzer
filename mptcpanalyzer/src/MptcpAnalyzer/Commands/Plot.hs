@@ -34,6 +34,7 @@ import           MptcpAnalyzer.Commands.PlotOWD
 import           MptcpAnalyzer.Debug
 import           MptcpAnalyzer.Loader
 import           MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Utils.Text
 import           "this" Net.Mptcp
 import           "this" Net.Tcp
 import           Tshark.Fields                          (TsharkFieldDesc (tfieldLabel), baseFields)

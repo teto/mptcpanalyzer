@@ -1,8 +1,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-
-Module:  Net.Tcp.stats
+Module:  Net.Tcp.Stats
 Description : Uni/bidirectional statistics for subflows
 Maintainer  : matt
 Portability : Linux
@@ -20,23 +20,23 @@ module Net.Tcp.Stats (
 where
 
 import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
 import Net.Tcp.Connection
-import qualified Data.Map as Map
-
 
 import qualified Control.Foldl as L
 import Control.Lens hiding (argument)
-import Data.Word (Word32, Word64)
+import qualified Data.Map as Map
 import Data.Maybe (fromJust)
+import Data.Word (Word32, Word64)
 -- import Data.ByteUnits
 
 import qualified Data.Foldable as F
+import Data.Ord (comparing)
+import qualified Data.Text as T
 import Frames
 import qualified Frames as F
 import qualified Frames.InCore as F
-import qualified Data.Foldable as F
-import MptcpAnalyzer.Types
-import Data.Ord (comparing)
 
 type Byte = Int
 
@@ -154,7 +154,7 @@ genTcpStats aframe = TcpUnidirectionalStats {
     , tusReinjectedBytes = 0
   }
   where
-    -- we could use the Statistics vector if we could use the 
+    -- we could use the Statistics vector if we could use the
     (minPktId, maxPktId) = case L.fold ((,) <$> L.minimum <*> L.maximum) $ F.toList $ view packetId <$> aframe of
         (Just pmin, Just pmax) -> (pmin, pmax)
         _otherwise -> error "Could not find either min or max"
@@ -173,7 +173,8 @@ getTcpStats :: (
   , PacketId F.∈ rs
   )
   => FrameFiltered TcpConnection (F.Record rs)
-  -> ConnectionRole -> TcpUnidirectionalStats
+  -> ConnectionRole
+  -> TcpUnidirectionalStats
 getTcpStats aframe dest =
   if frameLength frame == 0 then
     mempty
@@ -232,8 +233,10 @@ getTcpGoodput s =
 
 showTcpUnidirectionalStats :: TcpUnidirectionalStats -> Text
 showTcpUnidirectionalStats stats =
-  "Reinjected bytes: " <> tshow (tusReinjectedBytes stats)
-  <> "Current goodput: " <> tshow (getTcpGoodput stats)
+  T.unlines [
+    "Reinjected bytes: " <> tshow (tusReinjectedBytes stats)
+    , "Current goodput: " <> tshow (getTcpGoodput stats)
+  ]
 
     -- duration = maxTime - minTime
 
@@ -261,7 +264,7 @@ showTcpUnidirectionalStats stats =
 
 --     msg = "seq_range ({}) = {} (seq_max) - {} (seq_min) - 1"
 --     log.log(mp.TRACE, msg.format(seq_range, seq_max, seq_min))
- 
+
 --     return seq_range, seq_max, seq_min
 
 

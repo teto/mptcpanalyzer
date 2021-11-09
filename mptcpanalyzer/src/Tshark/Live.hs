@@ -47,7 +47,7 @@ import Pipes.Prelude (fromHandle)
 import System.IO (stdout)
 import Data.Text.IO (hPutStrLn)
 import System.Console.ANSI
-import Net.Tcp.Stats (TcpUnidirectionalStats, showTcpUnidirectionalStats)
+import Net.Tcp.Stats (TcpUnidirectionalStats, showTcpUnidirectionalStats, getTcpStats)
 import Net.Mptcp.Stats (MptcpUnidirectionalStats, showMptcpUnidirectionalStats)
 
 
@@ -99,7 +99,7 @@ pipeTableEitherOpt' opts = do
   P.map (readRow opts)
 
 
-type TsharkMonad = (StateT (LiveStats TcpUnidirectionalStats) IO)
+type TsharkMonad = (StateT (LiveStatsTcp) IO)
 -- type TsharkMonad = IO
 
 -- produceFrameChunks
@@ -121,18 +121,19 @@ tsharkLoop hout = do
       -- liftIO $ putStrLn $ "test: "
       -- liftIO $ putStrLn $ "test: " ++  x
       -- liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
-      modify' (\stats -> stats { 
-        lsPackets = lsPackets stats + 1,
-        lsFrame = (lsFrame stats)  <> frame
-        })
       stFrame <- gets lsFrame
+      modify' (\stats -> stats { 
+        lsPackets = lsPackets stats + 1
+        , lsFrame = (lsFrame stats)  <> frame
+        , lsStats = (lsStats stats) <> (getTcpStats (stFrame { ffFrame = frame }))
+        })
       liftIO $ cursorUp 1
       liveStats <- get
-      -- liftIO $ cursorBackward 40
-      -- liftIO $ putStrLn "toto"
       liftIO clearFromCursorToScreenEnd
       let output = showLiveStatsTcp liveStats
-      liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
+      liftIO $ cursorUp $ Prelude.length $ T.lines output
+      liftIO $ (putStrLn . T.unpack) output
+      -- liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
       -- lift $ hPutStrLn stdout "test"
 
   pure ls
@@ -163,42 +164,46 @@ tsharkLoop hout = do
 --   , lsFrame :: FrameRec HostCols
 --   }
 
-data LiveStats stats = LiveStats {
+-- TODO should be instance of a Monoid !
+-- | This should be unidirectional ?
+data LiveStats stats con packet = LiveStats {
   -- lsCon :: MptcpConnection,
-  lsStats :: stats 
+  lsStats :: stats
   , lsPackets :: Int
-  -- , lsFrame :: FrameFiltered TcpConnection Packet
-  , lsFrame :: FrameRec HostCols
+  -- , lsConnection :: TcpConnection
+  , lsFrame :: FrameFiltered con packet
+  , lsHasFinished :: Bool
+  -- ^ True once it sees a FIN
+  -- , lsFrame :: FrameRec HostCols
   }
 
-type LiveStatsTcp = LiveStats TcpUnidirectionalStats
-type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats
+type LiveStatsTcp = LiveStats TcpUnidirectionalStats TcpConnection Packet
+type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats MptcpConnection Packet
+
+data SomeStats where
+  SomeStats :: LiveStats a b c -> SomeStats
 
 tshow :: Show a => a -> T.Text
 tshow = T.pack . Prelude.show
 
-showLiveStatsTcp :: LiveStats TcpUnidirectionalStats -> Text
-showLiveStatsTcp stats = 
-  showLiveStats stats <> showTcpUnidirectionalStats (lsStats stats)
+showLiveStatsTcp :: LiveStatsTcp -> Text
+showLiveStatsTcp stats =
+  showLiveStats (SomeStats stats) <> showTcpUnidirectionalStats (lsStats stats)
 
-showLiveStatsMptcp :: LiveStats MptcpUnidirectionalStats -> Text
-showLiveStatsMptcp stats = 
-  showLiveStats stats <> showMptcpUnidirectionalStats (lsStats stats)
+showLiveStatsMptcp :: LiveStatsMptcp -> Text
+showLiveStatsMptcp stats =
+  showLiveStats (SomeStats stats) <> showMptcpUnidirectionalStats (lsStats stats)
 
-showLiveStats :: LiveStats a -> Text
-showLiveStats liveStats =
-  "Number of packets: " <> tshow (lsPackets liveStats)
-  <> "\n: " <> tshow (lsPackets liveStats)
+showLiveStats :: SomeStats -> Text
+showLiveStats (SomeStats liveStats) =
+  T.unlines [
+    "Number of packets: " <> tshow (lsPackets liveStats)
+    , tshow (lsPackets liveStats)
+  ]
 
 
 tsharkProducer :: Handle -> Producer Text TsharkMonad ()
 tsharkProducer hout = do
-  -- let liveStats = LiveStats mempty 0 mempty
-  -- NOTE: hIsEOF may block, because it has to attempt to read from the stream to determine whether there is any more data to be read.
-  -- eof <- liftIO $ hIsEOF hout
-  -- if eof == True then
-  --   return ()
-  -- else do
     liftIO $ trace ("show hout " ++ show hout) hSetBuffering hout NoBuffering
     output <- liftIO $ trace "hgetline" hGetLine hout
     -- liftIO $ putStrLn output

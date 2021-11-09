@@ -28,6 +28,7 @@ import MptcpAnalyzer.ArtificialFields
 import Net.Tcp
 import Net.Mptcp
 import Net.Mptcp.Stats
+import MptcpAnalyzer.Utils.Text
 
 import Frames.CSV
 import Prelude hiding (log)
@@ -143,7 +144,7 @@ cmdTcpSummary streamId detailed = do
     state <- P.get
     let loadedPcap = view loadedFile state
     case loadedPcap of
-      Nothing -> trace ("please load a pcap first" :: String) >> return CMD.Continue
+      Nothing -> return CMD.Error "please load a pcap first"
       Just frame -> case buildTcpConnectionFromStreamId frame streamId of
         Left msg -> return $ CMD.Error msg
         Right aframe -> do
@@ -158,19 +159,9 @@ cmdTcpSummary streamId detailed = do
             P.trace res2
           else
             pure ()
-          -- log $ "Number of SYN packets " ++ (fmap  )
           return CMD.Continue
-          -- where
-          --     -- aframe = buildTcpConnectionFromStreamId frame streamId
-          --     -- forwardStats = showStats RoleServer
-          --     showStats direction = let
-          --         aframeWithDest = addTcpDestinationsToAFrame aframe
-          --         tcpStats = getTcpStats aframeWithDest direction
-          --       in do
-          --         showTcpStats tcpStats
-          --         P.embed $ writeCSV "debug.csv" (ffFrame aframeWithDest)
 
--- |just
+-- | Show stats in both directions
 showStats :: ( Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] r)
   => FrameFiltered TcpConnection Packet
   -> ConnectionRole
@@ -186,6 +177,7 @@ showStats aframe dest = let
     return $ showTcpStats tcpStats ++ "   (" ++ show (frameLength destFrame) ++ " packets)"
 
 
+-- | summarize a few key characteristics like goodput/throughput
 showTcpStats :: TcpUnidirectionalStats -> String
 showTcpStats s =
                   "- transferred " ++ show (tusSndNext s - tusMinSeq s + 1 + tusReinjectedBytes s)  ++ " bytes "
@@ -245,12 +237,7 @@ cmdMptcpSummary streamId detailed = do
     Just frame -> case buildMptcpConnectionFromStreamId frame streamId of
       Left msg -> return $ CMD.Error msg
       Right aframe -> do
-        let
-          -- addTcpDestinationsToAFrame
-          -- aframeWithDest = addTcpDestinationsToAFrame aframe
 
-        -- let _tcpstreams = getTcpStreams frame
-        -- TODO we need to add MptcpDest
         let mptcpStatsClient = getMptcpStats aframe RoleClient
         let mptcpStatsServer = getMptcpStats aframe RoleServer
 
@@ -259,7 +246,7 @@ cmdMptcpSummary streamId detailed = do
         if detailed
         then
           -- RoleServer
-          trace $ showMptcpStats mptcpStatsClient
+          P.trace $ showMptcpStats mptcpStatsClient
           -- trace $ showMptcpStats mptcpStatsServer
         else
           pure ()

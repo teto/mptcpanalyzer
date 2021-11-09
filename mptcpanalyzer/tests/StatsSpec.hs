@@ -44,6 +44,30 @@ cacheConfig = CacheConfig {
   , cacheEnabled = False
 }
 
+expectedForwardStats, expectedForwardStats0, expectedBackwardStats, expectedBackwardStats0, expectedForwardStatsTotal01 :: TcpUnidirectionalStats
+expectedForwardStats = mempty
+expectedBackwardStats = mempty
+expectedForwardStats0 = mempty
+expectedForwardStats1 = mempty
+expectedBackwardStats0 = mempty
+
+-- TcpUnidirectionalStats {
+--       tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
+--       , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
+--       , tusNrPackets = frameLength frame
+--       , tusStartTime = minTime
+--       , tusEndTime = maxTime
+--       -- TODO fill it
+--       , tusMinSeq = minSeq
+
+--       -- TODO should be max of seen acks
+--       , tusSndUna = maxSeqRow ^. tcpSeq + fromIntegral ( maxSeqRow ^. tcpLen) :: Word32
+--       , tusSndNext = maxSeqRow ^. tcpSeq + fromIntegral ( maxSeqRow ^. tcpLen ) :: Word32
+--       , tusReinjectedBytes = 0
+
+
+--   }
+
 -- logs/cache
 main :: IO ()
 main = do
@@ -81,8 +105,12 @@ runTests = do
   P.embed $ hspec $ do
     describe "absolute" $ do
       it "Check generated stats" $
-        pendingWith "test"
+        -- pendingWith "test"
+          getTcpStats aframe RoleServer == expectedForwardStats
+          getTcpStats aframe RoleClient == expectedBackwardStats
 
+      it "Test append of stats" $
+          expectedForwardStats0 <> expectedForwardStats1 == expectedForwardStatsTotal01
   return ()
 
   -- hspec $ do

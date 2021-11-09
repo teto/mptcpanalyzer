@@ -1,3 +1,9 @@
+{-
+Module:  MptcpAnalyzer.Commands.Map
+Description : 
+Maintainer  : matt
+Portability : Linux
+-}
 module MptcpAnalyzer.Commands.Map (
   mapTcpOpts
   , mapMptcpOpts
@@ -17,6 +23,7 @@ import MptcpAnalyzer.Merge
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Map
 import Net.Mptcp
+import MptcpAnalyzer.Utils.Text
 
 import Prelude hiding (log)
 import Options.Applicative

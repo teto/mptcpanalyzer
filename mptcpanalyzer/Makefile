@@ -3,8 +3,10 @@
 TEST_FILES ?= tests/tcp.json tests/mptcp.json
 
 # TODO should be doable via LSP/test ormolu
+int: stylish-haskell
+
 stylish-haskell:
-	stylish-haskell
+	git ls-files '*.hs' | xargs -P0 -I {} sh -c "stylish-haskell {}"
 
 .PHONY: hlint
 hlint:

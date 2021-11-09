@@ -157,6 +157,7 @@ import Tshark.Live
 import MptcpAnalyzer.Pcap (defaultParserOptions)
 import MptcpAnalyzer.Utils.Completion
 import Tshark.Main (generateCsvCommand, defaultTsharkPrefs, defaultTsharkOptions, tsharkReadFilter, genReadFilterFromTcpConnection)
+import MptcpAnalyzer.Utils.Text
 
 
 import Polysemy (Sem, Members, runFinal, Final)
@@ -594,8 +595,8 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
 
           -- stats/packetCount/Frame
           -- keeping it light for now
-          -- initialLiveStats = LiveStats mempty 0 (FrameTcp connectionFilter mempty)
-          initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
+          initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 (FrameTcp connectionFilter mempty)
+          -- initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
           toLoad = case mbFake of
             Just filename -> Right filename
             Nothing -> Left ifname
@@ -667,20 +668,14 @@ startLivePlot :: LiveStatsTcp -> CreateProcess -> IO ()
 startLivePlot initialLiveStats createProc = do
   -- withCreateProcess
   (_, Just hout, Just herr, ph) <-  createProcess_ "error when creating process" createProc
-  -- Just hout
-  -- let stdout = System.IO.stdout
   hSetBuffering stdout NoBuffering
-  putStrLn $ " hout " ++ show hout
-  putStrLn $ " stdout " ++ show stdout
-  -- hSetBuffering hout NoBuffering
   -- non blocking
   exitCode <- getProcessExitCode ph
   case exitCode of
     Just code -> putStrLn "Finished"
     _ -> do
-      -- LineBuffering
-      hSetBuffering hout NoBuffering
-      hSetBuffering herr NoBuffering
+      -- hSetBuffering hout LineBuffering
+      -- hSetBuffering herr NoBuffering
       putStrLn $ "Live stats (before): " ++ show (lsPackets initialLiveStats)
       liveStats <- execStateT (runEffect (tsharkLoop hout)) initialLiveStats 
       putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
