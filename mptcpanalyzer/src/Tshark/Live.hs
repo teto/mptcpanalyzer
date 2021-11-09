@@ -8,6 +8,8 @@ Portability : Linux
 module Tshark.Live (
   tsharkLoop
   , LiveStats(..)
+  , LiveStatsTcp
+  , LiveStatsMptcp
 )
 where
 
@@ -37,13 +39,17 @@ import Data.Maybe (isNothing)
 
 import Net.Mptcp.Connection (MptcpConnection (MptcpConnection))
 import Net.Mptcp (MptcpUnidirectionalStats)
-import Control.Monad.State (StateT, modify', gets)
+import Control.Monad.State (StateT, modify', gets, MonadState (get))
 import MptcpAnalyzer (FrameFiltered (ffFrame))
 import Net.Tcp (TcpConnection)
 import Control.Monad.State.Lazy (execStateT)
 import Pipes.Prelude (fromHandle)
 import System.IO (stdout)
 import Data.Text.IO (hPutStrLn)
+import System.Console.ANSI
+import Net.Tcp.Stats (TcpUnidirectionalStats, showTcpUnidirectionalStats)
+import Net.Mptcp.Stats (MptcpUnidirectionalStats, showMptcpUnidirectionalStats)
+
 
 -- --         +--------+-- A 'Producer' that yields 'String's
 -- --         |        |
@@ -93,7 +99,7 @@ pipeTableEitherOpt' opts = do
   P.map (readRow opts)
 
 
-type TsharkMonad = (StateT LiveStats IO)
+type TsharkMonad = (StateT (LiveStats TcpUnidirectionalStats) IO)
 -- type TsharkMonad = IO
 
 -- produceFrameChunks
@@ -102,7 +108,7 @@ type TsharkMonad = (StateT LiveStats IO)
 -- TODO return the frame/ stats
 tsharkLoop :: Handle -> Effect TsharkMonad ()
 tsharkLoop hout = do
-  let initialLiveStats = LiveStats mempty 0 mempty
+  let initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
 
   -- hSetBuffering stdout NoBuffering
   -- ls <- for (tsharkProducer hout) $ \x -> do
@@ -110,20 +116,23 @@ tsharkLoop hout = do
     
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
-      (frame :: FrameRec HostCols) <- trace "inCoreAOS" liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
+      (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
       -- liftIO $ putStrLn $ "test: "
-      liftIO $ putStrLn $ "test: " ++  x
-      -- liftIO $ hFlush P.stdoutLn
-      -- x >-> P.stdoutLn "toto"
-      liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
+      -- liftIO $ putStrLn $ "test: " ++  x
+      -- liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       modify' (\stats -> stats { 
         lsPackets = lsPackets stats + 1,
         lsFrame = (lsFrame stats)  <> frame
         })
       stFrame <- gets lsFrame
-      -- liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
-      liftIO $ putStrLn "toto"
+      liftIO $ cursorUp 1
+      liveStats <- get
+      -- liftIO $ cursorBackward 40
+      -- liftIO $ putStrLn "toto"
+      liftIO clearFromCursorToScreenEnd
+      let output = showLiveStatsTcp liveStats
+      liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
       -- lift $ hPutStrLn stdout "test"
 
   pure ls
@@ -146,13 +155,40 @@ tsharkLoop hout = do
 -- type UpdateFrameFunc a b = Frame a -> Frame a -> (Frame a, b)
 
 -- | Hold information on a connection
-data LiveStats = LiveStats {
+-- data LiveStats = LiveStats {
+--   -- lsCon :: MptcpConnection,
+--   lsStats :: MptcpUnidirectionalStats
+--   , lsPackets :: Int
+--   -- , lsFrame :: FrameFiltered TcpConnection Packet
+--   , lsFrame :: FrameRec HostCols
+--   }
+
+data LiveStats stats = LiveStats {
   -- lsCon :: MptcpConnection,
-  lsStats :: MptcpUnidirectionalStats
+  lsStats :: stats 
   , lsPackets :: Int
   -- , lsFrame :: FrameFiltered TcpConnection Packet
   , lsFrame :: FrameRec HostCols
   }
+
+type LiveStatsTcp = LiveStats TcpUnidirectionalStats
+type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats
+
+tshow :: Show a => a -> T.Text
+tshow = T.pack . Prelude.show
+
+showLiveStatsTcp :: LiveStats TcpUnidirectionalStats -> Text
+showLiveStatsTcp stats = 
+  showLiveStats stats <> showTcpUnidirectionalStats (lsStats stats)
+
+showLiveStatsMptcp :: LiveStats MptcpUnidirectionalStats -> Text
+showLiveStatsMptcp stats = 
+  showLiveStats stats <> showMptcpUnidirectionalStats (lsStats stats)
+
+showLiveStats :: LiveStats a -> Text
+showLiveStats liveStats =
+  "Number of packets: " <> tshow (lsPackets liveStats)
+  <> "\n: " <> tshow (lsPackets liveStats)
 
 
 tsharkProducer :: Handle -> Producer Text TsharkMonad ()

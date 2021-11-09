@@ -64,7 +64,9 @@ custom-setup
 -- text is used to convert from string and in aeson
 -- http://hackage.haskell.org/package/bitset-1.4.8/docs/Data-BitSet-Word.html
 common shared-properties
-    build-depends: base >= 4.12
+    build-depends:
+        base >= 4.12
+      , ansi-terminal
       , Cabal
       , Chart >= 1.5
       , Chart-cairo

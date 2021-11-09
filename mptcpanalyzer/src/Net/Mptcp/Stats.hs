@@ -4,7 +4,7 @@ Description : Compute basic MPTCP statistics
 Maintainer  : matt
 License     : GPL-3
 -}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveAnyClass     #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Net.Mptcp.Stats (
   TcpSubflowUnidirectionalStats(..)
@@ -13,42 +13,44 @@ module Net.Mptcp.Stats (
   , getMptcpGoodput
   , getMptcpStatsDuration
   , getSubflowStats
+  , showMptcpUnidirectionalStats
 )
 where
 
-import MptcpAnalyzer.ArtificialFields
+import           MptcpAnalyzer.ArtificialFields
 -- import MptcpAnalyzer.Types
 -- import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Stream
-import Net.Tcp
-import Net.Tcp.Stats
-import Net.Mptcp.Connection
-import qualified Data.Map as Map
+import           MptcpAnalyzer.Pcap
+import           MptcpAnalyzer.Stream
 
-import Data.Either (fromRight)
+import qualified Data.Map                       as Map
+import           Net.Mptcp.Connection
+import           Net.Tcp
+import           Net.Tcp.Stats
 
-import Data.Set (toList)
-import Control.Lens hiding (argument)
-import Data.Word (Word32, Word64)
-import Data.Maybe (fromJust, catMaybes)
-import qualified Frames as F
-import qualified Data.Foldable as F
-import Data.List (sort, sortBy, sortOn)
-import Data.Map (Map, fromList, mapKeys)
-import qualified Data.Map as Map
-import Control.Lens
-import qualified Frames as F
-import qualified Frames.InCore as F
-import qualified Data.Foldable as F
-import MptcpAnalyzer.Types
-import Data.Vinyl
-import MptcpAnalyzer.Pcap
+import           Data.Either                    (fromRight)
+import qualified Data.Text as T
+import Data.Text (Text)
+
+import           Control.Lens
+import           Control.Lens                   hiding (argument)
+import qualified Data.Foldable                  as F
+import           Data.List                      (sort, sortBy, sortOn)
+import           Data.Map                       (Map, fromList, mapKeys)
+import qualified Data.Map                       as Map
+import           Data.Maybe                     (catMaybes, fromJust)
+import           Data.Set                       (toList)
+import           Data.Vinyl
+import           Data.Word                      (Word32, Word64)
+import qualified Frames                         as F
+import qualified Frames.InCore                  as F
+import           MptcpAnalyzer.Types
 -- import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 
 -- | Useful to show DSN
 data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
   -- tssStats :: TcpUnidirectionalStats
-  tssStats :: TcpUnidirectionalStats
+  tssStats    :: TcpUnidirectionalStats
   , tssMinDsn :: Word64
   , tssMaxDsn :: Word64
   } deriving Show
@@ -57,11 +59,11 @@ data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
 
 -- | Holds MPTCP statistics for one direction
 data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
-  musDirection :: ConnectionRole
+  musDirection          :: ConnectionRole
   , musApplicativeBytes :: Word64
-  , musMaxDsn :: Word64
-  , musMinDsn :: Word64
-  , musSubflowStats :: Map MptcpSubflow TcpSubflowUnidirectionalStats
+  , musMaxDsn           :: Word64
+  , musMinDsn           :: Word64
+  , musSubflowStats     :: Map MptcpSubflow TcpSubflowUnidirectionalStats
   } deriving Show
 
 instance Monoid MptcpUnidirectionalStats where
@@ -174,3 +176,6 @@ getMptcpStats (FrameTcp mptcpConn frame) dest =
 
     minDsn = minimum dsns
 
+showMptcpUnidirectionalStats :: MptcpUnidirectionalStats -> Text
+showMptcpUnidirectionalStats stats =
+  "MptcpUnidirectionalStats todo"

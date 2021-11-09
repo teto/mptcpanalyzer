@@ -595,7 +595,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           -- stats/packetCount/Frame
           -- keeping it light for now
           -- initialLiveStats = LiveStats mempty 0 (FrameTcp connectionFilter mempty)
-          initialLiveStats = LiveStats mempty 0 mempty
+          initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
           toLoad = case mbFake of
             Just filename -> Right filename
             Nothing -> Left ifname
@@ -650,7 +650,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
       getDests mbDest = maybe [RoleClient, RoleServer] (: []) mbDest
 
 
-startLivePlot :: LiveStats -> CreateProcess -> IO ()
+startLivePlot :: LiveStatsTcp -> CreateProcess -> IO ()
 -- startLivePlot createProc = do
 --   -- hSetBuffering tmpFileHandle LineBuffering
 --   -- hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
@@ -683,8 +683,7 @@ startLivePlot initialLiveStats createProc = do
       hSetBuffering herr NoBuffering
       putStrLn $ "Live stats (before): " ++ show (lsPackets initialLiveStats)
       liveStats <- execStateT (runEffect (tsharkLoop hout)) initialLiveStats 
-      -- liveStats <- runEffect (tsharkLoop hout)
-      -- putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
+      putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
       -- blocking
       exitCode2 <- waitForProcess ph
       case exitCode2 of

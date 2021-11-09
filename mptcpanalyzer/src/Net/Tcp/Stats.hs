@@ -15,6 +15,7 @@ module Net.Tcp.Stats (
   , getTcpSeqRange
   , getTcpStats
   , getSeqRange
+  , showTcpUnidirectionalStats
 )
 where
 
@@ -229,6 +230,10 @@ getTcpGoodput :: TcpUnidirectionalStats -> Double
 getTcpGoodput s =
   fromIntegral (tusSndUna s - tusMinSeq s + 1 - tusReinjectedBytes s) / (tusEndTime s - tusStartTime s)
 
+showTcpUnidirectionalStats :: TcpUnidirectionalStats -> Text
+showTcpUnidirectionalStats stats =
+  "Reinjected bytes: " <> tshow (tusReinjectedBytes stats)
+  <> "Current goodput: " <> tshow (getTcpGoodput stats)
 
     -- duration = maxTime - minTime
 
