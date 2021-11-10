@@ -10,29 +10,29 @@ Load a pcap in chunks and check that it produces the same result
 module Main where
 -- import           Test.Tasty
 -- import           Test.Tasty.HUnit
-import           Test.Hspec
-import           Test.QuickCheck                    hiding (Success)
-import           MptcpAnalyzer.Pcap
-import           MptcpAnalyzer.Loader
-import           Frames.Exploration
+import Frames.Exploration
+import MptcpAnalyzer.Loader
+import MptcpAnalyzer.Pcap
+import Test.Hspec
+import Test.QuickCheck hiding (Success)
 
-import Polysemy (Sem, Members, runFinal, Final)
+import Data.Either (fromRight)
+import Frames
+import MptcpAnalyzer.Cache
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import Net.Tcp
+import Polysemy (Final, Members, Sem, runFinal)
 import qualified Polysemy as P
-import qualified Polysemy.IO as P
-import qualified Polysemy.State as P
 import qualified Polysemy.Embed as P
+import qualified Polysemy.IO as P
 import qualified Polysemy.Internal as P
-import qualified Polysemy.Trace as P
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 import Polysemy.Log.Colog (interpretLogStdout)
-import MptcpAnalyzer.Cache
-import MptcpAnalyzer.Types
-import Net.Tcp
+import qualified Polysemy.State as P
+import qualified Polysemy.Trace as P
 import Tshark.Main (defaultTsharkPrefs)
-import Frames
-import Data.Either (fromRight)
-import MptcpAnalyzer.Stream
 
 -- import           MptcpAnalyzer.Stats
 

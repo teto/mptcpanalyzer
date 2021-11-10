@@ -1,9 +1,9 @@
-{-# LANGUAGE DerivingVia         #-}
-{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 module MptcpAnalyzer.Stream
 where
-import Data.Word (Word32)
 import Data.Hashable
+import Data.Word (Word32)
 import Options.Applicative
 
 -- Phantom types

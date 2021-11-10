@@ -9,13 +9,13 @@ module Tshark.Interfaces (
 )
 where
 
-import           System.IO
-import           System.Process
-import           System.Exit
 import Polysemy
-import Polysemy.Log (Log)
 import Polysemy.Embed
+import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
+import System.Exit
+import System.IO
+import System.Process
 
 
 -- listInterfaces :: (Members [Log, Embed IO ] m) => Sem m (ExitCode, [String])

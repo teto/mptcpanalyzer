@@ -1,6 +1,6 @@
 {-
 Module:  MptcpAnalyzer.Plots.Types
-Description : 
+Description :
 Maintainer  : matt
 Portability : Linux
 
@@ -14,10 +14,10 @@ module MptcpAnalyzer.Plots.Types (
 )
 where
 
-import MptcpAnalyzer.Types
-import MptcpAnalyzer.Stream
-import MptcpAnalyzer.ArtificialFields
 import Data.Word (Word32)
+import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
 import Net.IP
 import Net.Tcp
 

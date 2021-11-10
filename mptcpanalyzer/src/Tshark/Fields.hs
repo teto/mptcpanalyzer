@@ -8,23 +8,23 @@ This is done by converting between wireshark formats (.pcapng -> .csv) and
 using "Frames" to load the resulting data into a frame.
 
 -}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE PackageImports         #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
 module Tshark.Fields
 where
 import MptcpAnalyzer.Stream
 
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
-import Net.IP
-import Net.IPv6 (IPv6(..))
+import Data.Text (Text)
+import Data.Word (Word16, Word32, Word64, Word8)
+import Frames.ShowCSV
 import GHC.TypeLits (KnownSymbol)
 import Language.Haskell.TH (Name, Q)
-import Data.Text (Text)
-import Data.Word (Word8, Word16, Word32, Word64)
-import Frames.ShowCSV
+import Net.IP
+import Net.IPv6 (IPv6(..))
+import "mptcp-pm" Net.Tcp (TcpFlag(..))
 
 import Data.Map (Map, fromList, mapKeys)
 -- Phantom types
@@ -126,7 +126,7 @@ baseFields = fromList [
 
 -- TODO
 prefixFields :: Text -> FieldDescriptions -> FieldDescriptions
-prefixFields prefix descs = 
+prefixFields prefix descs =
   -- map (\(name, field) -> (prefix<>name , field))
   mapKeys (\name -> prefix<>name) descs
 

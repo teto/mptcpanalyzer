@@ -14,48 +14,60 @@ module Tshark.Live (
 where
 
 
-import Tshark.Main (defaultTsharkPrefs, csvDelimiter)
+import Tshark.Main (csvDelimiter, defaultTsharkPrefs)
 
 import Data.Text as T
 import GHC.IO.Handle
 import Pipes ((>->))
 import Pipes hiding (Proxy)
 -- import Control.Monad.Primitive
-import qualified Pipes as P
-import qualified Pipes.Prelude as P
-import qualified Pipes.Parse as P
-import qualified Pipes.Safe as P
-import Frames
-import Frames.Exploration
-import Frames.CSV (columnSeparator, tokenizeRow, defaultParser, pipeTableMaybeOpt, pipeTableEitherOpt, readRecEither, ReadRec, ParserOptions, headerOverride, readRow)
-import Control.Monad (unless, liftM, when)
-import           Data.Vinyl.Functor             (Compose (..), (:.))
-import MptcpAnalyzer.Types (Packet, HostCols)
+import Control.Exception (IOException, try)
+import Control.Monad (liftM, unless, when)
+import Data.Maybe (isNothing)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
-import Control.Exception (try, IOException)
-import Debug.Trace (traceShow, trace, traceShowId)
-import Data.Maybe (isNothing)
+import Data.Vinyl.Functor (Compose(..), (:.))
+import Debug.Trace (trace, traceShow, traceShowId)
+import Frames
+import Frames.CSV
+       ( ParserOptions
+       , ReadRec
+       , columnSeparator
+       , defaultParser
+       , headerOverride
+       , pipeTableEitherOpt
+       , pipeTableMaybeOpt
+       , readRecEither
+       , readRow
+       , tokenizeRow
+       )
+import Frames.Exploration
+import MptcpAnalyzer.Types (HostCols, Packet)
+import qualified Pipes as P
+import qualified Pipes.Parse as P
+import qualified Pipes.Prelude as P
+import qualified Pipes.Safe as P
 
-import Net.Mptcp.Connection (MptcpConnection (MptcpConnection))
-import Net.Mptcp (MptcpUnidirectionalStats)
-import Control.Monad.State (StateT, modify', gets, MonadState (get))
-import MptcpAnalyzer (FrameFiltered (ffFrame))
-import Net.Tcp (TcpConnection)
+import Control.Monad.State (MonadState(get), StateT, gets, modify')
 import Control.Monad.State.Lazy (execStateT)
-import Pipes.Prelude (fromHandle)
-import System.IO (stdout)
 import Data.Text.IO (hPutStrLn)
-import System.Console.ANSI
-import Net.Tcp.Stats (TcpUnidirectionalStats, showTcpUnidirectionalStats, getTcpStats)
+import MptcpAnalyzer (FrameFiltered(ffFrame))
+import Net.Mptcp (MptcpUnidirectionalStats)
+import Net.Mptcp.Connection (MptcpConnection(MptcpConnection))
 import Net.Mptcp.Stats (MptcpUnidirectionalStats, showMptcpUnidirectionalStats)
+import Net.Tcp (TcpConnection)
+import Net.Tcp.Stats
+       (TcpUnidirectionalStats, getTcpStats, showTcpUnidirectionalStats)
+import Pipes.Prelude (fromHandle)
+import System.Console.ANSI
+import System.IO (stdout)
 
 
 -- --         +--------+-- A 'Producer' that yields 'String's
 -- --         |        |
 -- --         |        |      +-- Every monad transformer has a base monad.
 -- --         |        |      |   This time the base monad is 'IO'.
--- --         |        |      |  
+-- --         |        |      |
 -- --         |        |      |  +-- Every monadic action has a return value.
 -- --         |        |      |  |   This action returns '()' when finished
 -- --         v        v      v  v
@@ -90,7 +102,7 @@ pipeLines pgetLine h =
 -- produceTextLines = pipeLines (try . T.hGetLine)
 
 
--- copy/pasted 
+-- copy/pasted
 pipeTableEitherOpt' :: (Monad m, ReadRec rs)
                    => ParserOptions
                    -> P.Pipe T.Text (Rec (Either T.Text :. ElField) rs) m ()
@@ -113,7 +125,7 @@ tsharkLoop hout = do
   -- hSetBuffering stdout NoBuffering
   -- ls <- for (tsharkProducer hout) $ \x -> do
   ls <- for (fromHandle hout) $ \x -> do
-    
+
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
       (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
@@ -122,7 +134,7 @@ tsharkLoop hout = do
       -- liftIO $ putStrLn $ "test: " ++  x
       -- liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       stFrame <- gets lsFrame
-      modify' (\stats -> stats { 
+      modify' (\stats -> stats {
         lsPackets = lsPackets stats + 1
         , lsFrame = (lsFrame stats)  <> frame
         , lsStats = (lsStats stats) <> (getTcpStats (stFrame { ffFrame = frame }))
@@ -214,6 +226,6 @@ tsharkProducer hout = do
 ---- Accept as input the different handles
 --readTsharkOutputAndPlotIt :: Handle -> Handle -> IO ()
 --readTsharkOutputAndPlotIt hout herr = do
---  -- use pipeTableEitherOpt to parse 
+--  -- use pipeTableEitherOpt to parse
 --  output <- hGetContents hout
 --  putStrLn output

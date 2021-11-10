@@ -1,29 +1,29 @@
-{-# LANGUAGE QuasiQuotes,
-             DataKinds,
-             FlexibleContexts,
-             TypeApplications,
-             TemplateHaskell #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 
-import MptcpAnalyzer.Map
 import Criterion.Main
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Loader (loadPcapIntoFrame)
-import MptcpAnalyzer.Pcap (buildFrameFromStreamId, )
+import MptcpAnalyzer.Map
+import MptcpAnalyzer.Pcap (buildFrameFromStreamId)
 import Tshark.Main (defaultTsharkPrefs)
 
-import Polysemy (Sem, Members, runFinal, Final)
+import Polysemy (Final, Members, Sem, runFinal)
 import qualified Polysemy as P
-import qualified Polysemy.IO as P
-import qualified Polysemy.State as P
 import qualified Polysemy.Embed as P
+import qualified Polysemy.IO as P
 import qualified Polysemy.Internal as P
+import qualified Polysemy.State as P
 
+import Control.Monad.IO.Class (liftIO)
+import Data.Either (fromRight)
+import MptcpAnalyzer.Stream
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 import Polysemy.Log.Colog (interpretLogStdout)
-import MptcpAnalyzer.Stream
-import Control.Monad.IO.Class (liftIO)
-import Data.Either (fromRight)
 
 -- tableTypes "LCols" "data/left1.csv"
 -- tableTypes "RCols" "data/right1.csv"

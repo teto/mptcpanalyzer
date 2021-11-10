@@ -16,12 +16,12 @@ module Tshark.Main (
 )
 where
 
+import Data.List (intercalate)
 import qualified Data.Text as T
-import System.Process
-import           Data.List                      (intercalate)
-import Net.Tcp (TcpConnection(..))
 import MptcpAnalyzer.ArtificialFields (ConnectionRole)
 import qualified Net.IP
+import Net.Tcp (TcpConnection(..))
+import System.Process
 
 -- http://acowley.github.io/Frames/#orgf328b25
 defaultTsharkOptions :: [(String, String)]
@@ -64,7 +64,7 @@ genReadFilterFromTcpConnection con dest =
 
         -- error "not implemented"
     -- TODO 2 requretes srcport dstport puis alterne
-    _ -> "tcp and ip.addr==" ++ (showIP . conTcpClientIp) con ++ " and ip.addr==" ++ (showIP . conTcpServerIp) con 
+    _ -> "tcp and ip.addr==" ++ (showIP . conTcpClientIp) con ++ " and ip.addr==" ++ (showIP . conTcpServerIp) con
         ++ " and tcp.port==" ++ show (conTcpServerPort con) ++ " and tcp.port==" ++ show (conTcpClientPort con)
 
 -- |Create a tshark read filter from a 'MptcpConnection'
@@ -97,8 +97,8 @@ data TsharkParams = TsharkParams {
 --   , tfTcpServerIp :: IP -- ^Server ip
 --   , tfTcpClientPort :: Word16  -- ^ Source port
 --   , tfTcpServerPort :: Word16  -- ^Destination port
---   -- tfProto :: 
---   -- tfStreamId :: 
+--   -- tfProto ::
+--   -- tfStreamId ::
 -- }
 
 

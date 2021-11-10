@@ -15,11 +15,11 @@ where
 import Net.IP
 import Net.Tcp
 -- import MptcpAnalyzer.Arti
-import Data.Word (Word8, Word16, Word32, Word64)
-import Data.Text as TS
 import qualified Data.Set as Set
-import MptcpAnalyzer.Stream
+import Data.Text as TS
+import Data.Word (Word16, Word32, Word64, Word8)
 import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Stream
 
 
 -- | Holds all necessary information about a multipath TCP connection

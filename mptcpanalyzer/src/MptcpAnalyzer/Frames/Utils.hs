@@ -1,44 +1,39 @@
 -- copy/pasted from https://github.com/adamConnerSax/Frames-utils
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE DerivingVia         #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 module MptcpAnalyzer.Frames.Utils
 where
 
-import qualified Data.Foldable                 as F
+import qualified Data.Foldable as F
 import qualified Frames as F
-import qualified Frames.Melt                   as F
-import           Frames.Melt          (RDeleteAll, ElemOf)
+import Frames.Melt (ElemOf, RDeleteAll)
+import qualified Frames.Melt as F
 
-import qualified Data.Vinyl                    as V
-import qualified Data.Vinyl.TypeLevel          as V
-import qualified Data.Vinyl.XRec               as V
-import qualified Data.Vinyl.Curry     as V
-import qualified Data.Vinyl.Functor   as V
-import           Data.Vinyl.TypeLevel as V --(type (++), Snd)
+import qualified Data.Vinyl as V
+import qualified Data.Vinyl.Curry as V
+import qualified Data.Vinyl.Functor as V
+import Data.Vinyl.TypeLevel as V
+import qualified Data.Vinyl.TypeLevel as V
+import qualified Data.Vinyl.XRec as V
 
 
-import qualified Data.Text            as T
+import qualified Data.Text as T
 
-import           GHC.TypeLits         (KnownSymbol, Symbol)
 import Data.Kind (Type)
+import GHC.TypeLits (KnownSymbol, Symbol)
 
 -- |  change a column "name" at the type level
 retypeColumn :: forall x y rs. ( V.KnownField x
@@ -111,8 +106,8 @@ type family FromTList (a :: [(Symbol, Symbol, Type -> Type)]) :: [(Symbol, Type)
 
 type family ToTList (a :: [(Symbol, Symbol, Type -> Type)]) :: [(Symbol, Type)] where
   ToRecList '[] = '[]
-  ToRecList ('(fs, ts, x -> y) ': rs) = '(ts, y) ': ToRecList rs  
-  
+  ToRecList ('(fs, ts, x -> y) ': rs) = '(ts, y) ': ToRecList rs
+
 class (FromRecList cs F.⊆ rs) => RetypeColumns (cs :: [(Symbol, Symbol, Type -> Type)]) (rs :: [(Symbol, Type)]) where
   retypeColumns :: (rs ~ (rs V.++ '[])) => F.Record rs -> F.Record (RDeleteAll (FromRecList cs) rs V.++ (ToRecList cs))
 

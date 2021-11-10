@@ -4,7 +4,7 @@ Description : Compute basic MPTCP statistics
 Maintainer  : matt
 License     : GPL-3
 -}
-{-# LANGUAGE DeriveAnyClass     #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Net.Mptcp.Stats (
   TcpSubflowUnidirectionalStats(..)
@@ -17,34 +17,34 @@ module Net.Mptcp.Stats (
 )
 where
 
-import           MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.ArtificialFields
 -- import MptcpAnalyzer.Types
 -- import MptcpAnalyzer.Pcap
-import           MptcpAnalyzer.Pcap
-import           MptcpAnalyzer.Stream
+import MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Stream
 
-import qualified Data.Map                       as Map
-import           Net.Mptcp.Connection
-import           Net.Tcp
-import           Net.Tcp.Stats
+import qualified Data.Map as Map
+import Net.Mptcp.Connection
+import Net.Tcp
+import Net.Tcp.Stats
 
-import           Data.Either                    (fromRight)
-import qualified Data.Text as T
+import Data.Either (fromRight)
 import Data.Text (Text)
+import qualified Data.Text as T
 
-import           Control.Lens
-import           Control.Lens                   hiding (argument)
-import qualified Data.Foldable                  as F
-import           Data.List                      (sort, sortBy, sortOn)
-import           Data.Map                       (Map, fromList, mapKeys)
-import qualified Data.Map                       as Map
-import           Data.Maybe                     (catMaybes, fromJust)
-import           Data.Set                       (toList)
-import           Data.Vinyl
-import           Data.Word                      (Word32, Word64)
-import qualified Frames                         as F
-import qualified Frames.InCore                  as F
-import           MptcpAnalyzer.Types
+import Control.Lens
+import Control.Lens hiding (argument)
+import qualified Data.Foldable as F
+import Data.List (sort, sortBy, sortOn)
+import Data.Map (Map, fromList, mapKeys)
+import qualified Data.Map as Map
+import Data.Maybe (catMaybes, fromJust)
+import Data.Set (toList)
+import Data.Vinyl
+import Data.Word (Word32, Word64)
+import qualified Frames as F
+import qualified Frames.InCore as F
+import MptcpAnalyzer.Types
 -- import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 
 -- | Useful to show DSN

@@ -8,7 +8,7 @@ Maintainer  : matt
 * display some statistics on a specific MPTCP connection (list of subflows etc...);
 * convert packet capture files (\*.pcap) to \*.csv files
 * plot data sequence numbers for all subflows
-* `XDG compliance <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_, i.e., 
+* `XDG compliance <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_, i.e.,
   |prog| looks for files in certain directories. will try to load your configuration from `$XDG_CONFIG_HOME/mptcpanalyzer/config`
 * caching mechanism: mptcpanalyzer compares your pcap creation time and will
   regenerate the cache if it exists in `$XDG_CACHE_HOME/mptcpanalyzer/<path_to_the_file>`
@@ -64,7 +64,7 @@ See https://tools.ietf.org/html/draft-ietf-mptcp-rfc6824bis-02#page-40 for mor d
 
    HMAC-A = HMAC(Key=(Key-A+Key-B), Msg=(R-A+R-B))
    HMAC-B = HMAC(Key=(Key-B+Key-A), Msg=(R-B+R-A))
-    
+
 
 
       Host A                                  Host B
@@ -87,7 +87,7 @@ Introduction
 * display some statistics on a specific MPTCP connection (list of subflows etc...);
 * convert packet capture files (\*.pcap) to \*.csv files
 * plot data sequence numbers for all subflows
-* `XDG compliance <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_, i.e., 
+* `XDG compliance <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_, i.e.,
   |prog| looks for files in certain directories. will try to load your configuration from `$XDG_CONFIG_HOME/mptcpanalyzer/config`
 * caching mechanism: mptcpanalyzer compares your pcap creation time and will
   regenerate the cache if it exists in `$XDG_CACHE_HOME/mptcpanalyzer/<path_to_the_file>`
@@ -103,14 +103,14 @@ Then you have an interpreter with autocompletion that can generate & display plo
 
 This package installs 2 programs:
 - *mptcpanalyzer* to get details on a loaded pcap.
-  
-  
+
+
 mptcpanalyzer can run into 3 modes:
-  1. :ref:`interactive-mode` (default): an interpreter with some basic completion will accept your commands. 
+  1. :ref:`interactive-mode` (default): an interpreter with some basic completion will accept your commands.
   2. :ref:`batch-mode` if a filename is passed as argument, it will load commands from this file.
   3. :ref:`oneshot`, it will consider the unknow arguments as one command, the same that could be used interactively
 
-For example, we can load an mptcp pcap (I made one available on `wireshark wiki 
+For example, we can load an mptcp pcap (I made one available on `wireshark wiki
 <https://wiki.wireshark.org/SampleCaptures#MPTCP>`_ or in this repository, in the _examples_ folder).
 
 It expects a trace to work with. If the trace has the form *XXX.pcap* extension, the script will look for its csv counterpart *XXX.pcap.csv*. The program will tell you what arguments are needed. Then you can open the generated graphs.
@@ -119,103 +119,109 @@ It expects a trace to work with. If the trace has the form *XXX.pcap* extension,
 
 -}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE KindSignatures             #-}
-{-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Main where
 
-import MptcpAnalyzer.Cache
-import MptcpAnalyzer.Types
-import MptcpAnalyzer.Stream
 import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Commands
 import MptcpAnalyzer.Commands.Definitions as CMD
+import MptcpAnalyzer.Commands.Export as CLI
 import MptcpAnalyzer.Commands.List as CLI
 import MptcpAnalyzer.Commands.ListMptcp as CLI
-import MptcpAnalyzer.Commands.Export as CLI
 import MptcpAnalyzer.Commands.Map as CLI
-import MptcpAnalyzer.Commands.Reinjections as CLI
-import MptcpAnalyzer.Merge
 import qualified MptcpAnalyzer.Commands.Plot as Plots
 import qualified MptcpAnalyzer.Commands.PlotOWD as Plots
+import MptcpAnalyzer.Commands.Reinjections as CLI
+import MptcpAnalyzer.Merge
 import MptcpAnalyzer.Plots.Types
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
 -- import qualified MptcpAnalyzer.Plots.Owd as Plots
 import qualified MptcpAnalyzer.Commands.Load as CL
 -- import Control.Monad (void)
-import Tshark.Interfaces
-import Tshark.Live
 import MptcpAnalyzer.Pcap (defaultParserOptions)
 import MptcpAnalyzer.Utils.Completion
-import Tshark.Main (generateCsvCommand, defaultTsharkPrefs, defaultTsharkOptions, tsharkReadFilter, genReadFilterFromTcpConnection)
 import MptcpAnalyzer.Utils.Text
+import Tshark.Interfaces
+import Tshark.Live
+import Tshark.Main
+       ( defaultTsharkOptions
+       , defaultTsharkPrefs
+       , genReadFilterFromTcpConnection
+       , generateCsvCommand
+       , tsharkReadFilter
+       )
 
 
-import Polysemy (Sem, Members, runFinal, Final)
-import qualified Polysemy as P
-import qualified Polysemy.IO as P
-import qualified Polysemy.State as P
-import qualified Polysemy.Embed as P
-import qualified Polysemy.Internal as P
-import qualified Polysemy.Trace as P
-import Polysemy.Log (Log)
-import qualified Polysemy.Log as Log
-import Polysemy.Log.Colog (interpretLogStdout)
-import Polysemy.Trace (trace)
-import System.FilePath
-import System.Directory
-import Prelude hiding (concat, init, log)
 import Options.Applicative
 import Options.Applicative.Common
 import Options.Applicative.Help (parserHelp)
+import Polysemy (Final, Members, Sem, runFinal)
+import qualified Polysemy as P
+import qualified Polysemy.Embed as P
+import qualified Polysemy.IO as P
+import qualified Polysemy.Internal as P
+import Polysemy.Log (Log)
+import qualified Polysemy.Log as Log
+import Polysemy.Log.Colog (interpretLogStdout)
+import qualified Polysemy.State as P
+import Polysemy.Trace (trace)
+import qualified Polysemy.Trace as P
+import Prelude hiding (concat, init, log)
+import System.Directory
+import System.FilePath
 -- import Colog.Actions
-import Graphics.Rendering.Chart.Backend.Cairo (toFile,
-    renderableToFile, FileOptions(..), FileFormat(..))
-import Graphics.Rendering.Chart.Renderable    (toRenderable)
+import Graphics.Rendering.Chart.Backend.Cairo
+       (FileFormat(..), FileOptions(..), renderableToFile, toFile)
+import Graphics.Rendering.Chart.Renderable (toRenderable)
 -- import           Graphics.Rendering.Chart.Easy          hiding (argument)
+import qualified Data.Map as Map
 import Graphics.Rendering.Chart.Layout (layout_title)
-import qualified Data.Map                       as Map
 
 
 -- for noCompletion
         -- <> Options.Applicative.value "/tmp"
 -- import System.Posix.Signals -- installHandler
-import Control.Monad.State.Lazy        (State, StateT, execStateT, get, put)
-import System.Console.Haskeline
-import System.Console.ANSI
-import Control.Lens ((^.), view)
-import System.Exit
-import Pipes hiding (Proxy)
-import System.Process hiding (runCommand)
-import Distribution.Simple.Utils (withTempFileEx)
-import Distribution.Compat.Internal.TempFile (openTempFile)
-import MptcpAnalyzer.Loader
-import Data.Maybe (fromMaybe, catMaybes)
+import Control.Lens (view, (^.))
+import Control.Monad.State.Lazy (State, StateT, execStateT, get, put)
 import Data.Either (fromLeft)
 import Data.Foldable (forM_)
-import Frames.InCore (toFrame)
-import Frames.CSV (writeDSV)
-import Frames (recMaybe, Frame, Record)
+import Data.Maybe (catMaybes, fromMaybe)
+import Distribution.Compat.Internal.TempFile (openTempFile)
+import Distribution.Simple.Utils (withTempFileEx)
+import Frames (Frame, Record, recMaybe)
 import Frames as F
+import Frames.CSV (writeDSV)
+import Frames.InCore (toFrame)
+import MptcpAnalyzer.Loader
+import Pipes hiding (Proxy)
+import System.Console.ANSI
+import System.Console.Haskeline
+import System.Exit
+import System.Process hiding (runCommand)
 -- withOpenFile
 -- withOpenFile
-import System.IO (openFile, stderr, stdout)
-import Tshark.Fields (baseFields, TsharkFieldDesc (tfieldFullname))
-import GHC.IO.Handle
-import GHC.Conc (forkIO)
 import Data.List (isPrefixOf)
-import Options.Applicative.Types
-import Options.Applicative.Builder (allPositional)
 import Debug.Trace (traceShowId)
+import GHC.Conc (forkIO)
+import GHC.IO.Handle
+import Options.Applicative.Builder (allPositional)
+import Options.Applicative.Types
+import System.IO (openFile, stderr, stdout)
+import Tshark.Fields (TsharkFieldDesc(tfieldFullname), baseFields)
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -602,7 +608,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
             Nothing -> Left ifname
 
           --capture-comment
-          tsharkPrefs = defaultTsharkPrefs { 
+          tsharkPrefs = defaultTsharkPrefs {
             tsharkReadFilter = Just $ genReadFilterFromTcpConnection connectionFilter Nothing
             }
           (RawCommand bin genArgs) = generateCsvCommand fields toLoad tsharkPrefs
@@ -617,7 +623,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
                 , delegate_ctlc = True
               }
 
-        
+
         trace $ "Command run: " ++ show (RawCommand bin args)
         trace $ "Command run: " ++ showCommandForUser bin args
         -- Log.info $ "Starting " <> tshow bin <> tshow args
@@ -637,7 +643,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           -- and I can't manage to make it use my image/png application
           -- createProc = proc "xdg-open" [ tempPath ]
           createProc = (proc "sxiv" [ tempPath ]) {
-              delegate_ctlc = True 
+              delegate_ctlc = True
               }
 
         Log.info $ "Launching " <> tshow createProc
@@ -662,7 +668,7 @@ startLivePlot :: LiveStatsTcp -> CreateProcess -> IO ()
 --   exitCode <- waitForProcess ph
 --   case exitCode of
 --     ExitSuccess -> putStrLn "Success"
---     _  -> do 
+--     _  -> do
 --       hGetContents herr >>= putStrLn
 --   pure ()
 startLivePlot initialLiveStats createProc = do
@@ -677,7 +683,7 @@ startLivePlot initialLiveStats createProc = do
       -- hSetBuffering hout LineBuffering
       -- hSetBuffering herr NoBuffering
       putStrLn $ "Live stats (before): " ++ show (lsPackets initialLiveStats)
-      liveStats <- execStateT (runEffect (tsharkLoop hout)) initialLiveStats 
+      liveStats <- execStateT (runEffect (tsharkLoop hout)) initialLiveStats
       putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
       -- blocking
       exitCode2 <- waitForProcess ph

@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-|
-Description : 
+Description :
 Maintainer  : matt
 Stability   : testing
 Portability : Linux
@@ -13,27 +13,27 @@ import MptcpAnalyzer.Types
 -- import Tshark.Main (defaultParserOptions)
 import MptcpAnalyzer.Pcap (defaultParserOptions)
 
-import Data.Serialize
-import Data.Text as T
-import Data.Text.Encoding as TSE
 import Data.ByteString as BS
 import Data.ByteString.Lazy as LBS
 import Data.ByteString.Lazy.UTF8 as BLU
-import Pipes ((>->))
-import qualified Pipes as P
-import qualified Pipes.Prelude as P
-import qualified Pipes.Parse as P
-import qualified Pipes.Safe as P
-import qualified Pipes.Safe.Prelude as Safe
-import System.IO (Handle, IOMode(ReadMode, WriteMode))
+import Data.Serialize
+import Data.Text as T
+import Data.Text.Encoding as TSE
 import Data.Vinyl hiding (rget)
 import Frames
 import Frames.CSV hiding (consumeTextLines)
 import Frames.ShowCSV
+import Pipes ((>->))
+import qualified Pipes as P
+import qualified Pipes.Parse as P
+import qualified Pipes.Prelude as P
+import qualified Pipes.Safe as P
+import qualified Pipes.Safe.Prelude as Safe
+import System.IO (Handle, IOMode(ReadMode, WriteMode))
 -- import Data.Proxy
-import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Vinyl as V
 import qualified Data.Vinyl.Class.Method as V
+import System.IO.Unsafe (unsafePerformIO)
 
 
 -- convertToBs :: Frame (Record a) -> Put

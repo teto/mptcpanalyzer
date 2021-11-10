@@ -11,26 +11,26 @@ import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Commands.Definitions as CMD
 import MptcpAnalyzer.Commands.List as CMD
 import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Types
 import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
 import Net.Mptcp
 
 -- import Net.Mptcp.Types (MptcpConnection(..), MptcpSubflow, showMptcpConnection)
 
+import qualified Control.Foldl as L
+import Control.Lens hiding (argument)
+import Data.Either (fromRight)
+import Data.Maybe (catMaybes, fromJust)
+import qualified Data.Set as Set
+import Data.Word (Word16, Word32, Word64, Word8)
+import Frames
 import "mptcp-pm" Net.Tcp (TcpFlag(..))
 import Options.Applicative
-import Frames
-import Control.Lens hiding (argument)
-import Polysemy (Member, Members, Sem, Embed)
+import qualified Pipes.Prelude as PP
+import Polysemy (Embed, Member, Members, Sem)
 import qualified Polysemy as P
 import Polysemy.State as P
 import Polysemy.Trace as P
-import Data.Word (Word8, Word16, Word32, Word64)
-import qualified Control.Foldl as L
-import qualified Data.Set as Set
-import qualified Pipes.Prelude as PP
-import Data.Maybe (fromJust, catMaybes)
-import Data.Either (fromRight)
 
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log

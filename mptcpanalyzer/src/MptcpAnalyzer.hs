@@ -18,5 +18,5 @@ module MptcpAnalyzer (
   ,   loadPcapIntoFrame
 )
 where
-  import MptcpAnalyzer.Types
-  import MptcpAnalyzer.Loader
+import MptcpAnalyzer.Loader
+import MptcpAnalyzer.Types

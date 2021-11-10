@@ -5,7 +5,7 @@ Description : List (MP)TCP connections in a pcap
 Maintainer  : matt
 
 -}
-{-# LANGUAGE PackageImports           #-}
+{-# LANGUAGE PackageImports #-}
 
 module MptcpAnalyzer.Commands.List (
   piListTcpOpts
@@ -17,36 +17,36 @@ module MptcpAnalyzer.Commands.List (
 )
 where
 
+import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Commands.Definitions as CMD
-import MptcpAnalyzer.Types
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
 import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Stats
-import MptcpAnalyzer.ArtificialFields
-import Net.Tcp
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
 import Net.Mptcp.Stats
-import MptcpAnalyzer.Utils.Text
+import Net.Tcp
+import "mptcp-pm" Net.Tcp (TcpFlag(..))
 
-import Frames.CSV
-import Prelude hiding (log)
-import Options.Applicative
-import Frames
-import qualified Frames as F
-import qualified Frames.InCore as F
 import Control.Lens hiding (argument)
-import Polysemy (Member, Members, Sem, Embed)
-import qualified Polysemy as P
-import qualified Polysemy.State as P
-import Polysemy.Trace as P
-import qualified Polysemy.Embed as P
 import Data.Either (fromRight)
 import Data.List (intercalate)
+import qualified Data.Map as Map
+import Frames
+import qualified Frames as F
+import Frames.CSV
+import qualified Frames.InCore as F
+import Options.Applicative
+import Polysemy (Embed, Member, Members, Sem)
+import qualified Polysemy as P
+import qualified Polysemy.Embed as P
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
-import qualified Data.Map as Map
+import qualified Polysemy.State as P
+import Polysemy.Trace as P
+import Prelude hiding (log)
 
 piListTcpOpts ::  ParserInfo CommandArgs
 piListTcpOpts = info (
@@ -124,10 +124,10 @@ cmdListTcpConnections listDetailed = do
         mapM_ (P.trace . describeConnection) streamIdList
         return CMD.Continue
         where
-          describeConnection streamId = 
+          describeConnection streamId =
             case buildTcpConnectionFromStreamId frame streamId of
               Left msg -> msg
-              -- addTcpDestToFrame 
+              -- addTcpDestToFrame
               Right aframe -> showConnection (ffCon aframe)
 
 

@@ -20,23 +20,23 @@ module MptcpAnalyzer.Utils.Completion (
 )
 where
 
-import Options.Applicative
-import System.Console.Haskeline (CompletionFunc, completeFilename, noCompletion, Completion(..))
-import System.Console.Haskeline.Completion (listFiles)
-import Options.Applicative.Types hiding (replacement)
-import Data.List (isPrefixOf, stripPrefix, isSuffixOf)
-import Debug.Trace
-import Options.Applicative.Help (Doc)
-import Options.Applicative.Help.Pretty (displayS)
-import Options.Applicative.Help (renderPretty)
-import Data.Maybe (fromMaybe, listToMaybe, fromJust)
-import Options.Applicative.Common
-import Options.Applicative.Internal hiding (Completion)
-import Options.Applicative.Help.Chunk
 import Data.Char (isSpace)
+import Data.List (isPrefixOf, isSuffixOf, stripPrefix)
+import Data.Maybe (fromJust, fromMaybe, listToMaybe)
+import Debug.Trace
+import Options.Applicative
+import Options.Applicative.Common
+import Options.Applicative.Help (Doc, renderPretty)
+import Options.Applicative.Help.Chunk
+import Options.Applicative.Help.Pretty (displayS)
+import Options.Applicative.Internal hiding (Completion)
+import Options.Applicative.Types hiding (replacement)
+import System.Console.Haskeline
+       (Completion(..), CompletionFunc, completeFilename, noCompletion)
+import System.Console.Haskeline.Completion (listFiles)
 -- import Options.Applicative.Help (parserHelp)
 import System.IO.Unsafe (unsafePerformIO)
-import System.Posix (fileExist, isRegularFile, getFileStatus)
+import System.Posix (fileExist, getFileStatus, isRegularFile)
 
 defaultCompleteFunc :: CompletionFunc IO
 defaultCompleteFunc = completeFilename
@@ -60,11 +60,11 @@ readFilename path =
 
 -- optparse2haskelineCompletion
 oa2hl :: CompletionItem -> Completion
-oa2hl (CompletionItem replacement' display' isFinished') = 
+oa2hl (CompletionItem replacement' display' isFinished') =
   Completion replacement' display' isFinished'
 
 hl2oa :: Completion -> CompletionItem
-hl2oa (Completion replacement' display' isFinished') = 
+hl2oa (Completion replacement' display' isFinished') =
   CompletionItem replacement' display' isFinished'
 
 -- newtype Completer = Completer
@@ -192,11 +192,11 @@ haskelineCompletionQuery pinfo pprefs ws rest = case runCompletion compl pprefs 
 -- type CompletionFunc m = (String, String) -> m (String, [Completion]
 -- haskeline System.Console.Haskeline.Completion
 -- Performs completions from the given line state. The first String argument is the
---  contents of the line to the left of the cursor, reversed. The second String 
+--  contents of the line to the left of the cursor, reversed. The second String
 -- argument is the contents of the line to the right of the cursor. The output
 --  String is the unused portion of the left half of the line, reversed
 generateHaskelineCompleterFromParserInfo :: ParserPrefs -> ParserInfo a -> CompletionFunc IO
-generateHaskelineCompleterFromParserInfo parserPrefs pinfo = 
+generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
   \(rleft, right) ->
   let
     leftArgs = words $ reverse rleft
@@ -266,12 +266,12 @@ constCompletionFunc (left, right) = pure ("worked", [placeholderCompletion])
 --     longestCommonPrefix entries = rleft
 --     completions = map (genCompletion) filtered
 --   in
---     -- TODO call execParserPure ParserInfo a 
+--     -- TODO call execParserPure ParserInfo a
 --     trace "completion called" (pure (
 --     -- return longest common prefixes
 --     "", completions
 --     ))
 
 -- -- TODO convert the C
--- -- generateHaskelineCompleterFromOptreader (ArgReader (CReader completer _)) = 
+-- -- generateHaskelineCompleterFromOptreader (ArgReader (CReader completer _)) =
 -- generateHaskelineCompleterFromOptreader _ = error "undefined generateHaskelineCompleterFromOptreader"

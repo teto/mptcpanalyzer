@@ -5,10 +5,10 @@ module Net.Tcp.Connection (
   , showTcpConnectionText
 )
 where
-import Net.IP
-import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Text as TS
+import Data.Word (Word16, Word32, Word64, Word8)
 import MptcpAnalyzer.Stream
+import Net.IP
 
 -- | Identifies a TCP connection
 data TcpConnection = TcpConnection {

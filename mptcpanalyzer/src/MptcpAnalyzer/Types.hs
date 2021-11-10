@@ -1,15 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE DerivingVia         #-}
-{-# LANGUAGE FlexibleInstances                      #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE GADTs                      #-}
-{-# LANGUAGE StandaloneDeriving         #-}
-{-# LANGUAGE PackageImports         #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module MptcpAnalyzer.Types
 -- (
@@ -21,51 +21,51 @@ where
 
 -- Inspired by Frames/demo/missingData
 import MptcpAnalyzer.Stream
-import Tshark.TH
-import Tshark.Fields
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
 import Net.Bitset (fromBitMask, toBitMask)
 import Net.IP
 import Net.IPv6 (IPv6(..))
--- import "this" Net.Tcp 
+import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import Tshark.Fields
+import Tshark.TH
+-- import "this" Net.Tcp
 -- import "this" Net.Mptcp
 
 import Data.Hashable
 import qualified Data.Hashable as Hash
 import Data.Monoid (First(..))
-import Data.Vinyl (Rec(..), ElField(..), rapply, xrec, rmapX)
-import qualified Data.Vinyl.TypeLevel as V
-import Data.Vinyl.Functor (Compose(..), (:.))
+import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
 import Data.Vinyl.Class.Method
+import Data.Vinyl.Functor (Compose(..), (:.))
+import qualified Data.Vinyl.TypeLevel as V
 
 import qualified Data.Vinyl as V
-import Data.Word (Word8, Word16, Word32, Word64)
 import Data.WideWord.Word128
+import Data.Word (Word16, Word32, Word64, Word8)
 import Frames
+import Frames.CSV (ParserOptions(..), QuotingMode(..))
 import Frames.ShowCSV
 import Frames.TH
-import Frames.CSV (QuotingMode(..), ParserOptions(..))
 -- (Parseable(..), parseIntish, Parsed(..))
-import Frames.ColumnTypeable
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Text.Read as T
-import Frames.InCore (VectorFor)
 import qualified Data.Vector as V
-import Numeric (readHex)
+import Frames.ColumnTypeable
+import Frames.InCore (VectorFor)
 import Language.Haskell.TH
+import Numeric (readHex)
+import qualified Text.Read as T
 -- import GHC.TypeLits
-import qualified Data.Text.Lazy.Builder as B
-import Data.Typeable (Typeable)
 import Control.Lens
-import Control.Monad (MonadPlus, mzero, liftM)
-import qualified Frames as F
+import Control.Monad (MonadPlus, liftM, mzero)
 import qualified Data.Set as Set
 import qualified Data.Text as TS
-import Options.Applicative
+import qualified Data.Text.Lazy.Builder as B
+import Data.Typeable (Typeable)
+import qualified Frames as F
 import GHC.Generics
 import GHC.TypeLits (KnownSymbol)
 import MptcpAnalyzer.ArtificialFields
+import Options.Applicative
 
 {- Describe a TCP connection, possibly an Mptcp subflow
   The equality implementation ignores several fields
@@ -122,7 +122,7 @@ data PcapMapping a = PcapMapping {
       -- | Host 1 pcap to load
       pmapPcap1 :: FilePath
       , pmapStream1 :: StreamId a
-      -- | Host 2 
+      -- | Host 2
       , pmapPcap2 :: FilePath
       , pmapStream2 :: StreamId a
       -- , pmapVerbose :: Bool
@@ -272,7 +272,7 @@ instance Frames.ColumnTypeable.Parseable (StreamId Tcp) where
   parse = parseIntish
 
 
--- 
+--
 parseList :: (MonadPlus m, Typeable a, Frames.ColumnTypeable.Parseable a) => Text -> m (Parsed [a])
 parseList text = fmap Definitely (mapM parse' (T.splitOn "," text))
 

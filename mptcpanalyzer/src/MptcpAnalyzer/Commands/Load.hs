@@ -3,47 +3,47 @@ Module: MptcpAnalyzer.Commands.Load
 Maintainer  : matt
 License     : GPL-3
 -}
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 module MptcpAnalyzer.Commands.Load (
   cmdLoadCsv
   , piLoadCsv
   , piLoadPcapOpts
 )
 where
-import           MptcpAnalyzer.Cache
-import           MptcpAnalyzer.Commands.Definitions as CMD
-import           MptcpAnalyzer.Loader
-import           MptcpAnalyzer.Pcap
-import           MptcpAnalyzer.Types
-import           MptcpAnalyzer.Utils.Completion (completePath, readFilename)
-import           MptcpAnalyzer.Utils.Text
+import MptcpAnalyzer.Cache
+import MptcpAnalyzer.Commands.Definitions as CMD
+import MptcpAnalyzer.Loader
+import MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Completion (completePath, readFilename)
+import MptcpAnalyzer.Utils.Text
 
 -- import Control.Lens hiding (argument)
 
-import           Control.Monad.Trans                (liftIO)
-import           Distribution.Simple.Utils          (TempFileOptions (..), withTempFileEx)
-import           Frames
-import           Options.Applicative
-import           System.Exit                        (ExitCode (..))
+import Control.Monad.Trans (liftIO)
+import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
+import Frames
+import Options.Applicative
+import System.Exit (ExitCode(..))
 -- import Prelude hiding (log)
-import           Polysemy                           (Embed, Members, Sem)
-import           Polysemy.Log                       (Log)
-import qualified Polysemy.Log                       as Log
-import qualified Polysemy.State                     as P
-import qualified Polysemy.Trace                     as P
 import Options.Applicative.Builder (allPositional)
+import Polysemy (Embed, Members, Sem)
+import Polysemy.Log (Log)
+import qualified Polysemy.Log as Log
+import qualified Polysemy.State as P
+import qualified Polysemy.Trace as P
 
 import Control.Monad.Trans.Except
-  (runExcept, runExceptT, withExcept, ExceptT(..), throwE)
+       (ExceptT(..), runExcept, runExceptT, throwE, withExcept)
 
 filenameReader :: ReadM FilePath
 filenameReader = eitherReader readFilename
--- case readFilename filename of 
+-- case readFilename filename of
 --   Left err -> ReadM . lift . throwE
 --   Right path -> path
 

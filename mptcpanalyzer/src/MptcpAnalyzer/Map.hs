@@ -33,11 +33,6 @@ import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
 import Net.Tcp
 
-import Options.Applicative
-import Polysemy (Embed, Member, Members, Sem)
-import qualified Polysemy as P
-import Polysemy.State as P
-import Prelude hiding (log)
 import Data.Either (lefts, rights)
 import Data.Function (on)
 import Data.List (sortBy, sortOn)
@@ -46,6 +41,11 @@ import qualified Data.Set as Set
 import Data.Text (Text, intercalate, unlines)
 import qualified Data.Text as T
 import Frames
+import Options.Applicative
+import Polysemy (Embed, Member, Members, Sem)
+import qualified Polysemy as P
+import Polysemy.State as P
+import Prelude hiding (log)
 
 type MptcpSubflowMapping = [(MptcpSubflow, [(MptcpSubflow, Int)])]
 

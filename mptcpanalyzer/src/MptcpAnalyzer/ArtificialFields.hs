@@ -7,10 +7,10 @@ Maintainer  : matt
 generated in a postprocess step
 
 -}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE OverloadedStrings #-}
 module MptcpAnalyzer.ArtificialFields
 where
 import MptcpAnalyzer.Stream
@@ -19,14 +19,14 @@ import Net.IP
 -- import Net.IPv6 (IPv6(..))
 import GHC.TypeLits (KnownSymbol)
 -- import Language.Haskell.TH (Name)
+import Data.Map (Map, fromList)
+import Data.String
 import Data.Text (Text)
-import Data.Word (Word8, Word16, Word32, Word64)
+import Data.Word (Word16, Word32, Word64, Word8)
 import Frames.ShowCSV
-import Tshark.Fields
 import Language.Haskell.TH (Name)
 import Options.Applicative
-import Data.String
-import Data.Map (Map, fromList)
+import Tshark.Fields
 
 -- | Filters a connection depending on its role
 data ConnectionRole = RoleServer | RoleClient deriving (Show, Eq, Enum, Read, ShowCSV, Ord)

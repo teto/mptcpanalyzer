@@ -4,7 +4,7 @@ where
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as TS
-import Data.Word (Word8, Word16, Word32, Word64)
+import Data.Word (Word16, Word32, Word64, Word8)
 import Net.IP
 import Net.Tcp
 

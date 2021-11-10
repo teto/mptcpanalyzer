@@ -1,17 +1,17 @@
 module Main where
 -- import           Test.Tasty
 -- import           Test.Tasty.HUnit
-import           Test.Hspec
-import           Test.QuickCheck                    hiding (Success)
-import           MptcpAnalyzer.Pcap
-import           Tshark.Main
-import           Net.Tcp.Connection
-import           Net.IP
-import Net.IPv4 (localhost)
+import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
+import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
-import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
+import Net.IP
+import Net.IPv4 (localhost)
+import Net.Tcp.Connection
 import System.Exit (ExitCode(ExitSuccess))
 import System.IO
+import Test.Hspec
+import Test.QuickCheck hiding (Success)
+import Tshark.Main
 
 
 

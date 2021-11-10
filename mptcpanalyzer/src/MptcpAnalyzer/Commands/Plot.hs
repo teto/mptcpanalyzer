@@ -6,8 +6,8 @@ License     : GPL-3
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module MptcpAnalyzer.Commands.Plot (
   -- * Actual commands that plot
   cmdPlotMptcpAttribute
@@ -21,66 +21,66 @@ module MptcpAnalyzer.Commands.Plot (
 )
 where
 
-import           Data.Vinyl                     (ElField (..), Rec (..), rapply, rmapX, xrec)
-import           Data.Vinyl.Class.Method
+import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
+import Data.Vinyl.Class.Method
 
-import           MptcpAnalyzer.ArtificialFields
-import           MptcpAnalyzer.Cache
-import           MptcpAnalyzer.Plots.Types
-import           MptcpAnalyzer.Types
+import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Cache
+import MptcpAnalyzer.Plots.Types
+import MptcpAnalyzer.Types
 -- import MptcpAnalyzer.Commands.Definitions
-import           MptcpAnalyzer.Commands.Definitions     as CMD
-import           MptcpAnalyzer.Commands.PlotOWD
-import           MptcpAnalyzer.Debug
-import           MptcpAnalyzer.Loader
-import           MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Commands.Definitions as CMD
+import MptcpAnalyzer.Commands.PlotOWD
+import MptcpAnalyzer.Debug
+import MptcpAnalyzer.Loader
+import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Utils.Text
-import           "this" Net.Mptcp
-import           "this" Net.Tcp
-import           Tshark.Fields                          (TsharkFieldDesc (tfieldLabel), baseFields)
 import Net.IP
+import "this" Net.Mptcp
+import "this" Net.Tcp
+import Tshark.Fields (TsharkFieldDesc(tfieldLabel), baseFields)
 -- import Net.IPv4
-import           Frames
-import           Frames.CSV
-import           Options.Applicative
-import           Prelude                                hiding (filter, log, lookup, repeat)
+import Frames
+import Frames.CSV
+import Options.Applicative
+import Prelude hiding (filter, log, lookup, repeat)
 
 -- import Graphics.Rendering.Chart.Backend.Diagrams (defaultEnv, runBackendR)
 -- import Graphics.Rendering.Chart.Easy
 
-import           Data.Word                              (Word16, Word32, Word64, Word8)
-import           Graphics.Rendering.Chart.Backend.Cairo (toFile)
-import           Graphics.Rendering.Chart.Easy          hiding (argument)
+import Data.Word (Word16, Word32, Word64, Word8)
+import Graphics.Rendering.Chart.Backend.Cairo (toFile)
+import Graphics.Rendering.Chart.Easy hiding (argument)
 
-import           Data.List                              (filter, intercalate)
-import           Data.Text                              (Text)
-import qualified Data.Text                              as T
-import qualified Pipes                                  as P
-import qualified Pipes.Prelude                          as P
-import           Polysemy
-import qualified Polysemy                               as P
-import           Polysemy.State                         as P
-import           Polysemy.Trace                         as P
+import Data.List (filter, intercalate)
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Pipes as P
+import qualified Pipes.Prelude as P
+import Polysemy
+import qualified Polysemy as P
+import Polysemy.State as P
+import Polysemy.Trace as P
 -- import Colog.Polysemy (Log, log)
-import           System.Exit
-import           System.Process                         hiding (runCommand)
+import System.Exit
+import System.Process hiding (runCommand)
 -- import Data.Time.LocalTime
 -- import Data.Foldable (toList)
-import qualified Data.Foldable                          as F
-import qualified Data.Map                               as Map
-import           Data.Maybe                             (catMaybes, fromMaybe, isJust, maybeToList)
-import qualified Data.Set                               as Set
-import           Data.String
-import           Data.Vinyl.TypeLevel
-import           Debug.Trace
-import           Distribution.Simple.Utils              (TempFileOptions (..), withTempFileEx)
-import           Frames.ShowCSV                         (showCSV)
-import           Polysemy.Log                           (Log)
-import qualified Polysemy.Log                           as Log
-import           System.Directory                       (renameFile)
-import           System.IO                              (Handle)
-import           Text.Read                              (readEither)
-import           Data.Time
+import qualified Data.Foldable as F
+import qualified Data.Map as Map
+import Data.Maybe (catMaybes, fromMaybe, isJust, maybeToList)
+import qualified Data.Set as Set
+import Data.String
+import Data.Time
+import Data.Vinyl.TypeLevel
+import Debug.Trace
+import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
+import Frames.ShowCSV (showCSV)
+import Polysemy.Log (Log)
+import qualified Polysemy.Log as Log
+import System.Directory (renameFile)
+import System.IO (Handle)
+import Text.Read (readEither)
 
 -- import Data.Time.Calendar
 import Data.Time.LocalTime
@@ -127,7 +127,7 @@ piPlotTcpMainParser = info parserPlotTcpMain
 
 -- loadConnectionsFromFile
 plotLiveFilter :: Parser ArgsPlots
-plotLiveFilter = ArgsPlotLiveTcp <$> 
+plotLiveFilter = ArgsPlotLiveTcp <$>
     parserConnection
     <*> optional (strOption
       ( long "fake" <> short 'f'
@@ -356,7 +356,7 @@ cmdPlotTcpAttribute field destinations aFrame = do
 
 
 -- it should be possible to get something more abstract
-getData :: 
+getData ::
             -- RecElem
             --   Rec TcpLen TcpLen rs rs (Data.Vinyl.TypeLevel.RIndex TcpLen rs),
             -- (Record HostCols) <: (Record rs)
@@ -430,7 +430,7 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
       plot (line lineLabel [ frameData ])
       where
           -- frameData :: ([Double], [
-          -- strip down 
+          -- strip down
           frameData = getData unidirectionalFrame field
           -- show sf
           lineLabel = "subflow " ++ show (conTcpStreamId (sfConn sf))  ++ " seq (" ++ show dest ++ ")"

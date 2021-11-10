@@ -1,7 +1,7 @@
 module MptcpAnalyzer.Utils.Text (
   -- completeInitialCommand
   -- generateHaskelineCompleterFromParser
-  tshow 
+  tshow
 )
 where
 
