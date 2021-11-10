@@ -24,81 +24,81 @@ iproute2/misc/ss.c to see how `ss` utility interacts with the kernel
 
 Capture netlink packets in your computer ?
 -}
-{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DeriveAnyClass     #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
 module Main where
 
-import           Net.IP
-import           Net.Mptcp
-import           Net.Mptcp.Constants
-import           Net.Mptcp.PathManager
-import           Net.Mptcp.PathManager.Default
-import           Net.SockDiag
-import           Net.SockDiag.Constants
-import           Net.Tcp
+import Net.IP
+import Net.Mptcp
+import Net.Mptcp.Constants
+import Net.Mptcp.PathManager
+import Net.Mptcp.PathManager.Default
+import Net.SockDiag
+import Net.SockDiag.Constants
+import Net.Tcp
 
-import           Control.Monad                          (foldM)
-import           Control.Monad.Trans                    (liftIO)
+import Control.Monad (foldM)
+import Control.Monad.Trans (liftIO)
 -- import           Control.Monad.Trans                    (liftIO)
-import           Control.Monad.Trans.State              (State, StateT, execStateT, get, put)
-import           Data.Maybe                             (catMaybes)
+import Control.Monad.Trans.State (State, StateT, execStateT, get, put)
+import Data.Maybe (catMaybes)
 -- import           Data.Text                              (Text)
-import           Foreign.C.Types                        (CInt)
-import           Options.Applicative                    hiding (ErrorMsg, empty, value)
-import qualified Options.Applicative                    (value)
-import           Prelude                                hiding (concat, init, log)
-import           Text.Read                              (readMaybe)
+import Foreign.C.Types (CInt)
+import Options.Applicative hiding (ErrorMsg, empty, value)
+import qualified Options.Applicative (value)
+import Prelude hiding (concat, init, log)
+import Text.Read (readMaybe)
 -- for eOK, ePERM
-import           Foreign.C.Error
+import Foreign.C.Error
 -- import qualified System.Linux.Netlink as NL
-import           System.Linux.Netlink                   as NL
-import           System.Linux.Netlink.Constants         as NLC
-import           System.Linux.Netlink.GeNetlink         as GENL
+import System.Linux.Netlink as NL
+import System.Linux.Netlink.Constants as NLC
+import System.Linux.Netlink.GeNetlink as GENL
 -- import System.Linux.Netlink.Constants (eRTM_NEWADDR)
 -- import System.Linux.Netlink.Helpers
 -- import System.Log.FastLogger
-import           System.Linux.Netlink.GeNetlink.Control
-import qualified System.Linux.Netlink.Route             as NLR
-import qualified System.Linux.Netlink.Simple            as NLS
+import System.Linux.Netlink.GeNetlink.Control
+import qualified System.Linux.Netlink.Route as NLR
+import qualified System.Linux.Netlink.Simple as NLS
 
-import           Data.Word                              (Word32)
-import           System.Exit
-import           System.Process
+import Data.Word (Word32)
+import System.Exit
+import System.Process
 -- import qualified Data.Bits as Bits -- (shiftL, )
 -- import Data.Bits ((.|.))
-import           Data.Serialize.Get                     (runGet)
-import           Data.Serialize.Put
+import Data.Serialize.Get (runGet)
+import Data.Serialize.Put
 -- import Data.Either (fromRight)
-import           Control.Concurrent
-import           Data.Bits                              (Bits (..))
-import           Data.ByteString                        (ByteString)
-import qualified Data.ByteString.Lazy                   as BL
-import qualified Data.Map                               as Map
-import qualified Data.Set                               as Set
-import qualified Data.Text                              as TS
+import Control.Concurrent
+import Data.Bits (Bits(..))
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Data.Text as TS
 -- import           Debug.Trace
-import           Data.Aeson
-import           Numeric.Natural
-import           System.FilePath                        ()
+import Data.Aeson
+import Numeric.Natural
+import System.FilePath ()
 -- import           System.IO                              (stderr)
-import           System.IO.Temp                         ()
+import System.IO.Temp ()
 -- to merge MptcpConnection export and Metrics
-import           Data.Aeson.Extra.Merge                 (lodashMerge)
-import           GHC.List                               (init)
+import Data.Aeson.Extra.Merge (lodashMerge)
+import GHC.List (init)
 
-import           Polysemy
-import qualified Polysemy                               as P
-import qualified Polysemy.State                         as P
-import           Data.Either                            (fromRight)
-import           GHC.Generics                           (Generic)
-import           Polysemy.Log                           (Log)
-import qualified Polysemy.Log                           as Log
-import           Polysemy.Log.Colog                     (interpretLogStdout)
-import           Polysemy.Trace                         (Trace, trace)
-import qualified Polysemy.Trace                         as P
+import Data.Either (fromRight)
+import GHC.Generics (Generic)
+import Polysemy
+import qualified Polysemy as P
+import Polysemy.Log (Log)
+import qualified Polysemy.Log as Log
+import Polysemy.Log.Colog (interpretLogStdout)
+import qualified Polysemy.State as P
+import Polysemy.Trace (Trace, trace)
+import qualified Polysemy.Trace as P
 
 -- for getEnvDefault, to get TMPDIR value.
 -- we could pass it as an argument
@@ -156,19 +156,19 @@ data CLIArguments = CLIArguments {
   -- per path basis
   -- The program will be called with a json file as input and must echo on stdout
   -- an array of the form [ 10, 30, 40]
-  cliOptimizer  :: Maybe FilePath
+  cliOptimizer :: Maybe FilePath
 
   -- | to filter
-  , cliFilter   :: Maybe FilePath
+  , cliFilter  :: Maybe FilePath
 
   -- | Folder where to log files
-  , out      :: FilePath
+  , out        :: FilePath
 
   -- , clientIP      :: IPv4
-  , cliQuiet    :: Bool
+  , cliQuiet   :: Bool
 
   -- Priority
-  , logLevel :: Log.Severity
+  , logLevel   :: Log.Severity
   }
 
 

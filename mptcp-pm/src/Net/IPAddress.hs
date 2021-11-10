@@ -15,12 +15,12 @@ module Net.IPAddress (
   , putIPAddress
   )
 where
+import Data.ByteString
+import Data.Serialize.Get
+import Data.Serialize.Put
 import Net.IP
 import Net.IPv4
 import Net.IPv6
-import Data.Serialize.Get
-import Data.Serialize.Put
-import Data.ByteString
 import System.Linux.Netlink.Constants as NLC
 
 import Control.Monad

@@ -1,6 +1,6 @@
 {-
 Module:  Net.Mptcp.PathManager
-Description : 
+Description :
 Maintainer  : matt
 Portability : Linux
 
@@ -24,25 +24,25 @@ module Net.Mptcp.PathManager (
 
 import Prelude hiding (concat, init)
 
-import Data.Aeson
-import Net.Mptcp
-import Net.IP
-import Net.Tcp
-import Data.Word (Word32)
-import qualified Data.Map as Map
-import qualified System.Linux.Netlink.Route as NLR
-import System.Linux.Netlink as NL
-import Debug.Trace
 import Control.Concurrent
+import Data.Aeson
+import qualified Data.Map as Map
+import Data.Word (Word32)
+import Debug.Trace
+import Net.IP
+import Net.Mptcp
+import Net.Tcp
+import System.Linux.Netlink as NL
+import qualified System.Linux.Netlink.Route as NLR
 -- import System.Linux.Netlink.Constants (eRTM_NEWADDR)
 import System.Linux.Netlink.Constants as NLC
 -- import qualified System.Linux.Netlink.Simple as NLS
 import Data.ByteString (ByteString, empty)
-import Data.ByteString.Char8 (unpack, init)
-import Data.Maybe (fromMaybe)
-import System.IO.Unsafe
-import Net.IPAddress
+import Data.ByteString.Char8 (init, unpack)
 import qualified Data.ByteString.Lazy as BL
+import Data.Maybe (fromMaybe)
+import Net.IPAddress
+import System.IO.Unsafe
 
 {-# NOINLINE globalInterfaces #-}
 globalInterfaces :: MVar AvailablePaths
@@ -69,9 +69,9 @@ interfacesToIgnore = [
 
 -- basically a retranscription of NLR.NAddrMsg
 data NetworkInterface = NetworkInterface {
-  ipAddress :: IP,   -- ^ Should be a list or a set
+  ipAddress     :: IP,   -- ^ Should be a list or a set
   interfaceName :: String,  -- ^ eth0 / ppp0
-  interfaceId :: Word32  -- ^ refers to addrInterfaceIndex
+  interfaceId   :: Word32  -- ^ refers to addrInterfaceIndex
 } deriving Show
 
 
@@ -101,7 +101,7 @@ loadConnectionsFromFile filename = do
 -- TODO we should not need the socket
 -- onMasterEstablishement
 data PathManager = PathManager {
-  name :: String
+  name                     :: String
     -- interfacesToIgnore :: [String]
   , onMasterEstablishement :: MptcpSocket -> MptcpConnection -> AvailablePaths -> [MptcpPacket]
 }
@@ -119,7 +119,7 @@ handleInterfaceNotification addrFamily attrs addrIntf =
   case ifNameM of
     Nothing -> Nothing
     Just ifName -> case (elem ifName interfacesToIgnore ) of
-        True -> Nothing
+        True  -> Nothing
         False -> Just $ NetworkInterface ip ifName addrIntf
   where
     -- gets the bytestring / assume it always work
@@ -129,7 +129,7 @@ handleInterfaceNotification addrFamily attrs addrIntf =
   -- ip = getIPFromByteString addrFamily ipBstr
   ip = case (getIPFromByteString addrFamily ipBstr) of
     Right val -> val
-    Left err -> undefined
+    Left err  -> undefined
 
 -- taken from netlink
 getString :: ByteString -> String

@@ -1,8 +1,8 @@
 {-# LANGUAGE DefaultSignatures #-}
 module Net.Bitset
 where
-import Data.Bits
 import Control.Monad
+import Data.Bits
 
 class ToBitMask a where
   toBitMask :: a -> Int

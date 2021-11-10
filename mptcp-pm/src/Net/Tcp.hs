@@ -12,9 +12,9 @@ module Net.Tcp (
     , module Net.Tcp.Constants
 ) where
 
-import Net.Tcp.Definitions
-import Net.Tcp.Constants
 import Net.Bitset
+import Net.Tcp.Constants
+import Net.Tcp.Definitions
 
 
 instance ToBitMask TcpFlag

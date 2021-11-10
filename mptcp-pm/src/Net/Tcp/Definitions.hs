@@ -17,25 +17,25 @@ module Net.Tcp.Definitions (
 
 where
 
-import Prelude
-import Net.IP
 import Data.Aeson
-import Data.Word (Word8, Word16, Word32)
-import GHC.Generics
 import qualified Data.Text as TS
+import Data.Word (Word16, Word32, Word8)
+import GHC.Generics
+import Net.IP
+import Prelude
 
 {- Describe a TCP connection, possibly an Mptcp subflow
   The equality implementation ignores several fields
 -}
 data TcpConnection = TcpConnection {
   -- TODO use libraries to deal with that ? filter from the command line for instance ?
-  srcIp :: IP -- ^Source ip
-  , dstIp :: IP -- ^Destination ip
-  , srcPort :: Word16  -- ^ Source port
-  , dstPort :: Word16  -- ^Destination port
-  , priority :: Maybe Word8 -- ^subflow priority
-  , localId :: Word8  -- ^ Convert to AddressFamily
-  , remoteId :: Word8
+  srcIp              :: IP -- ^Source ip
+  , dstIp            :: IP -- ^Destination ip
+  , srcPort          :: Word16  -- ^ Source port
+  , dstPort          :: Word16  -- ^Destination port
+  , priority         :: Maybe Word8 -- ^subflow priority
+  , localId          :: Word8  -- ^ Convert to AddressFamily
+  , remoteId         :: Word8
   -- TODO remove could be deduced from srcIp / dstIp ?
   , subflowInterface :: Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
   -- add TcpMetrics member

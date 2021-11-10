@@ -4,18 +4,18 @@ https://stackoverflow.com/questions/32913552/why-does-my-hunit-test-suite-pass-w
 -}
 module Main where
 
+import Net.Bitset
+import Net.IP
+import Net.Mptcp
+import Net.SockDiag
+import Net.Tcp
 import System.Exit
 import Test.HUnit
-import Net.SockDiag
-import Net.Mptcp
-import Net.Tcp
-import Net.IP
-import Net.Bitset
 
-import Net.IPv4 (localhost)
-import Numeric (readHex)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Net.IPv4 (localhost)
+import Numeric (readHex)
 
 -- TODO reestablish this
 testEmpty = TestCase $ assertEqual
@@ -65,7 +65,7 @@ connectionFilter = TestCase $ assertBool
 loadTcpFlagsFromHex :: Text -> [TcpFlag]
 loadTcpFlagsFromHex text = case readHex (T.unpack $ T.drop 2 text) of
   [(n, "")] -> fromBitMask n
-  _ -> error $ "TcpFlags: could not parse " ++ T.unpack text
+  _         -> error $ "TcpFlags: could not parse " ++ T.unpack text
 
 
 -- connectionFilter = TestCase $ assertEqual

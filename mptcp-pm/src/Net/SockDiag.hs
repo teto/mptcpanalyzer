@@ -6,9 +6,8 @@ Stability   : testing
 Portability : Linux
 
 -}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Net.SockDiag (
   SockDiagMsg (..)
   , SockDiagExtension (..)
@@ -21,12 +20,12 @@ module Net.SockDiag (
 ) where
 
 -- import Generated
-import Data.Word (Word8, Word16, Word32, Word64)
+import Data.Word (Word16, Word32, Word64, Word8)
 
-import Prelude hiding (length, concat, init)
+import Prelude hiding (concat, init, length)
 
-import Data.Maybe (fromJust)
 import Data.Either (fromRight)
+import Data.Maybe (fromJust)
 
 import Data.Serialize
 import Data.Serialize.Get ()
@@ -37,16 +36,16 @@ import Data.Serialize.Put ()
 import System.Linux.Netlink
 import System.Linux.Netlink.Constants
 
-import qualified Data.Bits as B
 import Data.Bits ((.|.))
-import qualified Data.Map as Map
+import qualified Data.Bits as B
 import Data.ByteString (ByteString, pack)
-import Data.ByteString.Char8 as C8 (unpack, init)
-import Net.IPAddress
+import Data.ByteString.Char8 as C8 (init, unpack)
+import qualified Data.Map as Map
 import Net.IP ()
+import Net.IPAddress
 -- import Net.IPv4
-import Net.Tcp
 import Net.SockDiag.Constants
+import Net.Tcp
 
 --
 -- import Data.BitSet.Word
@@ -67,17 +66,17 @@ magicSeq = 123456
 --
 -- |}
 data InetDiagSockId  = InetDiagSockId  {
-  idiag_sport :: Word16  -- ^Source port
-  , idiag_dport :: Word16  -- ^Destination port
+  idiag_sport    :: Word16  -- ^Source port
+  , idiag_dport  :: Word16  -- ^Destination port
 
   -- Just be careful that this is a fixed size regardless of family
   -- __be32  idiag_src[4];
   -- __be32  idiag_dst[4];
   -- we don't know yet the address family
-  , idiag_src :: ByteString
-  , idiag_dst :: ByteString
+  , idiag_src    :: ByteString
+  , idiag_dst    :: ByteString
 
-  , idiag_intf :: Word32    -- ^Interface id
+  , idiag_intf   :: Word32    -- ^Interface id
   , idiag_cookie :: Word64  -- ^To specifically request an sockid
 
 } deriving (Eq, Show, Generic)
@@ -99,7 +98,7 @@ instance Enum2Bits SockDiagExtensionId where
 
 
 enumsToWord :: Enum2Bits a => [a] -> Word32
-enumsToWord [] = 0
+enumsToWord []     = 0
 enumsToWord (x:xs) = (shiftL x) .|. (enumsToWord xs)
 
 -- TODO use bitset package ? but broken
@@ -109,16 +108,16 @@ wordToEnums  _ = []
 {- | This generates a response of inet_diag_msg
 -}
 data SockDiagMsg = SockDiagMsg {
-  idiag_family :: AddressFamily  -- ^
-  , idiag_state :: Word8 -- ^Bitfield matching the request
-  , idiag_timer :: Word8
+  idiag_family    :: AddressFamily  -- ^
+  , idiag_state   :: Word8 -- ^Bitfield matching the request
+  , idiag_timer   :: Word8
   , idiag_retrans :: Word8
-  , idiag_sockid :: InetDiagSockId
+  , idiag_sockid  :: InetDiagSockId
   , idiag_expires :: Word32
-  , idiag_rqueue :: Word32
-  , idiag_wqueue :: Word32
-  , idiag_uid :: Word32
-  , idiag_inode :: Word32
+  , idiag_rqueue  :: Word32
+  , idiag_wqueue  :: Word32
+  , idiag_uid     :: Word32
+  , idiag_inode   :: Word32
 } deriving (Eq, Show, Generic)
 
 {-# LANGUAGE FlexibleInstances #-}
@@ -138,17 +137,17 @@ instance Convertable SockDiagMsg where
 
 -- TODO rename to a TCP one ? SockDiagRequest
 data SockDiagRequest = SockDiagRequest {
-  sdiag_family :: Word8 -- ^AF_INET6 or AF_INET (TODO rename)
+  sdiag_family     :: Word8 -- ^AF_INET6 or AF_INET (TODO rename)
 -- It should be set to the appropriate IPPROTO_* constant for AF_INET and AF_INET6, and to 0 otherwise.
   , sdiag_protocol :: Word8 -- ^IPPROTO_XXX always TCP ?
   -- IPv4/v6 specific structure
   -- Bitset
-  , idiag_ext :: [SockDiagExtensionId] -- ^query extended info (word8 size)
+  , idiag_ext      :: [SockDiagExtensionId] -- ^query extended info (word8 size)
   -- , req_pad :: Word8        -- ^ padding for backwards compatibility with v1
 
   -- in principle, any kind of state, but for now we only deal with TcpStates
-  , idiag_states :: [TcpState] -- ^States to dump (based on TcpDump) Word32
-  , diag_sockid :: InetDiagSockId -- ^inet_diag_sockid 
+  , idiag_states   :: [TcpState] -- ^States to dump (based on TcpDump) Word32
+  , diag_sockid    :: InetDiagSockId -- ^inet_diag_sockid
 } deriving (Eq, Show)
 
 {- |Typeclase used by the system. Basically 'Storable' for 'Get' and 'Put'
@@ -277,83 +276,83 @@ eIPPROTO_TCP = 6
 
 {-|
 Different answers described in include/uapi/linux/inet_diag.h
-Please keep the spacing the same as 
+Please keep the spacing the same as
 -}
 data SockDiagExtension =
   -- | Exact copy of kernel's struct tcp_info
   -- tcp_diag_get_info
   DiagTcpInfo {
-  tcpi_state :: Word8,
-  tcpi_ca_state :: Word8,
-  tcpi_retransmits :: Word8,
-  tcpi_probes :: Word8,
-  tcpi_backoff :: Word8,
-  tcpi_options :: Word8,
-  tcpi_wscales :: Word8  -- ^both sender and receiver on 4 bits
+  tcpi_state                       :: Word8,
+  tcpi_ca_state                    :: Word8,
+  tcpi_retransmits                 :: Word8,
+  tcpi_probes                      :: Word8,
+  tcpi_backoff                     :: Word8,
+  tcpi_options                     :: Word8,
+  tcpi_wscales                     :: Word8  -- ^both sender and receiver on 4 bits
   , tcpi_delivery_rate_app_limited :: Word8 -- ^but only first bit used
 
-  , tcpi_rto :: Word32,
-  tcpi_ato :: Word32,
-  tcpi_snd_mss :: Word32,
-  tcpi_rcv_mss :: Word32,
+  , tcpi_rto                       :: Word32,
+  tcpi_ato                         :: Word32,
+  tcpi_snd_mss                     :: Word32,
+  tcpi_rcv_mss                     :: Word32,
 
-  tcpi_unacked :: Word32,
-  tcpi_sacked :: Word32,
-  tcpi_lost :: Word32,
-  tcpi_retrans :: Word32,
-  tcpi_fackets :: Word32,
+  tcpi_unacked                     :: Word32,
+  tcpi_sacked                      :: Word32,
+  tcpi_lost                        :: Word32,
+  tcpi_retrans                     :: Word32,
+  tcpi_fackets                     :: Word32,
 
   -- Time
-  tcpi_last_data_sent :: Word32,
-  tcpi_last_ack_sent :: Word32,
-  tcpi_last_data_recv :: Word32,
-  tcpi_last_ack_recv :: Word32,
+  tcpi_last_data_sent              :: Word32,
+  tcpi_last_ack_sent               :: Word32,
+  tcpi_last_data_recv              :: Word32,
+  tcpi_last_ack_recv               :: Word32,
 
   -- Metric
-  tcpi_pmtu :: Word32,
-  tcpi_rcv_ssthresh :: Word32,
-  tcpi_rtt :: Word32,
-  tcpi_rttvar :: Word32,
-  tcpi_snd_ssthresh :: Word32,
-  tcpi_snd_cwnd :: Word32,
-  tcpi_advmss :: Word32,
-  tcpi_reordering :: Word32,
+  tcpi_pmtu                        :: Word32,
+  tcpi_rcv_ssthresh                :: Word32,
+  tcpi_rtt                         :: Word32,
+  tcpi_rttvar                      :: Word32,
+  tcpi_snd_ssthresh                :: Word32,
+  tcpi_snd_cwnd                    :: Word32,
+  tcpi_advmss                      :: Word32,
+  tcpi_reordering                  :: Word32,
 
-  tcpi_rcv_rtt :: Word32,
-  tcpi_rcv_space :: Word32
+  tcpi_rcv_rtt                     :: Word32,
+  tcpi_rcv_space                   :: Word32
 
-  , tcpi_total_retrans :: Word32
+  , tcpi_total_retrans             :: Word32
 
-  , tcpi_pacing_rate :: Word64
-  , tcpi_max_pacing_rate :: Word64
-  , tcpi_bytes_acked :: Word64
-  , tcpi_bytes_received :: Word64
-  , tcpi_segs_out :: Word32
-  , tcpi_segs_in :: Word32
+  , tcpi_pacing_rate               :: Word64
+  , tcpi_max_pacing_rate           :: Word64
+  , tcpi_bytes_acked               :: Word64
+  , tcpi_bytes_received            :: Word64
+  , tcpi_segs_out                  :: Word32
+  , tcpi_segs_in                   :: Word32
 
-  , tcpi_notsent_bytes :: Word32
-  , tcpi_min_rtt :: Word32
-  , tcpi_data_segs_in :: Word32
-  , tcpi_data_segs_out :: Word32
+  , tcpi_notsent_bytes             :: Word32
+  , tcpi_min_rtt                   :: Word32
+  , tcpi_data_segs_in              :: Word32
+  , tcpi_data_segs_out             :: Word32
 
-  , tcpi_delivery_rate :: Word64
+  , tcpi_delivery_rate             :: Word64
 
-  , tcpi_busy_time :: Word64
-  , tcpi_rwnd_limited :: Word64
-  , tcpi_sndbuf_limited :: Word64
+  , tcpi_busy_time                 :: Word64
+  , tcpi_rwnd_limited              :: Word64
+  , tcpi_sndbuf_limited            :: Word64
 
-  , tcpi_delivered :: Word32
-  , tcpi_delivered_ce :: Word32
+  , tcpi_delivered                 :: Word32
+  , tcpi_delivered_ce              :: Word32
 
-  , tcpi_bytes_sent :: Word64
-  , tcpi_bytes_retrans :: Word64
-  , tcpi_dsack_dups :: Word32
-  , tcpi_reord_seen :: Word32
+  , tcpi_bytes_sent                :: Word64
+  , tcpi_bytes_retrans             :: Word64
+  , tcpi_dsack_dups                :: Word32
+  , tcpi_reord_seen                :: Word32
 
   -- Extended version, hoping it doesn't break too much stuff
-  , tcpi_snd_cwnd_clamp :: Word32
-  , tcpi_fowd :: Word32
-  , tcpi_bowd :: Word32
+  , tcpi_snd_cwnd_clamp            :: Word32
+  , tcpi_fowd                      :: Word32
+  , tcpi_bowd                      :: Word32
 
 } | DiagExtensionMemInfo {
   idiag_rmem :: Word32  -- ^ Amount of data in the receive queue.
@@ -364,9 +363,9 @@ data SockDiagExtension =
   -- | Not exclusive to Vegas unlike the name indicates, mirrors tcpvegas_info
   TcpVegasInfo {
   tcpInfoVegasEnabled :: Word32
-  , tcpInfoRttCount :: Word32
-  , tcpInfoRtt :: Word32
-  , tcpInfoMinrtt :: Word32
+  , tcpInfoRttCount   :: Word32
+  , tcpInfoRtt        :: Word32
+  , tcpInfoMinrtt     :: Word32
 } | CongInfo String
   | SockDiagShutdown Word8
   -- Apparently used to pass BBR data
@@ -434,7 +433,7 @@ getDiagTcpInfo = DiagTcpInfo <$> getWord8 <*> getWord8 <*> getWord8 <*> getWord8
   -- tcpi_bytes_sent
   <*> getWord64host<*> getWord64host <*> getWord32host <*> getWord32host
 
-  -- My custom addition to read the owds, it's an extra that should be removed 
+  -- My custom addition to read the owds, it's an extra that should be removed
   -- for a vanilla kernel
   <*> getWord32host <*> getWord32host <*> getWord32host
 
@@ -503,15 +502,15 @@ loadExtension key value = let
   eExtId = (toEnum key :: SockDiagExtensionId)
   fn = case toEnum key of
     -- MessageType shouldn't matter anyway ?!
-    InetDiagCong -> Just getCongInfo
+    InetDiagCong      -> Just getCongInfo
     -- InetDiagNone -> Nothing
-    InetDiagInfo -> Just getDiagTcpInfo
+    InetDiagInfo      -> Just getDiagTcpInfo
     InetDiagVegasinfo -> Just getTcpVegasInfo
-    InetDiagShutdown -> Just getShutdown
-    InetDiagMeminfo  -> Just getMemInfo
+    InetDiagShutdown  -> Just getShutdown
+    InetDiagMeminfo   -> Just getMemInfo
     -- requires CAP_NET_ADMIN
-    InetDiagMark -> Just getDiagMark
-    _ -> Nothing
+    InetDiagMark      -> Just getDiagMark
+    _                 -> Nothing
     -- _ -> case decode value of
                         -- Right x -> Just x
                         -- -- Left err -> error $ "fourre-tout error " ++ err
@@ -520,6 +519,6 @@ loadExtension key value = let
     in case fn of
       Nothing -> Nothing
       Just getFn -> case runGet getFn  value of
-          Right x -> Just $ x
+          Right x  -> Just $ x
           Left err -> error $ "error decoding " ++ show eExtId ++ ":\n" ++ err
 

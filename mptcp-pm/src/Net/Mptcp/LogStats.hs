@@ -1,6 +1,6 @@
 {-
 Module:  Net.Mptcp.LogStats
-Description : 
+Description :
 Maintainer  : matt
 Portability : Linux
 

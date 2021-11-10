@@ -26,15 +26,15 @@ module Net.Mptcp (
 )
 where
 
-import Net.SockDiag ()
 import Control.Exception (assert)
+import Net.SockDiag ()
 
-import Data.Word (Word8, Word16, Word32)
 import qualified Data.Map as Map
+import Data.Word (Word16, Word32, Word8)
 import System.Linux.Netlink hiding (makeSocket)
 -- import System.Linux.Netlink (query, Packet(..))
-import System.Linux.Netlink.GeNetlink
 import System.Linux.Netlink.Constants
+import System.Linux.Netlink.GeNetlink
 -- import System.Linux.Netlink.GeNetlink.Control
 import Data.ByteString (ByteString)
 import Data.Maybe (fromJust)
@@ -44,19 +44,19 @@ import Data.Serialize.Put
 
 import Data.Bits ((.|.))
 
-import Data.List ()
-import Debug.Trace
 import Control.Concurrent ()
+import Control.Monad.Trans.State ()
+import Data.Aeson
+import Data.List ()
+import qualified Data.Set as Set
+import Debug.Trace
+import GHC.Generics
 import Net.IP
-import Net.Tcp
 import Net.IPAddress
 import Net.IPv4
 import Net.IPv6
 import Net.Mptcp.Constants
-import qualified Data.Set as Set
-import Data.Aeson
-import GHC.Generics
-import Control.Monad.Trans.State ()
+import Net.Tcp
 
 data MptcpSocket = MptcpSocket NetlinkSocket Word16
 instance Show MptcpSocket where
@@ -76,9 +76,9 @@ data MptcpConnection = MptcpConnection {
   connectionToken :: MptcpToken
   -- use SubflowWithMetrics instead ?!
   -- , subflows :: Set.Set [TcpConnection]
-  , subflows :: Set.Set TcpConnection
-  , localIds :: Set.Set Word8  -- ^ Announced addresses
-  , remoteIds :: Set.Set Word8   -- ^ Announced addresses
+  , subflows      :: Set.Set TcpConnection
+  , localIds      :: Set.Set Word8  -- ^ Announced addresses
+  , remoteIds     :: Set.Set Word8   -- ^ Announced addresses
 
   -- Might be reworked/moved in an Enriched/Tracker structure afterwards
   , get_caps_prog :: Maybe FilePath
@@ -88,7 +88,7 @@ data MptcpConnection = MptcpConnection {
 data RemoteId = RemoteId {
 
   remoteAddress :: IP
-  , remotePort :: Word16
+  , remotePort  :: Word16
 }
 
 
@@ -164,7 +164,7 @@ mptcpConnRemoveSubflow con sf = con {
 getPort :: ByteString -> Word16
 getPort val =
   case (runGet getWord16host val) of
-    Left _ -> 0
+    Left _     -> 0
     Right port -> port
 
 
@@ -181,7 +181,7 @@ fixHeader _ dump pkt = let
 
 {-|
   Generates an Mptcp netlink request
-TODO we could fake the Word16/Flag and 
+TODO we could fake the Word16/Flag and
 -}
 genMptcpRequest :: Word16 -- ^the family id
                 -> MptcpGenlEvent -- ^The MPTCP command
@@ -202,7 +202,7 @@ genMptcpRequest fid cmd dump attrs =
   in
     assert hasTokenAttr pkt
 
--- | TODO change / return Either 
+-- | TODO change / return Either
 readToken :: ByteString -> Either String MptcpToken
 readToken val = runGet getWord32host val
 
@@ -212,7 +212,7 @@ readLocId maybeVal = case maybeVal of
   Nothing -> error "Missing locator id"
   Just val -> case runGet getWord8 val of
     -- TODO generate an error here !
-    Left _ -> error "Could not get locId !!"
+    Left _      -> error "Could not get locId !!"
     Right locId -> locId
   -- runGet getWord8 val
 
@@ -355,7 +355,7 @@ subflowFromAttributes attrs =
 -- "either2Maybe"
 e2M :: Either a b -> Maybe b
 e2M (Right x) = Just x
-e2M _ = Nothing
+e2M _         = Nothing
 
 convertAttributesIntoMap :: Attributes -> Map.Map MptcpAttr MptcpAttribute
 convertAttributesIntoMap attrs = let
@@ -369,7 +369,7 @@ makeAttributeFromMaybe :: MptcpAttr -> Attributes -> Maybe MptcpAttribute
 makeAttributeFromMaybe attrType attrs =
   let res = Map.lookup (fromEnum attrType) attrs in
   case res of
-    Nothing -> error $ "Could not build attr " ++ show attrType
+    Nothing         -> error $ "Could not build attr " ++ show attrType
     Just bytestring -> makeAttribute (fromEnum attrType) bytestring
 
 -- | Builds an MptcpAttribute from
@@ -379,8 +379,8 @@ makeAttribute :: Int -- ^ MPTCP_ATTR_TOKEN value
 makeAttribute i val =
   case toEnum i of
     MPTCP_ATTR_TOKEN ->
-      case readToken val of 
-        Left err -> error "could not decode"
+      case readToken val of
+        Left err         -> error "could not decode"
         Right mptcpToken -> Just $ MptcpAttrToken mptcpToken
 
     -- TODO fix
@@ -388,7 +388,7 @@ makeAttribute i val =
         case runGet getWord16host val of
           -- assert it's eAF_INET or eAF_INET6
           Right x -> Just $ SubflowFamily (toEnum ( fromIntegral x :: Int))
-          _ -> Nothing
+          _       -> Nothing
     MPTCP_ATTR_SADDR4 -> SubflowSourceAddress <$> fromIPv4 <$> e2M ( getIPv4FromByteString val)
     MPTCP_ATTR_DADDR4 -> SubflowDestAddress <$> fromIPv4 <$> e2M (getIPv4FromByteString val)
     MPTCP_ATTR_SADDR6 -> SubflowSourceAddress <$> fromIPv6 <$> e2M (getIPv6FromByteString val)
@@ -400,7 +400,7 @@ makeAttribute i val =
     MPTCP_ATTR_IF_IDX -> trace ("if_idx: " ++ show val) (
              case runGet getWord32be val of
                 Right x -> Just $ SubflowInterface x
-                _ -> Nothing)
+                _       -> Nothing)
     -- backup is u8
     MPTCP_ATTR_BACKUP -> Just (SubflowBackup $ readLocId $ Just val )
     MPTCP_ATTR_ERROR -> trace "makeAttribute ERROR" Nothing
@@ -435,7 +435,7 @@ hasFamily = Prelude.any (isAttribute (SubflowFamily eAF_INET))
 -- need to prepare a request
 -- type GenlPacket a = Packet (GenlData a)
 -- REQUIRES: LOC_ID / TOKEN
--- TODO pass TcpConnection 
+-- TODO pass TcpConnection
 resetConnectionPkt :: MptcpSocket -> [MptcpAttribute] -> MptcpPacket
 resetConnectionPkt (MptcpSocket _sock fid) attrs = let
     _cmd = MPTCP_CMD_REMOVE
