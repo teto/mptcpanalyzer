@@ -27,8 +27,6 @@ import Net.IPv6 (IPv6(..))
 import "mptcp-pm" Net.Tcp (TcpFlag(..))
 import Tshark.Fields
 import Tshark.TH
--- import "this" Net.Tcp
--- import "this" Net.Mptcp
 
 import Data.Hashable
 import qualified Data.Hashable as Hash
@@ -168,11 +166,6 @@ deriving instance Hashable IPv6
 type PcapFrame a = Frame Packet
 
 
--- tshow :: Show a => a -> TS.Text
--- tshow = TS.pack . Prelude.show
--- TODO PcapFrame should be a monoid and a semigroup with a list of Connection []
-
-
 -- | TODO adapt / rename to AFrame ? AdvancedFrames ?
 -- GADT ?
 data FrameFiltered a rs = FrameTcp {
@@ -185,19 +178,6 @@ data FrameFiltered a rs = FrameTcp {
 
 aframeLength :: FrameFiltered a rs -> Int
 aframeLength = frameLength . ffFrame
-
-
--- data FrameMerged = FrameMerged {
---     ffCon :: !Connection
-
---   }
-  -- FrameSubflow {
-  --   ffCon :: !MptcpSubflow
-  --   , ffFrame :: Frame a
-
--- https://stackoverflow.com/questions/52299478/pattern-match-phantom-type
--- data AFrame (p :: Protocol) where
--- AFrame :: SStreamId p -> Word32 -> AFrame p
 
 
 -- Helper to pass information across functions

@@ -18,7 +18,7 @@ where
 
 import Data.List (intercalate)
 import qualified Data.Text as T
-import MptcpAnalyzer.ArtificialFields (ConnectionRole)
+import MptcpAnalyzer.ArtificialFields (ConnectionRole (RoleClient, RoleServer))
 import qualified Net.IP
 import Net.Tcp (TcpConnection(..))
 import System.Process
@@ -50,6 +50,14 @@ defaultTsharkPrefs = TsharkParams {
 showIP :: Net.IP.IP -> String
 showIP = T.unpack . Net.IP.encode
 
+
+-- |One way filter
+-- genReadFilterUnidirectional :: 
+-- genReadFilterUnidirectional =
+
+-- genReadFilterBidirectional :: 
+-- genReadFilterBidirectional =
+
 -- |Create a tshark read filter from a 'TcpConnection'
 genReadFilterFromTcpConnection ::
   TcpConnection
@@ -57,14 +65,17 @@ genReadFilterFromTcpConnection ::
   -> String
 genReadFilterFromTcpConnection con dest =
   case dest of
-    Just x -> error "not implemented"
+    Just RoleClient -> 
       -- TODO should depend on destination
-      -- "ip.src==" ++ (show . conTcpClientIp) con ++ "ip.dst==" ++ (show . conTcpServerIp) con
-      --   ++ " tcp.srcport==" ++ show (conTcpSou con) ++ " and tcp.dstport==" ++ show (conTcpClientPort con)
+      "ip.src==" ++ (show . conTcpClientIp) con ++ "ip.dst==" ++ (show . conTcpServerIp) con
+        ++ " tcp.srcport==" ++ show (conTcpClientPort con) ++ " and tcp.dstport==" ++ show (conTcpServerPort con)
+    Just RoleServer ->
+      "ip.src==" ++ (show . conTcpServerIp) con ++ "ip.dst==" ++ (show . conTcpClientIp) con
+        ++ " tcp.srcport==" ++ show (conTcpServerPort con) ++ " and tcp.dstport==" ++ show (conTcpClientPort con)
 
         -- error "not implemented"
     -- TODO 2 requretes srcport dstport puis alterne
-    _ -> "tcp and ip.addr==" ++ (showIP . conTcpClientIp) con ++ " and ip.addr==" ++ (showIP . conTcpServerIp) con
+    _nodestination -> "tcp and ip.addr==" ++ (showIP . conTcpClientIp) con ++ " and ip.addr==" ++ (showIP . conTcpServerIp) con
         ++ " and tcp.port==" ++ show (conTcpServerPort con) ++ " and tcp.port==" ++ show (conTcpClientPort con)
 
 -- |Create a tshark read filter from a 'MptcpConnection'

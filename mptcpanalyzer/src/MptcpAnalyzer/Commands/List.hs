@@ -127,7 +127,6 @@ cmdListTcpConnections listDetailed = do
           describeConnection streamId =
             case buildTcpConnectionFromStreamId frame streamId of
               Left msg -> msg
-              -- addTcpDestToFrame
               Right aframe -> showConnection (ffCon aframe)
 
 
@@ -144,7 +143,7 @@ cmdTcpSummary streamId detailed = do
     state <- P.get
     let loadedPcap = view loadedFile state
     case loadedPcap of
-      Nothing -> return CMD.Error "please load a pcap first"
+      Nothing -> return $ CMD.Error "please load a pcap first"
       Just frame -> case buildTcpConnectionFromStreamId frame streamId of
         Left msg -> return $ CMD.Error msg
         Right aframe -> do

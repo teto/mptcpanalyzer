@@ -13,7 +13,7 @@ source-repository-package
 --   tag: 72fbe394b437c698d574cd7604ad3f7f807383e0
 
 -- profiling: True
-documentation: True
+documentation: False
 -- ghc options -ddump-timings
 -- tests: True
 benchmarks: True

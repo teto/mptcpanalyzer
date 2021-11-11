@@ -61,6 +61,8 @@ import Net.Tcp.Stats
 import Pipes.Prelude (fromHandle)
 import System.Console.ANSI
 import System.IO (stdout)
+import MptcpAnalyzer.Types (FrameFiltered(FrameTcp))
+import MptcpAnalyzer.ArtificialFields
 
 
 -- --         +--------+-- A 'Producer' that yields 'String's
@@ -120,7 +122,7 @@ type TsharkMonad = (StateT (LiveStatsTcp) IO)
 -- TODO return the frame/ stats
 tsharkLoop :: Handle -> Effect TsharkMonad ()
 tsharkLoop hout = do
-  let initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
+  -- let initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
 
   -- hSetBuffering stdout NoBuffering
   -- ls <- for (tsharkProducer hout) $ \x -> do
@@ -137,7 +139,7 @@ tsharkLoop hout = do
       modify' (\stats -> stats {
         lsPackets = lsPackets stats + 1
         , lsFrame = (lsFrame stats)  <> frame
-        , lsStats = (lsStats stats) <> (getTcpStats (stFrame { ffFrame = frame }))
+        , lsStats = (lsStats stats) <> (getTcpStats (FrameTcp (lsConnection stats) frame) RoleClient)
         })
       liftIO $ cursorUp 1
       liveStats <- get
@@ -177,13 +179,16 @@ tsharkLoop hout = do
 --   }
 
 -- TODO should be instance of a Monoid !
--- | This should be unidirectional ?
+-- | for now unidirectional ?
 data LiveStats stats con packet = LiveStats {
   -- lsCon :: MptcpConnection,
   lsStats :: stats
   , lsPackets :: Int
+  , lsConnection :: con
+  , lsDestination :: ConnectionRole
   -- , lsConnection :: TcpConnection
-  , lsFrame :: FrameFiltered con packet
+  , lsFrame :: Frame packet
+  -- , lsFrame :: FrameFiltered con packet
   , lsHasFinished :: Bool
   -- ^ True once it sees a FIN
   -- , lsFrame :: FrameRec HostCols

@@ -392,8 +392,6 @@ genTcpDestFrame frame con = fmap (\x -> Col (computeTcpDest x con) :& RNil) stre
     where
       streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
 
--- TODO addTcpDestToFrame
-
 computeTcpDest :: (
   TcpStream ∈ rs
   , IpSource ∈ rs

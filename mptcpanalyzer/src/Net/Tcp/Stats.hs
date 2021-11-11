@@ -167,10 +167,14 @@ genTcpStats aframe = TcpUnidirectionalStats {
         (Just pmin, Just pmax) -> (pmin, pmax)
         _otherwise -> error "Could not find either min or max"
 
--- ⊆
+-- | Destination should have been filtered upstream
 getTcpStats :: (
-  TcpSeq F.∈ rs, TcpDest F.∈ rs, F.RecVec rs, TcpLen F.∈ rs, RelTime F.∈ rs
+  TcpSeq F.∈ rs
+  , F.RecVec rs
+  , TcpLen F.∈ rs, RelTime F.∈ rs
   , PacketId F.∈ rs
+  -- disabled for now, we assumed it's filtered upstream
+  -- , TcpDest F.∈ rs
   )
   => FrameFiltered TcpConnection (F.Record rs)
   -> ConnectionRole
@@ -197,7 +201,8 @@ getTcpStats aframe dest =
       -- , tusNumberOfPackets = mempty
     }
   where
-    frame = F.filterFrame (\x -> x ^. tcpDest == dest) (ffFrame aframe)
+    frame =  (ffFrame aframe)
+    -- frame = F.filterFrame (\x -> x ^. tcpDest == dest) (ffFrame aframe)
 
     -- these return Maybes
     -- I need to find its id and add tcpSize afterwards
