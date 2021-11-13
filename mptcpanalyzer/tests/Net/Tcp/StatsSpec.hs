@@ -7,9 +7,9 @@ Portability : Linux
 
 Load a pcap in chunks and check that it produces the same result
 -}
-module Main where
--- import           Test.Tasty
--- import           Test.Tasty.HUnit
+module Net.Tcp.StatsSpec (
+  spec 
+) where
 import Frames.Exploration
 import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Pcap
@@ -33,10 +33,7 @@ import Polysemy.Log.Colog (interpretLogStdout)
 import qualified Polysemy.State as P
 import qualified Polysemy.Trace as P
 import Tshark.Main (defaultTsharkPrefs)
-
--- import           MptcpAnalyzer.Stats
-
-
+import MptcpAnalyzer.ArtificialFields
 
 cacheConfig :: CacheConfig
 cacheConfig = CacheConfig {
@@ -44,12 +41,14 @@ cacheConfig = CacheConfig {
   , cacheEnabled = False
 }
 
-expectedForwardStats, expectedForwardStats0, expectedBackwardStats, expectedBackwardStats0, expectedForwardStatsTotal01 :: TcpUnidirectionalStats
+expectedForwardStats, expectedForwardStats0, expectedForwardStats1 :: TcpUnidirectionalStats
+expectedBackwardStats, expectedBackwardStats0, expectedForwardStatsTotal01  :: TcpUnidirectionalStats
 expectedForwardStats = mempty
 expectedBackwardStats = mempty
 expectedForwardStats0 = mempty
 expectedForwardStats1 = mempty
 expectedBackwardStats0 = mempty
+expectedForwardStatsTotal01 = mempty
 
 -- TcpUnidirectionalStats {
 --       tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
@@ -64,19 +63,17 @@ expectedBackwardStats0 = mempty
 --       , tusSndUna = maxSeqRow ^. tcpSeq + fromIntegral ( maxSeqRow ^. tcpLen) :: Word32
 --       , tusSndNext = maxSeqRow ^. tcpSeq + fromIntegral ( maxSeqRow ^. tcpLen ) :: Word32
 --       , tusReinjectedBytes = 0
-
-
 --   }
 
--- logs/cache
-main :: IO ()
-main = do
+loadAFrame :: IO (FrameFiltered TcpConnection Packet)
+loadAFrame = do
 
-  _ <- P.runM
+  aframe <- P.runM
     $ interpretLogStdout
     $ runCache cacheConfig
       runTests
-  putStrLn "finished"
+  return aframe
+--   putStrLn "finished"
 
 
 splitAFrame :: FrameFiltered TcpConnection Packet -> Int -> [FrameFiltered TcpConnection Packet]
@@ -91,7 +88,7 @@ splitAFrame aframe chunkSize  =
            acc ++ [(FrameTcp (ffCon aframe') (takeRows chunkSize $ ffFrame aframe'))]
 
 
-runTests :: (Members '[P.Embed IO, Log , Cache] r) => Sem r ()
+runTests :: (Members '[P.Embed IO, Log , Cache] r) => Sem r (FrameFiltered TcpConnection Packet)
 runTests = do
   -- :: Either String (Frame Packet)
   frame1 <- loadPcapIntoFrame defaultTsharkPrefs "examples/client_2_cleaned.pcapng"
@@ -100,17 +97,24 @@ runTests = do
     Left err -> error err
     Right aframe -> return aframe
 
+  return aframe
+
   -- TODO run hspec and check FrameLength is the same ?
   -- check stats over the whole file
-  P.embed $ hspec $ do
-    describe "absolute" $ do
-      it "Check generated stats" $
-        -- pendingWith "test"
-          getTcpStats aframe RoleServer == expectedForwardStats
-          getTcpStats aframe RoleClient == expectedBackwardStats
+  -- P.embed $ hspec $
 
-      it "Test append of stats" $
-          expectedForwardStats0 <> expectedForwardStats1 == expectedForwardStatsTotal01
+spec :: Spec
+spec = describe "absolute" $ do
+  before loadAFrame $ describe "Checking stats" $ 
+    it "Check generated forward stats" $ \aframe ->
+    getTcpStats aframe RoleServer == expectedForwardStats
+  before loadAFrame $ it "Check generated backwards stats" $ \aframe ->
+      getTcpStats aframe RoleClient == expectedBackwardStats
+
+  it "Test append of stats" $
+      expectedForwardStats0 <> expectedForwardStats1 == expectedForwardStatsTotal01
+  -- pendingWith "test"
+
   return ()
 
   -- hspec $ do

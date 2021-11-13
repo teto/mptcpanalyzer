@@ -1,5 +1,5 @@
 {-|
-Module      : Tshark.Profile
+Module      : Tshark.Main
 Description : Interface between wireshark output format and haskell
 Maintainer  : matt
 
@@ -67,10 +67,10 @@ genReadFilterFromTcpConnection con dest =
   case dest of
     Just RoleClient -> 
       -- TODO should depend on destination
-      "ip.src==" ++ (show . conTcpClientIp) con ++ "ip.dst==" ++ (show . conTcpServerIp) con
+      "ip.src==" ++ (showIP . conTcpClientIp) con ++ "ip.dst==" ++ (showIP . conTcpServerIp) con
         ++ " tcp.srcport==" ++ show (conTcpClientPort con) ++ " and tcp.dstport==" ++ show (conTcpServerPort con)
     Just RoleServer ->
-      "ip.src==" ++ (show . conTcpServerIp) con ++ "ip.dst==" ++ (show . conTcpClientIp) con
+      "ip.src==" ++ (showIP . conTcpServerIp) con ++ "ip.dst==" ++ (showIP . conTcpClientIp) con
         ++ " tcp.srcport==" ++ show (conTcpServerPort con) ++ " and tcp.dstport==" ++ show (conTcpClientPort con)
 
         -- error "not implemented"

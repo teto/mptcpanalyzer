@@ -79,7 +79,7 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     -- TODO this should be updated
     -- For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
     -- , tusGoodput :: Byte
-    }  deriving Show
+    }  deriving (Show, Eq)
     -- deriving Semigroup via WrappedMonoid TcpUnidirectionalStats
 
 -- deriving instance Semigroup TcpUnidirectionalStats

@@ -44,6 +44,8 @@ module MptcpAnalyzer.Pcap (
     , showMptcpSubflowText
     , StreamConnection(..)
     , showConnection
+    , scoreTcpCon
+    , scoreMptcpCon
     -- , showMptcpSubflowText
     )
 where
