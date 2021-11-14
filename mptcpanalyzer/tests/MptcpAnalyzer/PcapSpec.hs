@@ -1,4 +1,5 @@
-module PcapSpec (
+{-# LANGUAGE OverloadedStrings #-}
+module MptcpAnalyzer.PcapSpec (
 spec
 ) where
 -- import           Test.Tasty
@@ -15,6 +16,7 @@ import Test.Hspec
 import Test.QuickCheck hiding (Success)
 import Tshark.Main
 import MptcpAnalyzer.ArtificialFields
+import Data.Maybe (fromJust)
 
 
 
@@ -22,7 +24,7 @@ exampleTcpConnectionLocalhost :: TcpConnection
 exampleTcpConnectionLocalhost = TcpConnection (fromIPv4 localhost) (fromIPv4 localhost) 24 42 (StreamId 0)
 
 exampleTcpConnection0 :: TcpConnection
-exampleTcpConnection0 = TcpConnection (read "10.0.0.1") (read "192.10.0.2") 24 42 (StreamId 1)
+exampleTcpConnection0 = TcpConnection (fromJust $ decode "10.0.0.1") (fromJust $ decode "192.10.0.2") 24 42 (StreamId 1)
 
 opts :: TempFileOptions
 opts = TempFileOptions True
@@ -30,7 +32,7 @@ opts = TempFileOptions True
 spec :: Spec
 spec = describe "absolute" $ do
   it "Check TcpConnection score" $
-    scoreTcpCon exampleTcpConnectionLocalhost != scoreTcpCon exampleTcpConnection0
+    scoreTcpCon exampleTcpConnectionLocalhost exampleTcpConnection0 < scoreTcpCon exampleTcpConnectionLocalhost exampleTcpConnectionLocalhost
 --     it "Generate the correct tshark filter" $
 --       genReadFilterFromTcpConnection exampleTcpConnectionLocalhost Nothing
 --         `shouldBe` "tcp and ip.addr==127.0.0.1 and ip.addr==127.0.0.1 and tcp.port==42 and tcp.port==24"

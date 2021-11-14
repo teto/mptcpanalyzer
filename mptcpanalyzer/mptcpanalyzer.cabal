@@ -294,7 +294,7 @@ Test-Suite test
   other-modules:
       Tshark.MainSpec
     , Net.Tcp.StatsSpec
-    , PcapSpec
+    , MptcpAnalyzer.PcapSpec
   build-depends:
       base >=4.12 && <4.20
     , Cabal

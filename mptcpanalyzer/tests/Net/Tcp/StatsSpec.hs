@@ -107,9 +107,9 @@ spec :: Spec
 spec = describe "absolute" $ do
   before loadAFrame $ describe "Checking stats" $ 
     it "Check generated forward stats" $ \aframe ->
-    getTcpStats aframe RoleServer == expectedForwardStats
+      getTcpStats aframe RoleServer `shouldBe` expectedForwardStats
   before loadAFrame $ it "Check generated backwards stats" $ \aframe ->
-      getTcpStats aframe RoleClient == expectedBackwardStats
+      getTcpStats aframe RoleClient `shouldBe` expectedBackwardStats
 
   it "Test append of stats" $
       expectedForwardStats0 <> expectedForwardStats1 == expectedForwardStatsTotal01

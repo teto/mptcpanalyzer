@@ -33,13 +33,13 @@ opts = TempFileOptions True
 -- main = hspec $ do
 spec :: Spec
 spec = 
-  describe "absolute" $ do
-    it "Generate the correct tshark filter" $
+  describe "tshark tests" $ do
+    it "Generate bidirectional tshark filter" $
       genReadFilterFromTcpConnection exampleTcpConnectionLocalhost Nothing
         `shouldBe` "tcp and ip.addr==127.0.0.1 and ip.addr==127.0.0.1 and tcp.port==42 and tcp.port==24"
-    it "Generate the correct tshark filter" $
+    it "Check the unidirectional filter" $
       genReadFilterFromTcpConnection exampleTcpConnection0 (Just RoleClient)
-        `shouldBe` "tcp and ip.addr==127.0.0.1 and ip.addr==127.0.0.1 and tcp.srcport==42 and tcp.dstport==24"
+        `shouldBe` "tcp and ip.src==10.0.0.1 and ip.dst==192.10.0.2 tcp.srcport==24 and tcp.dstport==42"
       -- exportToCsv "mptcpanalyzer/examples/client_2_filtered.pcapng"
     it "Tshark generates a proper CSV file" $ do
       -- cant find the profile so there is some herr being written
