@@ -123,8 +123,6 @@ type TsharkMonad = (StateT (LiveStatsTcp) IO)
 -- TODO return the frame/ stats
 tsharkLoop :: Handle -> Effect TsharkMonad ()
 tsharkLoop hout = do
-  -- let initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
-
   -- hSetBuffering stdout NoBuffering
   -- ls <- for (tsharkProducer hout) $ \x -> do
   ls <- for (fromHandle hout) $ \x -> do
@@ -133,20 +131,28 @@ tsharkLoop hout = do
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
       (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
-      -- liftIO $ putStrLn $ "test: "
-      -- liftIO $ putStrLn $ "test: " ++  x
       -- liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       stFrame <- gets lsFrame
-      modify' (\stats -> stats {
+      modify' (\stats -> let
+        forwardFrameWithDest = getTcpStats (addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)) RoleServer
+        backwardFrameWithDest = getTcpStats (addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)) RoleClient
+        in stats {
         lsPackets = lsPackets stats + 1
         , lsFrame = (lsFrame stats)  <> frame
-        , lsStats = (lsStats stats) <> (getTcpStats ( addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)) RoleClient)
+        , lsForwardStats = (lsForwardStats stats) <> traceShowId forwardFrameWithDest
+        , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
         })
-      liftIO $ cursorUp 1
+      -- liftIO $ cursorUp 1
       liveStats <- get
+      -- showLiveStatsTcp liveStats
+      let output = T.unlines ([
+            showLiveStats (SomeStats liveStats)
+            ] ++ if lsDestination liveStats == RoleServer then [showTcpUnidirectionalStats (lsForwardStats liveStats)] else []
+              ++ if lsDestination liveStats == RoleClient then [showTcpUnidirectionalStats (lsBackwardStats liveStats)] else []
+            )
+
+      -- liftIO $ cursorUpLine $ (+) 1 (Prelude.length $ T.lines output)
       liftIO clearFromCursorToScreenEnd
-      let output = showLiveStatsTcp liveStats
-      liftIO $ cursorUp $ Prelude.length $ T.lines output
       liftIO $ (putStrLn . T.unpack) output
       -- liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
       -- lift $ hPutStrLn stdout "test"
@@ -183,7 +189,9 @@ tsharkLoop hout = do
 -- | for now unidirectional ?
 data LiveStats stats con packet = LiveStats {
   -- lsCon :: MptcpConnection,
-  lsStats :: stats
+  lsForwardStats :: stats
+  , lsBackwardStats :: stats
+  -- keep to check everything worked fine? else we can retreive the count from lsFrame
   , lsPackets :: Int
   , lsConnection :: con
   , lsDestination :: ConnectionRole
@@ -204,19 +212,21 @@ data SomeStats where
 tshow :: Show a => a -> T.Text
 tshow = T.pack . Prelude.show
 
-showLiveStatsTcp :: LiveStatsTcp -> Text
-showLiveStatsTcp stats =
-  showLiveStats (SomeStats stats) <> showTcpUnidirectionalStats (lsStats stats)
+-- | Show live stats TCP
+-- showLiveStatsTcp :: LiveStatsTcp -> Text
+-- showLiveStatsTcp stats = T.unlines [
+--   showLiveStats (SomeStats stats)
+--   , showTcpUnidirectionalStats (lsStats stats)
+--   ]
 
-showLiveStatsMptcp :: LiveStatsMptcp -> Text
-showLiveStatsMptcp stats =
-  showLiveStats (SomeStats stats) <> showMptcpUnidirectionalStats (lsStats stats)
+-- showLiveStatsMptcp :: LiveStatsMptcp -> Text
+-- showLiveStatsMptcp stats =
+--   showLiveStats (SomeStats stats) <> showMptcpUnidirectionalStats (lsStats stats)
 
 showLiveStats :: SomeStats -> Text
 showLiveStats (SomeStats liveStats) =
   T.unlines [
     "Number of packets: " <> tshow (lsPackets liveStats)
-    , tshow (lsPackets liveStats)
   ]
 
 

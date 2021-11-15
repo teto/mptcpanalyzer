@@ -68,10 +68,10 @@ genReadFilterFromTcpConnection con dest =
     Just RoleClient -> 
       -- TODO should depend on destination
       "tcp and ip.src==" ++ (showIP . conTcpClientIp) con ++ " and ip.dst==" ++ (showIP . conTcpServerIp) con
-        ++ " tcp.srcport==" ++ show (conTcpClientPort con) ++ " and tcp.dstport==" ++ show (conTcpServerPort con)
+        ++ " and tcp.srcport==" ++ show (conTcpClientPort con) ++ " and tcp.dstport==" ++ show (conTcpServerPort con)
     Just RoleServer ->
       "tcp and ip.src==" ++ (showIP . conTcpServerIp) con ++ " and ip.dst==" ++ (showIP . conTcpClientIp) con
-        ++ " tcp.srcport==" ++ show (conTcpServerPort con) ++ " and tcp.dstport==" ++ show (conTcpClientPort con)
+        ++ " and tcp.srcport==" ++ show (conTcpServerPort con) ++ " and tcp.dstport==" ++ show (conTcpClientPort con)
 
         -- error "not implemented"
     -- TODO 2 requretes srcport dstport puis alterne

@@ -603,7 +603,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           -- stats/packetCount/Frame
           -- keeping it light for now
           destination = fromMaybe RoleServer mbConnectionRole
-          initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 connectionFilter destination mempty False
+          initialLiveStats :: LiveStatsTcp = LiveStats mempty mempty 0 connectionFilter destination mempty False
           -- initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
           toLoad = case mbFake of
             Just filename -> Right filename

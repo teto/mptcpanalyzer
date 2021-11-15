@@ -200,7 +200,6 @@ getTcpStats aframe dest =
       , tusReinjectedBytes = 0
     }
   where
-    -- frame =  (ffFrame aframe)
     frame = F.filterFrame (\x -> x ^. tcpDest == dest) (ffFrame aframe)
 
     -- these return Maybes
@@ -226,9 +225,11 @@ getTcpSeqRange s =
   fromIntegral (tusSndUna s - tusMinSeq s - 1)
 
 -- | Computes throughput
+-- TODO should return a quantity with number
 getTcpThroughput :: TcpUnidirectionalStats -> Double
 getTcpThroughput s =
-  fromIntegral (tusSndUna s - tusMinSeq s - 1) / (tusEndTime s - tusStartTime s)
+  if tusNrPackets s == 0 then 0
+  else fromIntegral (tusSndUna s - tusMinSeq s - 1) / (tusEndTime s - tusStartTime s)
 
 -- | Computes goodput
 getTcpGoodput :: TcpUnidirectionalStats -> Double
@@ -238,7 +239,8 @@ getTcpGoodput s =
 showTcpUnidirectionalStats :: TcpUnidirectionalStats -> Text
 showTcpUnidirectionalStats stats =
   T.unlines [
-    "Reinjected bytes: " <> tshow (tusReinjectedBytes stats)
+    "Timestamps:" <> tshow (tusStartTime stats) <> " -> " <> tshow (tusEndTime stats)
+    , "Reinjected bytes: " <> tshow (tusReinjectedBytes stats)
     , "Current goodput: " <> tshow (getTcpGoodput stats)
   ]
 

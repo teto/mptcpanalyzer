@@ -31,6 +31,7 @@ import MptcpAnalyzer.Cache
 import Data.Either (fromRight)
 import MptcpAnalyzer.Loader (loadPcapIntoFrame)
 import Frames.Frame (Frame)
+import MptcpAnalyzer.Map
 
 cacheConfig :: CacheConfig
 cacheConfig = CacheConfig {
@@ -68,8 +69,9 @@ runTests = do
 
 spec :: Spec
 spec = describe "Checking connection mapper" $ do
-  before loadAFrame $ it "test" $ \aframe ->
-    pendingWith "test"
+  before loadAFrame $ it "test" $ \(aframe, frame1) ->
+    mapTcpConnection aframe frame1 `shouldBe` []
+    -- pendingWith "test"
   -- TODO check
   -- mapTcpConnection
 
