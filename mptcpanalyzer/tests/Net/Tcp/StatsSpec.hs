@@ -45,9 +45,9 @@ expectedForwardStats, expectedForwardStats0, expectedForwardStats1 :: TcpUnidire
 expectedBackwardStats, expectedBackwardStats0, expectedForwardStatsTotal01  :: TcpUnidirectionalStats
 expectedForwardStats = mempty
 expectedBackwardStats = mempty
-expectedForwardStats0 = mempty
+expectedForwardStats0 = TcpUnidirectionalStats {tusNrPackets = 16, tusStartTime = 0.0, tusEndTime = 45.831181697, tusMinSeq = 0, tusSndUna = 457, tusSndNext = 457, tusReinjectedBytes = 0}
 expectedForwardStats1 = mempty
-expectedBackwardStats0 = mempty
+expectedBackwardStats0 = TcpUnidirectionalStats {tusNrPackets = 13, tusStartTime = 0.184116349, tusEndTime = 45.842675096, tusMinSeq = 0, tusSndUna = 309, tusSndNext = 309, tusReinjectedBytes = 0}
 expectedForwardStatsTotal01 = mempty
 
 -- TcpUnidirectionalStats {
@@ -76,16 +76,6 @@ loadAFrame = do
 --   putStrLn "finished"
 
 
-splitAFrame :: FrameFiltered TcpConnection Packet -> Int -> [FrameFiltered TcpConnection Packet]
-splitAFrame aframe chunkSize  =
-  -- takeRows / dropRow
-  go aframe []
-  where
-    go aframe' acc = if aframeLength aframe' < chunkSize then
-        acc ++ [aframe']
-      else
-        go (FrameTcp (ffCon aframe') (dropRows chunkSize $ ffFrame aframe'))
-           acc ++ [(FrameTcp (ffCon aframe') (takeRows chunkSize $ ffFrame aframe'))]
 
 
 runTests :: (Members '[P.Embed IO, Log , Cache] r) => Sem r (FrameFiltered TcpConnection Packet)
@@ -103,25 +93,28 @@ runTests = do
   -- check stats over the whole file
   -- P.embed $ hspec $
 
+splitAFrame :: FrameFiltered TcpConnection Packet -> Int -> [FrameFiltered TcpConnection Packet]
+splitAFrame aframe chunkSize  =
+  -- takeRows / dropRow
+  go aframe []
+  where
+    go aframe' acc = if aframeLength aframe' < chunkSize then
+        acc ++ [aframe']
+      else
+        go (FrameTcp (ffCon aframe') (dropRows chunkSize $ ffFrame aframe'))
+           acc ++ [(FrameTcp (ffCon aframe') (takeRows chunkSize $ ffFrame aframe'))]
+
+-- beforeWith (loadAFrame) $ 
+-- before loadAFrame $ describ
 spec :: Spec
-spec = describe "absolute" $ do
-  before loadAFrame $ describe "Checking stats" $ 
-    it "Check generated forward stats" $ \aframe ->
-      getTcpStats aframe RoleServer `shouldBe` expectedForwardStats
-  before loadAFrame $ it "Check generated backwards stats" $ \aframe ->
-      getTcpStats aframe RoleClient `shouldBe` expectedBackwardStats
+spec = before loadAFrame $
+      describe "Checking stats" $ do
+        it "Check generated forward stats" $ \aframe ->
+          getTcpStats (addTcpDestinationsToAFrame aframe) RoleServer `shouldBe` expectedForwardStats0
+        it "Check generated backwards stats" $ \aframe ->
+          getTcpStats (addTcpDestinationsToAFrame aframe) RoleClient `shouldBe` expectedBackwardStats0
 
-  it "Test append of stats" $
-      expectedForwardStats0 <> expectedForwardStats1 == expectedForwardStatsTotal01
+  -- it "Test append of stats" $
+  --     expectedForwardStats0head <> expectedForwardStats0tail `shouldBe` expectedForwardStats0
   -- pendingWith "test"
-
-  return ()
-
-  -- hspec $ do
-  --   describe "absolute" $ do
-  --     it "returns the original number when given a positive input" $
-  --       -- TODO check
-  --       computeStats aframe `equal` computeStats [aframes]
-
-        -- numberToTcpFlags 2 `shouldBe` [TcpFlagSyn]
 

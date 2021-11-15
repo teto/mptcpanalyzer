@@ -20,15 +20,12 @@ build:
 
 .PHONY: test
 test: build $(TEST_FILES)
-	# TODO run $(TEST_FILES)
-	# export PATH=$(dirname $(fd -u --glob  mptcpanalyzer -tx));${PATH}
 	tests/run.sh
 
 # regen golden tests
 test-update: build $(TEST_FILES)
-	# TODO run $(TEST_FILES)
-	# export PATH=$(dirname $(fd -u --glob  mptcpanalyzer -tx));${PATH}
-	tests/run.sh
+	replica run -i tests/tcp.json
+	replica run -i tests/mptcp.json
 
 .PHONY: gen-autocompletion
 gen-completion: build

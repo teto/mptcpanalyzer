@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -326,6 +327,11 @@ type instance VectorFor ConnectionRole = V.Vector
 -- FIX generalize
 type instance VectorFor [Word64] = V.Vector
 type instance VectorFor (Maybe [Word64]) = V.Vector
+
+
+type TcpFields rs = (TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs)
+type IpFields rs = (IpSource ∈ rs, IpDest ∈ rs)
+
 
 -- type instance VectorFor MbTcpStream = V.Vector
 

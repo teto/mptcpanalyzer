@@ -380,24 +380,23 @@ addTcpDestToFrame frame con = fmap (\x -> addTcpDestToRec x (computeTcpDest x co
       streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
 
 
--- | Generates a frame with the TcpDest
+-- | Generates a frame with a single column containing the TcpDest
 genTcpDestFrame :: (
   I.RecVec rs
-  ,IpSource ∈ rs, IpDest ∈ rs
-  , IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs
+  , IpSource ∈ rs, IpDest ∈ rs
+  , TcpSrcPort ∈ rs, TcpDestPort ∈ rs
   , TcpStream ∈ rs
   )
     => FrameRec rs
     -> TcpConnection
     -> FrameRec '[TcpDest]
 genTcpDestFrame frame con = fmap (\x -> Col (computeTcpDest x con) :& RNil) streamFrame
-    where
-      streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
+  where
+    streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
 
 computeTcpDest :: (
   TcpStream ∈ rs
-  , IpSource ∈ rs
-  , IpDest ∈ rs
+  , IpFields rs
   , TcpSrcPort ∈ rs
   , TcpDestPort ∈ rs
   ) => Record rs
@@ -419,9 +418,8 @@ addTcpDestinationsToAFrame :: (
   I.RecVec rs
   -- , HostCols <: rs
   -- , HostCols ∈ rs
-  , IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
-
-  )
+  , IpFields rs
+  , TcpFields rs)
   => FrameFiltered TcpConnection (Record rs)
   -> FrameFiltered TcpConnection (Record (TcpDest ': rs))
 addTcpDestinationsToAFrame aframe =

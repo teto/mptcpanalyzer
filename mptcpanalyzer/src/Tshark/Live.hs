@@ -63,6 +63,7 @@ import System.Console.ANSI
 import System.IO (stdout)
 import MptcpAnalyzer.Types (FrameFiltered(FrameTcp))
 import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 
 
 -- --         +--------+-- A 'Producer' that yields 'String's
@@ -139,7 +140,7 @@ tsharkLoop hout = do
       modify' (\stats -> stats {
         lsPackets = lsPackets stats + 1
         , lsFrame = (lsFrame stats)  <> frame
-        , lsStats = (lsStats stats) <> (getTcpStats (FrameTcp (lsConnection stats) frame) RoleClient)
+        , lsStats = (lsStats stats) <> (getTcpStats ( addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)) RoleClient)
         })
       liftIO $ cursorUp 1
       liveStats <- get

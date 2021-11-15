@@ -46,9 +46,9 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     -- Include redundant packets contrary to '''
     -- tusThroughput :: Byte
 
-    tusStartPacketId :: Word64
-    , tusEndPacketId :: Word64
-    , tusNrPackets :: Int
+    -- tusStartPacketId :: Word64
+    -- , tusEndPacketId :: Word64
+    tusNrPackets :: Int
     -- duration
     -- , tusDuration :: Double
     , tusStartTime :: Double
@@ -90,9 +90,9 @@ instance Semigroup TcpUnidirectionalStats where
    -- TODO this does nothing
    (<>) a b = TcpUnidirectionalStats {
       -- tusThroughput = 0
-      tusStartPacketId = min (tusStartPacketId a) (tusStartPacketId b)
-      , tusEndPacketId = max (tusEndPacketId a) (tusEndPacketId b)
-      , tusNrPackets = tusNrPackets a + tusNrPackets b
+      -- tusStartPacketId = min (tusStartPacketId a) (tusStartPacketId b)
+      -- , tusEndPacketId = max (tusEndPacketId a) (tusEndPacketId b)
+      tusNrPackets = tusNrPackets a + tusNrPackets b
       , tusStartTime = min (tusStartTime a) (tusStartTime b)
       , tusEndTime = max (tusEndTime a) (tusEndTime b)
       -- TODO fill it
@@ -109,9 +109,9 @@ instance Semigroup TcpUnidirectionalStats where
 instance Monoid TcpUnidirectionalStats where
   mempty = TcpUnidirectionalStats {
       -- tusThroughput = 0
-      tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
-      , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
-      , tusNrPackets = 0
+      -- tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
+      -- , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
+      tusNrPackets = 0
       , tusStartTime = 0
       , tusEndTime = 0
       , tusMinSeq = 0        -- TODO fill it
@@ -138,9 +138,9 @@ genTcpStats :: Frame Packet -> TcpUnidirectionalStats
 genTcpStats aframe = TcpUnidirectionalStats {
 
     -- TODO we should run a minmax instead
-    tusStartPacketId = minPktId
-    , tusEndPacketId = maxPktId
-    , tusNrPackets = frameLength aframe
+    -- tusStartPacketId = minPktId
+    -- , tusEndPacketId = maxPktId
+    tusNrPackets = frameLength aframe
     --     maxTime = maximum $ F.toList $ view relTime <$> frame
     -- minTime = minimum $ F.toList $ view relTime <$> frame
 
@@ -168,13 +168,14 @@ genTcpStats aframe = TcpUnidirectionalStats {
         _otherwise -> error "Could not find either min or max"
 
 -- | Destination should have been filtered upstream
+-- see @genTcpDestFrame@
 getTcpStats :: (
   TcpSeq F.∈ rs
   , F.RecVec rs
   , TcpLen F.∈ rs, RelTime F.∈ rs
   , PacketId F.∈ rs
   -- disabled for now, we assumed it's filtered upstream
-  -- , TcpDest F.∈ rs
+  , TcpDest F.∈ rs
   )
   => FrameFiltered TcpConnection (F.Record rs)
   -> ConnectionRole
@@ -185,9 +186,9 @@ getTcpStats aframe dest =
   else
     TcpUnidirectionalStats {
       -- tusThroughput = 0
-      tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
-      , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
-      , tusNrPackets = frameLength frame
+      -- tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
+      -- , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
+      tusNrPackets = frameLength frame
       , tusStartTime = minTime
       , tusEndTime = maxTime
       -- TODO fill it
@@ -197,12 +198,10 @@ getTcpStats aframe dest =
       , tusSndUna = maxSeqRow ^. tcpSeq + fromIntegral ( maxSeqRow ^. tcpLen) :: Word32
       , tusSndNext = maxSeqRow ^. tcpSeq + fromIntegral ( maxSeqRow ^. tcpLen ) :: Word32
       , tusReinjectedBytes = 0
-      -- , tusSnd = 0
-      -- , tusNumberOfPackets = mempty
     }
   where
-    frame =  (ffFrame aframe)
-    -- frame = F.filterFrame (\x -> x ^. tcpDest == dest) (ffFrame aframe)
+    -- frame =  (ffFrame aframe)
+    frame = F.filterFrame (\x -> x ^. tcpDest == dest) (ffFrame aframe)
 
     -- these return Maybes
     -- I need to find its id and add tcpSize afterwards
