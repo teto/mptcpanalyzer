@@ -165,7 +165,6 @@ tsharkLoop hout = do
     popts = defaultParser {
           columnSeparator = T.pack $ [csvDelimiter defaultTsharkPrefs]
         }
-    -- readRecEither
     fromEither x = case recEither x of
       Left _txt -> error ( "eitherProcessed failure : " ++ T.unpack _txt)
       Right pkt -> pkt

@@ -221,10 +221,15 @@ executable mptcpanalyzer
         , ansi-terminal
         , transformers
     Other-modules:
-        -- Tshark.TH
+          Tshark.Live
+        , Tshark.Interfaces
+        , Tshark.Fields
+        , Tshark.Main
         -- , Net.Mptcp.Types
         -- reexport the rest
-        MptcpAnalyzer
+        , MptcpAnalyzer
+        , MptcpAnalyzer.Frame
+        , MptcpAnalyzer.Map
         , MptcpAnalyzer.Loader
         , MptcpAnalyzer.Types
         , MptcpAnalyzer.Plots.Types
@@ -277,14 +282,10 @@ benchmark map-stream
 
 
 Test-Suite test
-  -- 2 types supported, exitcode is based on ... exit codes ....
   type:               exitcode-stdio-1.0
   main-is:
     Spec.hs
-      -- PcapSpec.hs
-    -- , Tshark.MainSpec
   hs-source-dirs:     tests
-  -- Other-modules:     Pcap, Columns
   default-language: Haskell2010
   default-extensions:
       -- , OverloadedStrings
@@ -297,6 +298,7 @@ Test-Suite test
     , MptcpAnalyzer.PcapSpec
     , MptcpAnalyzer.LoaderSpec
     , MptcpAnalyzer.MapSpec
+    , Utils
   build-depends:
       base >=4.12 && <4.20
     , Cabal
@@ -309,24 +311,6 @@ Test-Suite test
     , polysemy
     , polysemy-log >= 0.2.2.4
     , polysemy-log-co
-
--- Test-Suite stats
---   -- 2 types supported, exitcode is based on ... exit codes ....
---   type:               exitcode-stdio-1.0
---   main-is:            StatsSpec.hs
---   hs-source-dirs:     tests
---   default-language: Haskell2010
-
---   build-depends:      base >=4.12 && <4.20
---                      , HUnit
---                      , hspec
---                      , QuickCheck
---                      , mptcpanalyzer
---                      , Frames
---     , polysemy
---     , polysemy-log >= 0.2.2.4
---     , polysemy-log-co
-
 
 -- doctests are a pain
 -- test-suite doctests

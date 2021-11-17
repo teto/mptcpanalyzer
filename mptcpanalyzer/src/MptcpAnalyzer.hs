@@ -12,11 +12,11 @@ How to use ?
 module MptcpAnalyzer (
   -- * Core Types
 
-  module MptcpAnalyzer.Types
-
-  -- * Loading pcaps
-  ,   loadPcapIntoFrame
+  module X
 )
 where
-import MptcpAnalyzer.Loader
-import MptcpAnalyzer.Types
+import MptcpAnalyzer.Loader as X
+import MptcpAnalyzer.Types as X
+import MptcpAnalyzer.Cache as X
+import MptcpAnalyzer.Frame as X
+import MptcpAnalyzer.Utils.Completion as X

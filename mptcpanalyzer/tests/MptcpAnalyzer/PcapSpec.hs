@@ -2,8 +2,6 @@
 module MptcpAnalyzer.PcapSpec (
 spec
 ) where
--- import           Test.Tasty
--- import           Test.Tasty.HUnit
 import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
@@ -17,6 +15,7 @@ import Test.QuickCheck hiding (Success)
 import Tshark.Main
 import MptcpAnalyzer.ArtificialFields
 import Data.Maybe (fromJust)
+import Utils
 
 
 
@@ -29,14 +28,13 @@ exampleTcpConnection0 = TcpConnection (fromJust $ decode "10.0.0.1") (fromJust $
 opts :: TempFileOptions
 opts = TempFileOptions True
 
+addTcpDestinationsToAFrame
 spec :: Spec
 spec = describe "absolute" $ do
   it "Check TcpConnection score" $
     scoreTcpCon exampleTcpConnectionLocalhost exampleTcpConnection0 < scoreTcpCon exampleTcpConnectionLocalhost exampleTcpConnectionLocalhost
---     it "Generate the correct tshark filter" $
---       genReadFilterFromTcpConnection exampleTcpConnectionLocalhost Nothing
---         `shouldBe` "tcp and ip.addr==127.0.0.1 and ip.addr==127.0.0.1 and tcp.port==42 and tcp.port==24"
---     it "Generate the correct tshark filter" $
+    it "Check that destinations are set correctly" $
+    -- it "Generate the correct tshark filter" $
 --       genReadFilterFromTcpConnection exampleTcpConnection0 (Just RoleClient)
 --         `shouldBe` "tcp and ip.addr==127.0.0.1 and ip.addr==127.0.0.1 and tcp.srcport==42 and tcp.dstport==24"
 --       -- exportToCsv "mptcpanalyzer/examples/client_2_filtered.pcapng"

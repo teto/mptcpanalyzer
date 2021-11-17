@@ -32,6 +32,7 @@ import Data.Either (fromRight)
 import MptcpAnalyzer.Loader (loadPcapIntoFrame)
 import Frames.Frame (Frame)
 import MptcpAnalyzer.Map
+import Utils
 
 cacheConfig :: CacheConfig
 cacheConfig = CacheConfig {

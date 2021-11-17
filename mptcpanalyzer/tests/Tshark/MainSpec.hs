@@ -1,9 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
-
 module Tshark.MainSpec (spec) 
 where
--- import           Test.Tasty
--- import           Test.Tasty.HUnit
 import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream

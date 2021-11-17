@@ -8,7 +8,7 @@ Portability : Linux
 Load a pcap in chunks and check that it produces the same result
 -}
 module Net.Tcp.StatsSpec (
-  spec 
+  spec
 ) where
 import Frames.Exploration
 import MptcpAnalyzer.Loader
@@ -34,12 +34,13 @@ import qualified Polysemy.State as P
 import qualified Polysemy.Trace as P
 import Tshark.Main (defaultTsharkPrefs)
 import MptcpAnalyzer.ArtificialFields
+import Utils
 
-cacheConfig :: CacheConfig
-cacheConfig = CacheConfig {
-  cacheFolder = "/tmp"
-  , cacheEnabled = False
-}
+-- cacheConfig :: CacheConfig
+-- cacheConfig = CacheConfig {
+--   cacheFolder = "/tmp"
+--   , cacheEnabled = False
+-- }
 
 expectedForwardStats, expectedForwardStats0, expectedForwardStats1 :: TcpUnidirectionalStats
 expectedBackwardStats, expectedBackwardStats0, expectedForwardStatsTotal01  :: TcpUnidirectionalStats
@@ -65,29 +66,29 @@ expectedForwardStatsTotal01 = mempty
 --       , tusReinjectedBytes = 0
 --   }
 
-loadAFrame :: IO (FrameFiltered TcpConnection Packet)
-loadAFrame = do
+-- loadAFrame :: IO (FrameFiltered TcpConnection Packet)
+-- loadAFrame = do
 
-  aframe <- P.runM
-    $ interpretLogStdout
-    $ runCache cacheConfig
-      runTests
-  return aframe
+--   aframe <- P.runM
+--     $ interpretLogStdout
+--     $ runCache cacheConfig
+--       runTests
+--   return aframe
 --   putStrLn "finished"
 
 
 
 
-runTests :: (Members '[P.Embed IO, Log , Cache] r) => Sem r (FrameFiltered TcpConnection Packet)
-runTests = do
-  -- :: Either String (Frame Packet)
-  frame1 <- loadPcapIntoFrame defaultTsharkPrefs "examples/client_2_cleaned.pcapng"
+-- runTests :: (Members '[P.Embed IO, Log , Cache] r) => Sem r (FrameFiltered TcpConnection Packet)
+-- runTests = do
+--   -- :: Either String (Frame Packet)
+--   frame1 <- loadPcapIntoFrame defaultTsharkPrefs "examples/client_2_cleaned.pcapng"
 
-  (aframe :: FrameFiltered TcpConnection Packet) <- case buildFrameFromStreamId (fromRight (error "should not happen") frame1) (StreamId 0) of
-    Left err -> error err
-    Right aframe -> return aframe
+--   (aframe :: FrameFiltered TcpConnection Packet) <- case buildFrameFromStreamId (fromRight (error "should not happen") frame1) (StreamId 0) of
+--     Left err -> error err
+--     Right aframe -> return aframe
 
-  return aframe
+--   return aframe
 
   -- TODO run hspec and check FrameLength is the same ?
   -- check stats over the whole file
