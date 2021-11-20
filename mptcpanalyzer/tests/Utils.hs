@@ -47,6 +47,11 @@ cacheDisabledConfig = CacheConfig {
 --   return aframe
 --   putStrLn "finished"
 
+-- loadAFrame
+--   (aframe :: FrameFiltered TcpConnection Packet) <- case buildFrameFromStreamId (fromRight (error "should not happen") eFrame1) (StreamId 0) of
+--     Left err -> error err
+--     Right aframe -> return aframe
+
 
 loadAFrame :: FilePath -> IO (FrameFiltered TcpConnection Packet)
 loadAFrame = loadAFrameWithOpts defaultTsharkPrefs

@@ -4,16 +4,11 @@ spec
 ) where
 -- import           Test.Tasty
 -- import           Test.Tasty.HUnit
+import Data.Maybe (fromJust)
 import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
 import Net.IP
 import Net.IPv4 (localhost)
 import Net.Tcp.Connection
-import System.Exit (ExitCode(ExitSuccess))
-import System.IO
-import Test.Hspec
-import Test.QuickCheck hiding (Success)
-import Tshark.Main
-import Data.Maybe (fromJust)
 import Polysemy (Final, Members, Sem, runFinal)
 import qualified Polysemy as P
 import qualified Polysemy.Embed as P
@@ -22,16 +17,21 @@ import qualified Polysemy.Internal as P
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 import Polysemy.Log.Colog (interpretLogStdout)
+import System.Exit (ExitCode(ExitSuccess))
+import System.IO
+import Test.Hspec
+import Test.QuickCheck hiding (Success)
+import Tshark.Main
 
-import MptcpAnalyzer.Types
+import Data.Either (fromRight)
+import Frames.Frame (Frame)
 import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Cache
+import MptcpAnalyzer.Loader (loadPcapIntoFrame)
+import MptcpAnalyzer.Map
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
-import MptcpAnalyzer.Cache
-import Data.Either (fromRight)
-import MptcpAnalyzer.Loader (loadPcapIntoFrame)
-import Frames.Frame (Frame)
-import MptcpAnalyzer.Map
+import MptcpAnalyzer.Types
 import Utils
 
 cacheConfig :: CacheConfig
@@ -68,7 +68,14 @@ runTests = do
   return (aframe, frame2)
 
 -- TODO this should be part of a golden test with tasty instead
-expectedMappings = [(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33782, conTcpServerPort = 5201, conTcpStreamId = StreamId 0},40),(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33784, conTcpServerPort = 5201, conTcpStreamId = StreamId 1},30),(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 54595, conTcpServerPort = 5201, conTcpStreamId = StreamId 2},20),(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 57491, conTcpServerPort = 5201, conTcpStreamId = StreamId 3},20),(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 35589, conTcpServerPort = 5201, conTcpStreamId = StreamId 6},20),(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 50007, conTcpServerPort = 5201, conTcpStreamId = StreamId 7},20),(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 50077, conTcpServerPort = 5201, conTcpStreamId = StreamId 5},10)]
+expectedMappings = [
+  (TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33782, conTcpServerPort = 5201, conTcpStreamId = StreamId 0},40)
+  ,(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33784, conTcpServerPort = 5201, conTcpStreamId = StreamId 1},30)
+  ,(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 54595, conTcpServerPort = 5201, conTcpStreamId = StreamId 2},20)
+  ,(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 57491, conTcpServerPort = 5201, conTcpStreamId = StreamId 3},20)
+  ,(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 35589, conTcpServerPort = 5201, conTcpStreamId = StreamId 6},20)
+  ,(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 50007, conTcpServerPort = 5201, conTcpStreamId = StreamId 7},20)
+  ,(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 50077, conTcpServerPort = 5201, conTcpStreamId = StreamId 5},10)]
 
 spec :: Spec
 spec = describe "Checking connection mapper" $ do

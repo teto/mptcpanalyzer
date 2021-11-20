@@ -391,8 +391,19 @@ genTcpDestFrame :: (
     -> TcpConnection
     -> FrameRec '[TcpDest]
 genTcpDestFrame frame con = fmap (\x -> Col (computeTcpDest x con) :& RNil) streamFrame
-  where
-    streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
+    where
+      streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
+
+genTcpDestFrameFromAFrame :: (
+  I.RecVec rs
+  , IpSource ∈ rs, IpDest ∈ rs
+  , TcpSrcPort ∈ rs, TcpDestPort ∈ rs
+  , TcpStream ∈ rs
+  )
+    => FrameFiltered TcpConnection z
+    -> FrameRec '[TcpDest]
+genTcpDestFrameFromAFrame aframe = genTcpDestFrame (ffFrame aframe) (ffCon aframe)
+
 
 computeTcpDest :: (
   TcpStream ∈ rs
