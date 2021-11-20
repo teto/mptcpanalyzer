@@ -41,14 +41,14 @@ cacheConfig = CacheConfig {
 }
 
 
-loadAFrame :: IO (FrameFiltered TcpConnection Packet, Frame Packet)
-loadAFrame = do
+loadTestFrames :: IO (FrameFiltered TcpConnection Packet, Frame Packet)
+loadTestFrames = do
 
-  aframe <- P.runM
+  aframes <- P.runM
     $ interpretLogStdout
     $ runCache cacheConfig
       runTests
-  return aframe
+  return aframes
 
 
 runTests :: (Members '[P.Embed IO, Log, Cache] r) => Sem r (FrameFiltered TcpConnection Packet, Frame Packet)
@@ -67,11 +67,13 @@ runTests = do
 
   return (aframe, frame2)
 
+-- TODO this should be part of a golden test with tasty instead
+expectedMappings = [(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33782, conTcpServerPort = 5201, conTcpStreamId = StreamId 0},40),(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33784, conTcpServerPort = 5201, conTcpStreamId = StreamId 1},30),(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 54595, conTcpServerPort = 5201, conTcpStreamId = StreamId 2},20),(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 57491, conTcpServerPort = 5201, conTcpStreamId = StreamId 3},20),(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 35589, conTcpServerPort = 5201, conTcpStreamId = StreamId 6},20),(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 50007, conTcpServerPort = 5201, conTcpStreamId = StreamId 7},20),(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 50077, conTcpServerPort = 5201, conTcpStreamId = StreamId 5},10)]
 
 spec :: Spec
 spec = describe "Checking connection mapper" $ do
-  before loadAFrame $ it "test" $ \(aframe, frame1) ->
-    mapTcpConnection aframe frame1 `shouldBe` []
+  before loadTestFrames $ it "test" $ \(aframe, frame1) ->
+    mapTcpConnection aframe frame1 `shouldBe` expectedMappings
     -- pendingWith "test"
   -- TODO check
   -- mapTcpConnection

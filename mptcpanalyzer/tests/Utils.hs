@@ -1,7 +1,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE LambdaCase #-}
 module Utils (
   loadAFrame
-  , loadPcapIntoFrameNoCache
+  -- , loadPcapIntoFrameNoCache
 )
 where
 
@@ -11,6 +12,7 @@ import MptcpAnalyzer.Stream
 import Net.Tcp.Connection
 import Tshark.Main
 import MptcpAnalyzer.ArtificialFields
+import qualified MptcpAnalyzer.Utils.Text as T
 
 import Polysemy (Final, Members, Sem, runFinal)
 import qualified Polysemy as P
@@ -20,7 +22,7 @@ import qualified Polysemy.Internal as P
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 import Polysemy.Log.Colog (interpretLogStdout)
-import MptcpAnalyzer.Loader (loadPcapIntoFrame)
+import MptcpAnalyzer.Loader (loadPcapIntoFrame, loadPcapIntoFrameNoCache)
 import qualified Frames.InCore
 import qualified Frames.CSV
 import Frames (ColumnHeaders, ElField, FrameRec)
@@ -28,7 +30,7 @@ import MptcpAnalyzer.Cache (CacheConfig(..))
 import Control.Monad.IO.Class (liftIO)
 import Distribution.Simple.Utils
 import System.Exit
-
+import Data.Either (fromRight)
 cacheDisabledConfig :: CacheConfig
 cacheDisabledConfig = CacheConfig {
   cacheFolder = "/tmp"
@@ -44,31 +46,6 @@ cacheDisabledConfig = CacheConfig {
 --       runTests
 --   return aframe
 --   putStrLn "finished"
-
-loadPcapIntoFrameNoCache :: (
-    Frames.InCore.RecVec a
-    , Frames.CSV.ReadRec a
-    , ColumnHeaders a
-    -- , V.RecMapMethod Show ElField a
-    -- , V.RecordToList a
-   )
-    => TsharkParams
-    -> FilePath
-    -> IO (Either String (FrameRec a))
-loadPcapIntoFrameNoCache params path = do 
-  (tempPath , exitCode, stdErr) <- liftIO $ do
-    withTempFileEx opts "/tmp" "mptcp.csv" $ \tmpPath handle ->
-      exportToCsv params path handle
-  -- return (tmpPath, exitCode, herr)
-  if exitCode == ExitSuccess
-  then
-    return $ liftIO $ loadRows tempPath
-  else
-    return $  Left "Error happened " <> tshow exitCode <> "\n" <> tshow stdErr
-  where
-    opts :: TempFileOptions
-    opts = TempFileOptions True
-
 
 
 loadAFrame :: FilePath -> IO (FrameFiltered TcpConnection Packet)

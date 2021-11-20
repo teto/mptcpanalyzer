@@ -40,7 +40,7 @@
         wide-word = unmarkBroken (dontCheck hold.wide-word);
         polysemy = hnew.polysemy_1_6_0_0;
         co-log-polysemy = doJailbreak (hold.co-log-polysemy);
-        polysemy-plugin = hnew.polysemy-plugin_0_4_0_0;
+        polysemy-plugin = hnew.polysemy-plugin_0_4_1_0;
 
         netlink = (overrideSrc hold.netlink {
           # src = builtins.fetchGit {
@@ -120,6 +120,7 @@
           if [ $? -eq 0 ]; then
             export PATH="$(dirname $result):$PATH"
           fi
+          alias hls=haskell-language-server
         '';
       });
     });

@@ -6,6 +6,7 @@ License     : GPL-3
 -}
 module MptcpAnalyzer.Loader (
   loadPcapIntoFrame
+  , loadPcapIntoFrameNoCache
   , buildAFrameFromStreamIdTcp
   , buildAFrameFromStreamIdMptcp
   )
@@ -36,6 +37,30 @@ import qualified Data.Vinyl.Class.Method as V
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 
+loadPcapIntoFrameNoCache :: (
+    Frames.InCore.RecVec a
+    , Frames.CSV.ReadRec a
+    , ColumnHeaders a
+    -- , V.RecMapMethod Show ElField a
+    -- , V.RecordToList a
+   )
+    => TsharkParams
+    -> FilePath
+    -> IO (Either String (FrameRec a))
+loadPcapIntoFrameNoCache params path = do 
+  res <- liftIO $ withTempFileEx opts "/tmp" "mptcp.csv" $ \tmpPath handle -> do
+    res <- exportToCsv params path handle
+    case res of
+      (ExitSuccess, _ ) -> do
+        loaded <- loadRows tmpPath
+        return $ Right loaded
+      (exitCode, stdErr) -> return $ Left "Error happened "
+         -- ++ show exitCode ++ "\n" ++ tshow stdErr
+    -- return f
+  return res
+  where
+    opts :: TempFileOptions
+    opts = TempFileOptions True
 
 -- TODO return an Either or Maybe ?
 -- return an either instead

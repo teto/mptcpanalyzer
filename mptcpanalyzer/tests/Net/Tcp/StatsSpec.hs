@@ -108,7 +108,7 @@ splitAFrame aframe chunkSize  =
 -- beforeWith (loadAFrame) $ 
 -- before loadAFrame $ describ
 spec :: Spec
-spec = before loadAFrame $
+spec = before (loadAFrame "examples/client_2_cleaned.pcapng") $
       describe "Checking stats" $ do
         it "Check generated forward stats" $ \aframe ->
           getTcpStats (addTcpDestinationsToAFrame aframe) RoleServer `shouldBe` expectedForwardStats0
