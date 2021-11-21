@@ -22,7 +22,6 @@ import Tshark.Main
 import Control.Monad.Trans (liftIO)
 import Prelude hiding (log)
 import System.Exit (ExitCode(..))
--- import Colog.Polysemy (Log, log)
 import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
 import Frames
 import Frames.CSV
@@ -42,24 +41,20 @@ loadPcapIntoFrameNoCache :: (
     Frames.InCore.RecVec a
     , Frames.CSV.ReadRec a
     , ColumnHeaders a
-    -- , V.RecMapMethod Show ElField a
-    -- , V.RecordToList a
    )
     => TsharkParams
     -> FilePath
     -> IO (Either String (FrameRec a))
-loadPcapIntoFrameNoCache params path = do 
+loadPcapIntoFrameNoCache params path = do
   res <- liftIO $ withTempFileEx opts "/tmp" "mptcp.csv" $ \tmpPath handle -> do
     res <- exportToCsv params path handle
     case res of
       (ExitSuccess, _ ) -> do
-        -- 
+        -- we have to close the handle else loadRows can't access the file !
         hClose handle
         loaded <- loadRows tmpPath
         return $ Right loaded
-      (exitCode, stdErr) -> return $ Left "Error happened "
-         -- ++ show exitCode ++ "\n" ++ tshow stdErr
-    -- return f
+      (exitCode, stdErr) -> return $ Left $ "Error happened " ++ show exitCode ++ "\n" ++ show stdErr
   return res
   where
     opts :: TempFileOptions

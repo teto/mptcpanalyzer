@@ -131,15 +131,16 @@ tsharkLoop hout = do
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
       (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
-      -- liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
+      liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       stFrame <- gets lsFrame
       modify' (\stats -> let
-        forwardFrameWithDest = getTcpStats (addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)) RoleServer
-        backwardFrameWithDest = getTcpStats (addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)) RoleClient
+        frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)
+        forwardFrameWithDest = getTcpStats frameWithDest RoleServer
+        backwardFrameWithDest = getTcpStats frameWithDest RoleClient
         in stats {
         lsPackets = lsPackets stats + 1
         , lsFrame = (lsFrame stats)  <> frame
-        , lsForwardStats = (lsForwardStats stats) <> traceShowId forwardFrameWithDest
+        , lsForwardStats = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
         , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
         })
       -- liftIO $ cursorUp 1
