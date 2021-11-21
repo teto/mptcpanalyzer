@@ -17,6 +17,7 @@ import MptcpAnalyzer.ArtificialFields
 import Data.Maybe (fromJust)
 import Utils
 import MptcpAnalyzer.Loader (loadPcapIntoFrame)
+import MptcpAnalyzer.Types
 
 
 
@@ -37,7 +38,7 @@ spec = describe "absolute" $ do
   it "Check TcpConnection score" $
     scoreTcpCon exampleTcpConnectionLocalhost exampleTcpConnection0 < scoreTcpCon exampleTcpConnectionLocalhost exampleTcpConnectionLocalhost
   before (loadAFrame "examples/client_2_cleaned.pcapng") $ it "Check that destinations are set correctly" $ \aframe ->
-    length (genTcpDestFrame aframe) == length aframe
+    length (genTcpDestFrameFromAFrame aframe) == (length $ ffFrame aframe)
     -- it "Generate the correct tshark filter" $
 --       genReadFilterFromTcpConnection exampleTcpConnection0 (Just RoleClient)
 --         `shouldBe` "tcp and ip.addr==127.0.0.1 and ip.addr==127.0.0.1 and tcp.srcport==42 and tcp.dstport==24"

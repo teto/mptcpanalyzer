@@ -129,6 +129,7 @@ common shared-properties
           -fno-warn-unused-matches
 
     -- -ddump-splices to dump TH code
+            -- -O0
     ghc-options:
         -Wall
         -Werror=missing-methods
@@ -136,9 +137,10 @@ common shared-properties
         -Wpartial-fields
         -- -dth-dec-file
         -fwrite-ide-info
-        -O0
         -hiedir=.hie
         -haddock
+        -prof
+        -fexternal-interpreter
         -- -fplugin=Polysemy.Plugin
     default-extensions:
         -- , OverloadedStrings
@@ -258,9 +260,9 @@ executable mptcpanalyzer
     -- build-depends: mptcp-pm >= 0.0.3
     main-is: app/Main.hs
     hs-source-dirs: src/
-    -- -fprof-auto
     ghc-options:
-      -threaded -rtsopts -O0 -haddock
+    -- -fprof-auto
+      -threaded -rtsopts -haddock -fprof-auto
 
 benchmark map-stream
   type:             exitcode-stdio-1.0
@@ -311,6 +313,8 @@ Test-Suite test
     , polysemy
     , polysemy-log >= 0.2.2.4
     , polysemy-log-co
+  ghc-options:
+    -Wall -threaded -prof
 
 -- doctests are a pain
 -- test-suite doctests

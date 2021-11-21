@@ -60,7 +60,7 @@ loadPcapIntoFrameNoCache params path = do
   return res
   where
     opts :: TempFileOptions
-    opts = TempFileOptions True
+    opts = TempFileOptions False
 
 -- TODO return an Either or Maybe ?
 -- return an either instead

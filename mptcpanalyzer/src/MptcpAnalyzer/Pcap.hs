@@ -1,7 +1,9 @@
 {-|
-Module: MptcpAnalyzer.Commands.Load
+Module: MptcpAnalyzer.Pcap
 Maintainer  : matt
 License     : GPL-3
+
+Pot-pourri
 -}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
@@ -34,6 +36,7 @@ module MptcpAnalyzer.Pcap (
     , buildMptcpConnectionFromStreamId
     , defaultParserOptions
     , genTcpDestFrame
+    , genTcpDestFrameFromAFrame
     , exportToCsv
     , loadRows
     , getTcpStreams
@@ -400,7 +403,7 @@ genTcpDestFrameFromAFrame :: (
   , TcpSrcPort ∈ rs, TcpDestPort ∈ rs
   , TcpStream ∈ rs
   )
-    => FrameFiltered TcpConnection z
+    => FrameFiltered TcpConnection (Record rs)
     -> FrameRec '[TcpDest]
 genTcpDestFrameFromAFrame aframe = genTcpDestFrame (ffFrame aframe) (ffCon aframe)
 

@@ -220,7 +220,7 @@ import GHC.Conc (forkIO)
 import GHC.IO.Handle
 import Options.Applicative.Builder (allPositional)
 import Options.Applicative.Types
-import System.IO (openFile, stderr, stdout)
+import System.IO (stderr, stdout)
 import Tshark.Fields (TsharkFieldDesc(tfieldFullname), baseFields)
 
 data CLIArguments = CLIArguments {

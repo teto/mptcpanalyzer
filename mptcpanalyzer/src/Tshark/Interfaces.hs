@@ -29,7 +29,7 @@ listInterfaces =
       createProc = (proc bin args) { std_out = CreatePipe }
     in do
       (_, mbHout, mbHerr, ph) <- createProcess_ "error" createProc
-      exitCode <-waitForProcess ph
+      exitCode <- waitForProcess ph
       -- TODO do it only in case of error ?
       case mbHout of
         Nothing -> error "no out"
@@ -37,8 +37,4 @@ listInterfaces =
           out <- hGetContents hout
           -- err <- hGetContents herr
           return (exitCode, map (head. tail . words) (lines out))
-      -- return (words out)
-      -- return (exitCode, err)
-    -- p = re.compile(r'\d. (\w+)')
-    -- res = p.findall(out.decode())
 
