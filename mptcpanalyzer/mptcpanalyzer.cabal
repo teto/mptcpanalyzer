@@ -105,7 +105,7 @@ common shared-properties
       , wide-word
       -- Debug Adapter Plugins (DAP)
       , haskell-dap
-      , ghci-dap 
+      , ghci-dap
       , haskell-debug-adapter
       -- , Chart-diagrams >= 1.5
       -- for plotting that's what is used in Frames
@@ -139,8 +139,7 @@ common shared-properties
         -fwrite-ide-info
         -hiedir=.hie
         -haddock
-        -prof
-        -fexternal-interpreter
+        -- -fexternal-interpreter
         -- -fplugin=Polysemy.Plugin
     default-extensions:
         -- , OverloadedStrings
@@ -213,7 +212,9 @@ library
         , Chart-cairo
         , transformers
     hs-source-dirs: src/
-    ghc-options: -O0 -haddock
+    ghc-options:
+      -O0
+      -haddock
 
 -- TODO add data-files
 executable mptcpanalyzer
@@ -314,7 +315,9 @@ Test-Suite test
     , polysemy-log >= 0.2.2.4
     , polysemy-log-co
   ghc-options:
-    -Wall -threaded -prof
+    -Wall
+    -threaded 
+
 
 -- doctests are a pain
 -- test-suite doctests

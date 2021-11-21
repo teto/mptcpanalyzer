@@ -36,6 +36,7 @@ import qualified Data.Vinyl as V
 import qualified Data.Vinyl.Class.Method as V
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
+import GHC.IO.Handle (hClose)
 
 loadPcapIntoFrameNoCache :: (
     Frames.InCore.RecVec a
@@ -52,6 +53,8 @@ loadPcapIntoFrameNoCache params path = do
     res <- exportToCsv params path handle
     case res of
       (ExitSuccess, _ ) -> do
+        -- 
+        hClose handle
         loaded <- loadRows tmpPath
         return $ Right loaded
       (exitCode, stdErr) -> return $ Left "Error happened "

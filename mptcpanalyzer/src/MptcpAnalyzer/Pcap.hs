@@ -126,6 +126,7 @@ import qualified Frames.InCore as I
 import System.Environment (getEnvironment)
 import System.IO.Temp
 import Tshark.Main
+import GHC.IO.Handle (hClose)
 
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 
@@ -198,6 +199,7 @@ exportToCsv params pcapPath tmpFileHandle = do
       exitCode <- waitForProcess ph
       -- TODO do it only in case of error ?
       err <- hGetContents herr
+      hClose herr
       return (exitCode, err)
     where
       fields :: [T.Text]

@@ -33,7 +33,7 @@ cmdExport :: Members '[P.State MyState, Cache, Embed IO] r
     => FilePath
     -> Sem r RetCode
 cmdExport args = do
-  state <- P.get
+  -- state <- P.get
   return Continue
   -- let loadedPcap = view loadedFile state
   -- fmap writeToCSV loadedPcap >>= \case
