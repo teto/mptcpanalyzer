@@ -52,6 +52,10 @@ Flag Dev {
   Default:     True
 }
 
+-- Flag ExtraChecks {
+--   Description: Run some extra checks
+--   Default:     True
+-- }
 
 -- mandatory since we set 
 custom-setup
@@ -116,6 +120,9 @@ common shared-properties
     if flag(WithPolysemy)
         ghc-options: -fplugin=Polysemy.Plugin
         build-depends: polysemy-plugin
+
+    -- if flag(ExtraChecks)
+    --     ghc-options: -DMPTCP_EXTRA_CHECKS
 
     if flag(Dev)
         ghc-options:

@@ -25,6 +25,7 @@ Pot-pourri
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE PackageImports #-}
 module MptcpAnalyzer.Pcap (
@@ -127,6 +128,7 @@ import System.Environment (getEnvironment)
 import System.IO.Temp
 import Tshark.Main
 import GHC.IO.Handle (hClose)
+import Control.Exception (assert)
 
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 
@@ -371,6 +373,7 @@ getMptcpDest mptcpCon sf = case sfJoinToken sf of
 -- append a column with a value role
 -- Todo accept a 'FrameFiltered'
 -- I want to check it is included
+-- TODO add an unsafe version ?
 addTcpDestToFrame :: (
   I.RecVec rs
   ,IpSource ∈ rs, IpDest ∈ rs
@@ -380,9 +383,13 @@ addTcpDestToFrame :: (
     => FrameRec rs
     -> TcpConnection
     -> FrameRec ( TcpDest ': rs )
-addTcpDestToFrame frame con = fmap (\x -> addTcpDestToRec x (computeTcpDest x con)) streamFrame
-    where
-      streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
+addTcpDestToFrame frame con = do
+  assert
+    -- check that they all belong to the same stream
+    (length ( L.fold L.nub (view tcpStream <$> frame)) == 1)
+    fmap (\x -> addTcpDestToRec x (computeTcpDest x con)) streamFrame
+  where
+    streamFrame = frame
 
 
 -- | Generates a frame with a single column containing the TcpDest

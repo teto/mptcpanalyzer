@@ -1,9 +1,17 @@
+{-
+Module:   Module
+Description :  Description
+Maintainer  : matt
+Portability : Linux
+  http://www.serpentine.com/criterion/tutorial.html
+
+-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
-
+import Criterion
 import Criterion.Main
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Loader (loadPcapIntoFrame)
@@ -45,8 +53,15 @@ cacheConfig = CacheConfig {
 
 -- logs/cache
 main :: IO ()
-main = do
+main = defaultMain [
+  bench "loadPcap" $ nfIO (runTests)
+  -- TODO bench mapping
+    -- bench "inner1a" $ nf (\x -> mapTcpConnection aframe x >> pure () ) (fromRight (error "could not load frame 1")  frame2)
+  ]
 
+
+runTests :: IO ()
+runTests = do
   _ <- P.runM
     $ interpretLogStdout
     $ runCache cacheConfig
