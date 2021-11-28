@@ -126,7 +126,6 @@ common shared-properties
 
     if flag(Dev)
         ghc-options:
-          -fprof-auto
           -- -ddump-splices
           -- -ddump-to-file
           -- -ddump-timings
@@ -136,7 +135,6 @@ common shared-properties
           -fno-warn-unused-matches
 
     -- -ddump-splices to dump TH code
-            -- -O0
     ghc-options:
         -Wall
         -Werror=missing-methods
@@ -220,7 +218,6 @@ library
         , transformers
     hs-source-dirs: src/
     ghc-options:
-      -O0
       -haddock
 
 -- TODO add data-files
@@ -269,8 +266,7 @@ executable mptcpanalyzer
     main-is: app/Main.hs
     hs-source-dirs: src/
     ghc-options:
-    -- -fprof-auto
-      -threaded -rtsopts -haddock -fprof-auto
+      -threaded -rtsopts -haddock
 
 benchmark map-stream
   type:             exitcode-stdio-1.0
@@ -287,7 +283,7 @@ benchmark map-stream
       , polysemy-log >= 0.2.2.4
       , polysemy-log-co
 
-  ghc-options:      -O2
+  ghc-options:      
   default-language: Haskell2010
 
 
