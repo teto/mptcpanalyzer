@@ -1,12 +1,11 @@
 {-|
 
-Module      : MptcpAnalyzer.Commands.Reinjections
-Description : Command to analyze reinjections
+Module      : MptcpAnalyzer.Commands.List
+Description : List (MP)TCP connections in a pcap
 Maintainer  : matt
 
 -}
--- {-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE PackageImports           #-}
+{-# LANGUAGE PackageImports #-}
 
 module MptcpAnalyzer.Commands.List (
   piListTcpOpts
@@ -18,35 +17,36 @@ module MptcpAnalyzer.Commands.List (
 )
 where
 
+import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Commands.Definitions as CMD
-import MptcpAnalyzer.Types
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
 import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Stats
-import MptcpAnalyzer.ArtificialFields
-import Net.Tcp
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
 import Net.Mptcp.Stats
+import Net.Tcp
+import "mptcp-pm" Net.Tcp (TcpFlag(..))
 
-import Frames.CSV
-import Prelude hiding (log)
-import Options.Applicative
-import Frames
-import qualified Frames as F
-import qualified Frames.InCore as F
 import Control.Lens hiding (argument)
-import Polysemy (Member, Members, Sem, Embed)
-import qualified Polysemy as P
-import qualified Polysemy.State as P
-import Polysemy.Trace as P
-import qualified Polysemy.Embed as P
 import Data.Either (fromRight)
 import Data.List (intercalate)
+import qualified Data.Map as Map
+import Frames
+import qualified Frames as F
+import Frames.CSV
+import qualified Frames.InCore as F
+import Options.Applicative
+import Polysemy (Embed, Member, Members, Sem)
+import qualified Polysemy as P
+import qualified Polysemy.Embed as P
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
-import qualified Data.Map as Map
+import qualified Polysemy.State as P
+import Polysemy.Trace as P
+import Prelude hiding (log)
 
 piListTcpOpts ::  ParserInfo CommandArgs
 piListTcpOpts = info (
@@ -124,10 +124,9 @@ cmdListTcpConnections listDetailed = do
         mapM_ (P.trace . describeConnection) streamIdList
         return CMD.Continue
         where
-          describeConnection streamId = 
+          describeConnection streamId =
             case buildTcpConnectionFromStreamId frame streamId of
               Left msg -> msg
-              -- addTcpDestToFrame 
               Right aframe -> showConnection (ffCon aframe)
 
 
@@ -144,7 +143,7 @@ cmdTcpSummary streamId detailed = do
     state <- P.get
     let loadedPcap = view loadedFile state
     case loadedPcap of
-      Nothing -> trace ("please load a pcap first" :: String) >> return CMD.Continue
+      Nothing -> return $ CMD.Error "please load a pcap first"
       Just frame -> case buildTcpConnectionFromStreamId frame streamId of
         Left msg -> return $ CMD.Error msg
         Right aframe -> do
@@ -159,19 +158,9 @@ cmdTcpSummary streamId detailed = do
             P.trace res2
           else
             pure ()
-          -- log $ "Number of SYN packets " ++ (fmap  )
           return CMD.Continue
-          -- where
-          --     -- aframe = buildTcpConnectionFromStreamId frame streamId
-          --     -- forwardStats = showStats RoleServer
-          --     showStats direction = let
-          --         aframeWithDest = addTcpDestinationsToAFrame aframe
-          --         tcpStats = getTcpStats aframeWithDest direction
-          --       in do
-          --         showTcpStats tcpStats
-          --         P.embed $ writeCSV "debug.csv" (ffFrame aframeWithDest)
 
--- |just
+-- | Show stats in both directions
 showStats :: ( Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] r)
   => FrameFiltered TcpConnection Packet
   -> ConnectionRole
@@ -187,6 +176,7 @@ showStats aframe dest = let
     return $ showTcpStats tcpStats ++ "   (" ++ show (frameLength destFrame) ++ " packets)"
 
 
+-- | summarize a few key characteristics like goodput/throughput
 showTcpStats :: TcpUnidirectionalStats -> String
 showTcpStats s =
                   "- transferred " ++ show (tusSndNext s - tusMinSeq s + 1 + tusReinjectedBytes s)  ++ " bytes "
@@ -246,12 +236,7 @@ cmdMptcpSummary streamId detailed = do
     Just frame -> case buildMptcpConnectionFromStreamId frame streamId of
       Left msg -> return $ CMD.Error msg
       Right aframe -> do
-        let
-          -- addTcpDestinationsToAFrame
-          -- aframeWithDest = addTcpDestinationsToAFrame aframe
 
-        -- let _tcpstreams = getTcpStreams frame
-        -- TODO we need to add MptcpDest
         let mptcpStatsClient = getMptcpStats aframe RoleClient
         let mptcpStatsServer = getMptcpStats aframe RoleServer
 
@@ -260,7 +245,7 @@ cmdMptcpSummary streamId detailed = do
         if detailed
         then
           -- RoleServer
-          trace $ showMptcpStats mptcpStatsClient
+          P.trace $ showMptcpStats mptcpStatsClient
           -- trace $ showMptcpStats mptcpStatsServer
         else
           pure ()

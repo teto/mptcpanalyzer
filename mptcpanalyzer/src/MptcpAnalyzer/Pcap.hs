@@ -1,43 +1,43 @@
 {-|
-Module: MptcpAnalyzer.Commands.Load
+Module: MptcpAnalyzer.Pcap
 Maintainer  : matt
 License     : GPL-3
+
+Pot-pourri
 -}
-{-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE DataKinds              #-}
-{-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE EmptyCase              #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs                  #-}
-{-# LANGUAGE KindSignatures         #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE PatternSynonyms        #-}
-{-# LANGUAGE PolyKinds              #-}
-{-# LANGUAGE QuasiQuotes            #-}
-{-# LANGUAGE ScopedTypeVariables    #-}
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE TypeApplications       #-}
-{-# LANGUAGE TypeFamilies           #-}
-{-# LANGUAGE TypeOperators          #-}
-{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE PackageImports         #-}
+{-# LANGUAGE PackageImports #-}
 module MptcpAnalyzer.Pcap (
-    TsharkParams(..)
-    , addTcpDestToFrame
+    addTcpDestToFrame
     , addMptcpDestToFrame
     , addMptcpDest
     , addTcpDestinationsToAFrame
     , buildTcpConnectionFromStreamId
     , buildMptcpConnectionFromStreamId
-    , defaultTsharkPrefs
-    , defaultTsharkOptions
     , defaultParserOptions
-    , generateCsvCommand
     , genTcpDestFrame
+    , genTcpDestFrameFromAFrame
     , exportToCsv
     , loadRows
     , getTcpStreams
@@ -48,66 +48,87 @@ module MptcpAnalyzer.Pcap (
     , showMptcpSubflowText
     , StreamConnection(..)
     , showConnection
+    , scoreTcpCon
+    , scoreMptcpCon
     -- , showMptcpSubflowText
     )
 where
 
 
-import           MptcpAnalyzer.ArtificialFields
-import           MptcpAnalyzer.Stream
-import           MptcpAnalyzer.Types
-import           Net.Mptcp
-import           Net.Tcp
-import           "mptcp-pm" Net.Tcp             (TcpFlag (..))
-import           Tshark.Fields
-import           Tshark.TH
+import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
+import Net.Mptcp.Connection
+import Net.Tcp
+import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import Tshark.Fields
+import Tshark.TH
 
-import           Data.Monoid                    (First (..))
-import qualified Data.Text                      as T
-import qualified Data.Text.IO                   as T
-import qualified Data.Vector                    as V
-import           Frames
-import           Frames.TH
-import           System.Exit
-import           System.IO                      (BufferMode (LineBuffering), Handle, SeekMode (AbsoluteSeek),
-                                                 hGetContents, hSeek, hSetBuffering)
-import           System.Process
-import           Frames.CSV                     (ParserOptions (..), QuotingMode (..), ReadRec, pipeTableEitherOpt,
-                                                 produceTextLines, readFileLatin1Ln, readTableMaybeOpt)
-import           Frames.Col
-import           Frames.ColumnTypeable          (Parseable (..), Parsed (..), parseIntish)
-import           Frames.ShowCSV
+import Data.Kind (Type)
+import Data.Monoid (First(..))
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+import qualified Data.Vector as V
+import Frames
+import Frames.CSV
+       ( ParserOptions(..)
+       , QuotingMode(..)
+       , ReadRec
+       , pipeTableEitherOpt
+       , produceTextLines
+       , readFileLatin1Ln
+       , readTableMaybeOpt
+       )
+import Frames.Col
+import Frames.ColumnTypeable (Parseable(..), Parsed(..), parseIntish)
+import Frames.ShowCSV
+import Frames.TH
+import System.Exit
+import System.IO
+       ( BufferMode(LineBuffering)
+       , Handle
+       , SeekMode(AbsoluteSeek)
+       , hGetContents
+       , hSeek
+       , hSetBuffering
+       )
+import System.Process
 -- for Record
 -- import Frames.Rec (Record(..))
-import           Data.List                      (intercalate)
-import           Net.IP
+import Data.List (intercalate)
+import Net.IP
 -- for symbol
 -- import GHC.Types
-import qualified Control.Foldl                  as L
-import qualified Data.Set                       as Set
+import qualified Control.Foldl as L
+import qualified Data.Set as Set
 -- import Language.Haskell.TH
 -- import Language.Haskell.TH.Syntax
 -- import Lens.Micro
 -- import Lens.Micro.Extras
-import           Control.Lens
-import qualified Data.Foldable                  as F
-import           Data.Maybe                     (catMaybes, fromJust)
-import           Data.Vinyl                     (ElField (..), Rec (..), rapply, rmapX, xrec)
-import           Data.Vinyl.Class.Method
-import           Data.Vinyl.Functor             (Compose (..), (:.))
-import           Data.Word                      (Word16, Word32, Word64, Word8)
-import           GHC.Base                       (Symbol)
-import           GHC.List                       (foldl')
-import           GHC.TypeLits                   (KnownSymbol)
-import           Numeric                        (readHex)
-import           Pipes                          (Producer, cat, (>->))
-import qualified Pipes.Prelude                  as P
+import Control.Lens
+import qualified Data.Foldable as F
+import Data.Maybe (catMaybes, fromJust)
+import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
+import Data.Vinyl.Class.Method
+import Data.Vinyl.Functor (Compose(..), (:.))
+import Data.Word (Word16, Word32, Word64, Word8)
+import GHC.Base (Symbol)
+import GHC.List (foldl')
+import GHC.TypeLits (KnownSymbol)
+import Numeric (readHex)
+import Pipes (Producer, cat, (>->))
+import qualified Pipes.Prelude as P
 -- import qualified Frames.InCore
-import           Data.Either                    (lefts, rights)
-import qualified Data.Map                       as Map
-import           Debug.Trace
-import qualified Frames.InCore                  as I
-
+import Data.Either (lefts, rights)
+import qualified Data.Map as Map
+import Debug.Trace
+import qualified Frames.InCore as I
+import System.Environment (getEnvironment)
+import System.IO.Temp
+import Tshark.Main
+import GHC.IO.Handle (hClose)
+import Control.Exception (assert)
 
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 
@@ -134,17 +155,6 @@ import qualified Frames.InCore                  as I
 
 -- shadow type to know if it was filtered or not
 -- Make it a record ?
-
--- |
-data TsharkParams = TsharkParams {
-      tsharkBinary     :: String,
-      -- |(Name, Value) of tshark options, see 'defaultTsharkOptions'
-      tsharkOptions    :: [(String, String)],
-      -- |
-      csvDelimiter     :: Char,
-      tsharkReadFilter :: Maybe String
-    }
-
 -- first argument allows to override csv header ("headerOverride")
 defaultParserOptions :: ParserOptions
 defaultParserOptions = ParserOptions Nothing (T.pack [csvDelimiter defaultTsharkPrefs]) NoQuoting
@@ -159,73 +169,40 @@ getMptcpStreams :: FrameRec HostCols -> [StreamId Mptcp]
 getMptcpStreams ps = L.fold L.nub $ catMaybes $ F.toList (view mptcpStream <$> ps)
 -- filterFrame  (\x -> x ^. mptcpStream == Just streamId) frame
 
--- |Generate the tshark command to export a pcap into a csv
-generateCsvCommand :: [T.Text] -- ^Fields to exports e.g., "mptcp.stream"
-          -> FilePath    -- ^ path towards the pcap file
-          -> TsharkParams
-          -> CmdSpec
-generateCsvCommand fieldNames pcapFilename tsharkParams =
-    RawCommand (tsharkBinary tsharkParams) args
-    where
-    -- for some reasons, -Y does not work so I use -2 -R instead
-    -- quote=d|s|n Set the quote character to use to surround fields.  d uses double-quotes, s
-    -- single-quotes, n no quotes (the default).
-    -- the -2 is important, else some mptcp parameters are not exported
-        start = [
-            "-r", pcapFilename,
-            "-E", "separator=" ++ [csvDelimiter tsharkParams]
-          ]
-
-        args :: [String]
-        args = (start ++ opts ++ readFilter ) ++ map T.unpack  fields
-
-        opts :: [String]
-        opts = foldr (\(opt, val) l -> l ++ ["-o", opt ++ ":" ++ val]) [] (tsharkOptions tsharkParams)
-
-        readFilter :: [String]
-        readFilter = case tsharkReadFilter tsharkParams of
-            Just x  ->["-2", "-R", x]
-            Nothing -> []
-
-        fields :: [T.Text]
-        fields = ["-T", "fields"]
-            ++ Prelude.foldr (\fieldName l -> ["-e", fieldName] ++ l) [] fieldNames
 
 
-
--- TODO pass a list of options too
--- TODO need to override 'WIRESHARK_CONFIG_DIR' = tempfile.gettempdir()
--- (MonadIO m, KatipContext m) =>
 {- Export to CSV
-
+sets WIRESHARK_CONFIG_DIR so that the user profile doesn't influence the output
 -}
 exportToCsv ::
-  -- Members ()
   TsharkParams
   -> FilePath  -- ^Path to the pcap
-  -> FilePath -- ^ temporary file
   -> Handle -- ^ temporary file
 -- ^See haskell:readCreateProcessWithExitCode
-  -> IO (FilePath, ExitCode, String)
-exportToCsv params pcapPath path tmpFileHandle = do
-    let
-        (RawCommand bin args) = generateCsvCommand fields pcapPath params
-        createProc :: CreateProcess
-        createProc = (proc bin args) {
-            std_err = CreatePipe,
-            std_out = UseHandle tmpFileHandle
-            }
-    putStrLn $ "Exporting fields " ++ show fields
-    putStrLn $ "Command run: " ++ show (RawCommand bin args)
-    -- TODO write header
-    -- TODO redirect stdout towards the out handle
-    hSetBuffering tmpFileHandle LineBuffering
-    hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
-    (_, _, Just herr, ph) <-  createProcess_ "error" createProc
-    exitCode <- waitForProcess ph
-    -- TODO do it only in case of error ?
-    err <- hGetContents herr
-    return (path, exitCode, err)
+  -> IO (ExitCode, String)
+exportToCsv params pcapPath tmpFileHandle = do
+    curEnv <- getEnvironment
+    withSystemTempFile "tshark-profile" $ \tempDir _ -> do
+      let
+          (RawCommand bin args) = generateCsvCommand fields (Right pcapPath) (params )
+          createProc :: CreateProcess
+          createProc = (proc bin args) {
+              std_err = CreatePipe,
+              std_out = UseHandle tmpFileHandle,
+              env = Just $ curEnv ++ [ ("WIRESHARK_CONFIG_DIR", tempDir) ],
+              delegate_ctlc = True
+              }
+      putStrLn $ "Exporting fields " ++ show fields
+      putStrLn $ "Command run: " ++ show (RawCommand bin args)
+      -- TODO redirect stdout towards the out handle
+      hSetBuffering tmpFileHandle LineBuffering
+      hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
+      (_, _, Just herr, ph) <-  createProcess_ "error" createProc
+      exitCode <- waitForProcess ph
+      -- TODO do it only in case of error ?
+      err <- hGetContents herr
+      hClose herr
+      return (exitCode, err)
     where
       fields :: [T.Text]
       fields = Map.elems $ Map.map tfieldFullname baseFields
@@ -234,17 +211,11 @@ exportToCsv params pcapPath path tmpFileHandle = do
       fieldHeader :: Text
       fieldHeader = T.intercalate csvSeparator (Map.keys baseFields)
 
--- "data/server_2_filtered.pcapng.csv"
--- la le probleme c'est que je ne passe pas d'options sur les separators etc
--- ca foire silencieusement ??
--- maybe use a readTableMaybe instead
--- readTable path
 
 loadRows :: (I.RecVec a, ReadRec a) => FilePath -> IO (FrameRec a)
 loadRows path = inCoreAoS (
   eitherProcessed path
   )
-
 
 
 type ManEither = Rec (Either T.Text :. ElField) (RecordColumns Packet)
@@ -271,35 +242,12 @@ eitherProcessed path = produceTextLines path
 -- recEither :: Rec (Either Text :. ElField) cs -> Either Text (Record cs)
 -- recEither = rtraverse getCompose
 
--- http://acowley.github.io/Frames/#orgf328b25
-defaultTsharkOptions :: [(String, String)]
-defaultTsharkOptions = [
-      -- TODO join these
-      ("gui.column.format", intercalate "," [ "Time","%At","ipsrc","%s","ipdst","%d"]),
-      -- "tcp.relative_sequence_numbers": True if tcp_relative_seq else False,
-      ("tcp.analyze_sequence_numbers", "true"),
-      ("mptcp.analyze_mappings", "true"),
-      ("mptcp.relative_sequence_numbers", "true"),
-      ("mptcp.intersubflows_retransmission", "true"),
-      -- # Disable DSS checks which consume quite a lot
-      ("mptcp.analyze_mptcp", "true")
-      ]
-
 -- data TsharkPrefs = TsharkPrefs {
 --     analyzeTcpSeq :: Bool
 --     , analyzeMptcp :: Bool
 --     , mptcpRelSeq :: Bool
 --     , analyzeMptcp :: Bool
 --   } deriving Show
-
-defaultTsharkPrefs :: TsharkParams
-defaultTsharkPrefs = TsharkParams {
-      tsharkBinary = "tshark",
-      tsharkOptions = defaultTsharkOptions,
-      csvDelimiter = '|',
-      tsharkReadFilter = Just "mptcp or tcp and not icmp"
-    }
-
 
 {-
 -}
@@ -310,9 +258,7 @@ getTcpFrame = buildTcpConnectionFromStreamId
 buildTcpConnectionFromRecord :: (
   IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
     -- rs ⊆ HostCols
-
-  )
-  => Record rs -> TcpConnection
+  ) => Record rs -> TcpConnection
 buildTcpConnectionFromRecord r =
   TcpConnection {
     conTcpClientIp = r ^. ipSource
@@ -395,11 +341,11 @@ addMptcpDest frame con =
 
       subflowFrames = map addDestsToSubflowFrames subflows
 
-      addDestsToSubflowFrames sf = addMptcpDestToFrame (addTcpDestToFrame frame (sfConn sf)) sf
+      addDestsToSubflowFrames sf = addMptcpDestToFrame' (addTcpDestToFrame frame (sfConn sf)) sf
 
       addMptcpDest' role x = Col role :& x
 
-      addMptcpDestToFrame frame' sf = fmap (addMptcpDest' (getMptcpDest con sf)) frame'
+      addMptcpDestToFrame' frame' sf = fmap (addMptcpDest' (getMptcpDest con sf)) frame'
 
       startingFrame = fmap setTempDests frame
       setTempDests :: Record rs -> Record ( MptcpDest ': TcpDest ': rs)
@@ -407,10 +353,10 @@ addMptcpDest frame con =
       addMptcpDestToRec x role = (Col $ role) :& x
       subflows = Set.toList $ mpconSubflows con
 
-addMptcpDestToFrame :: MptcpConnection -> FrameFiltered MptcpSubflow Packet -> FrameRec ('[MptcpDest])
+addMptcpDestToFrame :: MptcpConnection -> FrameFiltered MptcpSubflow Packet -> FrameRec '[MptcpDest]
 addMptcpDestToFrame mpcon (FrameTcp sf frame) = fmap (addMptcpDest' (getMptcpDest mpcon sf)) frame
   where
-      addMptcpDest' role x = (Col role) :& RNil
+      addMptcpDest' role x = Col role :& RNil
 
 
 getMptcpDest :: MptcpConnection -> MptcpSubflow -> ConnectionRole
@@ -427,6 +373,7 @@ getMptcpDest mptcpCon sf = case sfJoinToken sf of
 -- append a column with a value role
 -- Todo accept a 'FrameFiltered'
 -- I want to check it is included
+-- TODO add an unsafe version ?
 addTcpDestToFrame :: (
   I.RecVec rs
   ,IpSource ∈ rs, IpDest ∈ rs
@@ -436,16 +383,20 @@ addTcpDestToFrame :: (
     => FrameRec rs
     -> TcpConnection
     -> FrameRec ( TcpDest ': rs )
-addTcpDestToFrame frame con = fmap (\x -> addTcpDestToRec x (computeTcpDest x con)) streamFrame
-    where
-      streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
+addTcpDestToFrame frame con = do
+  assert
+    -- check that they all belong to the same stream
+    (length ( L.fold L.nub (view tcpStream <$> frame)) == 1)
+    fmap (\x -> addTcpDestToRec x (computeTcpDest x con)) streamFrame
+  where
+    streamFrame = frame
 
 
--- | Generates a frame with the TcpDest
+-- | Generates a frame with a single column containing the TcpDest
 genTcpDestFrame :: (
   I.RecVec rs
-  ,IpSource ∈ rs, IpDest ∈ rs
-  , IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs
+  , IpSource ∈ rs, IpDest ∈ rs
+  , TcpSrcPort ∈ rs, TcpDestPort ∈ rs
   , TcpStream ∈ rs
   )
     => FrameRec rs
@@ -455,12 +406,20 @@ genTcpDestFrame frame con = fmap (\x -> Col (computeTcpDest x con) :& RNil) stre
     where
       streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
 
--- TODO addTcpDestToFrame
+genTcpDestFrameFromAFrame :: (
+  I.RecVec rs
+  , IpSource ∈ rs, IpDest ∈ rs
+  , TcpSrcPort ∈ rs, TcpDestPort ∈ rs
+  , TcpStream ∈ rs
+  )
+    => FrameFiltered TcpConnection (Record rs)
+    -> FrameRec '[TcpDest]
+genTcpDestFrameFromAFrame aframe = genTcpDestFrame (ffFrame aframe) (ffCon aframe)
+
 
 computeTcpDest :: (
   TcpStream ∈ rs
-  , IpSource ∈ rs
-  , IpDest ∈ rs
+  , IpFields rs
   , TcpSrcPort ∈ rs
   , TcpDestPort ∈ rs
   ) => Record rs
@@ -482,9 +441,8 @@ addTcpDestinationsToAFrame :: (
   I.RecVec rs
   -- , HostCols <: rs
   -- , HostCols ∈ rs
-  , IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
-
-  )
+  , IpFields rs
+  , TcpFields rs)
   => FrameFiltered TcpConnection (Record rs)
   -> FrameFiltered TcpConnection (Record (TcpDest ': rs))
 addTcpDestinationsToAFrame aframe =
@@ -565,6 +523,7 @@ buildMptcpConnectionFromStreamId frame streamId = do
 -}
 class StreamConnection a b | a -> b where
   -- | How
+  -- type ConnectionType :: Type
   showConnectionText :: a -> Text
   -- describeConnection :: a -> Text
   buildFrameFromStreamId :: Frame Packet -> StreamId b -> Either String (FrameFiltered a Packet)
@@ -604,10 +563,8 @@ instance StreamConnection TcpConnection Tcp where
 scoreMptcpCon :: MptcpConnection -> MptcpConnection -> Int
 scoreMptcpCon con1 con2 =
   let keyScore = if mptcpServerKey con1 == mptcpServerKey con2 && mptcpClientKey con1 == mptcpClientKey con2
-      then
-          200
-      else
-          0
+      then 200
+      else 0
   in
     keyScore
 

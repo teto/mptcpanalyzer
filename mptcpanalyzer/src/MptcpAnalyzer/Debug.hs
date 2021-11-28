@@ -7,10 +7,10 @@ License     : GPL-3
 module MptcpAnalyzer.Debug
 where
 
+import Data.Proxy
+import Data.Vinyl
 import Frames
 import Frames.CSV
-import Data.Vinyl
-import Data.Proxy
 -- import Data.Text
 import Data.List (intercalate)
 

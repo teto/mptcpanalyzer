@@ -6,9 +6,9 @@ module MptcpAnalyzer.Commands.Definitions (
 )
 where
 import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Types
-import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Plots.Types
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
 
 import Data.Word (Word32)
 import Options.Applicative
@@ -28,7 +28,7 @@ data CommandMapPcap = CommandMapPcap {
 -- | Registered commands
 -- TODO make it possible to add some from a plugin
 data CommandArgs =
-    ArgsLoadCsv FilePath
+    ArgsLoadCsv FilePath Bool
     | ArgsHelp
     | ArgsQuit
     | ArgsLoadPcap FilePath

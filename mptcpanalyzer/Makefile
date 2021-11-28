@@ -3,8 +3,10 @@
 TEST_FILES ?= tests/tcp.json tests/mptcp.json
 
 # TODO should be doable via LSP/test ormolu
+lint: stylish-haskell
+
 stylish-haskell:
-	stylish-haskell
+	git ls-files '*.hs' | xargs -P0 -I {} sh -c "stylish-haskell -i {}"
 
 .PHONY: hlint
 hlint:
@@ -18,13 +20,17 @@ build:
 
 .PHONY: test
 test: build $(TEST_FILES)
-	# TODO run $(TEST_FILES)
-	# export PATH=$(dirname $(fd -u --glob  mptcpanalyzer -tx));${PATH}
 	tests/run.sh
 
+# regen golden tests
+test-update: build $(TEST_FILES)
+	replica run -i tests/tcp.json
+	replica run -i tests/mptcp.json
+
 .PHONY: gen-autocompletion
-gen-autocompletion:
-	cabal run mptcpanalyzer -- --bash-completion-script toto
+gen-completion: build
+	cabal run mptcpanalyzer -- --bash-completion-script mptcpanalyzer > completion.sh
+	cabal run mptcpanalyzer -- --zsh-completion-script mptcpanalyzer > _mptcpanalyzer
 
 
 %.json: %.dhall

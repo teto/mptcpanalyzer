@@ -3,29 +3,20 @@
 
   nixConfig = {
     substituters = [
-      # https://iohk.cachix.org
-      https://hydra.iohk.io
+      "https://haskell-language-server.cachix.org"
     ];
     trusted-public-keys = [
-      hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+      "haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8="
     ];
-    # bash-prompt = "toto";
   };
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/master";
-    replica.url = "github:berewt/REPLica?rev=31ca9b01c61a0875137c8388fd50f9d70fdc5454";
-
-    # temporary until this gets fixed upstream
-    # poetry.url = "github:teto/poetry2nix/fix_tag";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    replica.url = "github:ReplicaTest/REPLica";
 
     flake-utils.url = "github:numtide/flake-utils";
 
     hls.url = "github:haskell/haskell-language-server";
-    # hls.url = "github:teto/haskell-language-server/flake-debug";
-
-    # haskellNix.url = "github:input-output-hk/haskell.nix?ref=hkm/nixpkgs-unstable-update";
-    haskellNix.url = "github:input-output-hk/haskell.nix";
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -33,26 +24,11 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, poetry, haskellNix, replica, ... }@inputs:
+  outputs = { self, nixpkgs, flake-utils, poetry, replica, hls, ... }:
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
 
-      compilerVersion = "8104";
+      compilerVersion = "8107";
       # compilerVersion = "901";
-
-      ## haskell.nix trial
-      overlays = [
-        haskellNix.overlay
-        (final: prev: {
-          # This overlay adds our project to pkgs
-          mptcpanalyzer =
-            final.haskell-nix.project' {
-              src = ./.;
-              compiler-nix-name = "ghc${compilerVersion}";
-            };
-        })
-      ];
-      flake = pkgs.mptcpanalyzer.flake {};
-
 
       haskellOverlay = hnew: hold: with pkgs.haskell.lib; {
 
@@ -62,8 +38,9 @@
 
         # may not be needed anymore ?
         wide-word = unmarkBroken (dontCheck hold.wide-word);
-
+        polysemy = hnew.polysemy_1_6_0_0;
         co-log-polysemy = doJailbreak (hold.co-log-polysemy);
+        polysemy-plugin = hnew.polysemy-plugin_0_4_1_0;
 
         netlink = (overrideSrc hold.netlink {
           # src = builtins.fetchGit {
@@ -79,75 +56,72 @@
           };
         });
 
-        mptcp-pm = overrideSrc hold.mptcp-pm {
-          src = pkgs.fetchFromGitHub {
-            owner = "teto";
-            repo = "mptcp-pm";
-            rev = "0cd4cad9bab5713ebbe529e194bddb08948825d7";
-            sha256 = "sha256-7JhrMrv9ld12nx8LyfOuOPTBb7RyWIwSWNB9vWDe/g0=";
-          };
-        };
       };
 
-
-      # pkgs = nixpkgs.legacyPackages."${system}";
       pkgs = import nixpkgs {
-          inherit system overlays;
+          inherit system;
           # overlays = pkgs.lib.attrValues (self.overlays);
-          config = { allowUnfree = true; allowBroken = true; };
+          config = { allowUnfree = false; allowBroken = true;};
         };
 
-      myHaskellPackages = pkgs.haskell.packages."ghc${compilerVersion}";
+      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}";
 
-      hsEnv = myHaskellPackages.ghcWithPackages(hs: [
-        # hs.cairo
-        # hs.diagrams
-        # inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
-        hs.cabal-install
-        hs.stylish-haskell
-        hs.hasktags
-        # myHaskellPackages.hlint
-        hs.stan
-        pkgs.zlib
-        hs.shelltestrunner
-      ]);
+      # modifier used in haskellPackages.developPackage
+      myModifier = drv:
+        pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
+          cabal-install
+            ghcid
+            replica.packages.${system}.build
+            hls.packages.${system}."haskell-language-server-${compilerVersion}"
+            # hls.packages.${system}."hie-bios-${compilerVersion}"
+            cairo # for chart-cairo
+            dhall  # for the repl
+            pkgs.dhall-json  # for dhall-to-json
+            glib
+            hasktags
+            stan
+            # pkg-config
+            zlib
+            pkgs.dhall-lsp-server
+            pkgs.stylish-haskell
+          #   threadscope
+          ]);
+    in {
+      packages = {
 
-    in rec {
-      packages.mptcpanalyzer2 = flake.packages."mptcpanalyzer:exe:mptcpanalyzer";
+        mptcp-pm = hsPkgs.developPackage {
+          root =  pkgs.lib.cleanSource ./mptcp-pm;
+          name = "mptcp-pm";
+          returnShellEnv = false;
+          withHoogle = true;
+          overrides = haskellOverlay;
+          modifier = myModifier;
+        };
 
-      packages.mptcpanalyzer = pkgs.haskellPackages.developPackage {
-        root = ./.;
-        name = "mptcpanalyzer";
-        returnShellEnv = false;
-        withHoogle = true;
-        overrides = haskellOverlay;
+        mptcpanalyzer = hsPkgs.developPackage {
+          root = pkgs.lib.cleanSource ./mptcpanalyzer;
+          name = "mptcpanalyzer";
+          returnShellEnv = true;
+          withHoogle = true;
+          overrides = hold: hnew: (haskellOverlay hold hnew) // {
+            mptcp-pm = self.packages."${system}".mptcp-pm;
+          };
+          modifier = myModifier;
+        };
       };
 
-      defaultPackage = packages.mptcpanalyzer;
+      defaultPackage = self.packages.${system}.mptcpanalyzer;
 
-
-      devShell = pkgs.mkShell {
-        name = "dev-shell";
-        buildInputs = with pkgs; [
-          # defaultPackage.inputDerivation
-          replica.packages."${system}".build
-          inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
-          haskellPackages.stan
-          haskellPackages.threadscope
-          cairo # for chart-cairo
-          dhall-json  # for dhall-to-json
-          glib
-          hsEnv
-          pkg-config
-          zlib
-          dhall-lsp-server
-        ];
-
-        shellHook = ''
-          exe=$(cabal list-bin exe:mptcpanalyzer)
-          PATH="$(dirname $exe):$PATH"
+      devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
+       postShellHook = ''
+          cd mptcpanalyzer
+          set -x
+          result=$(cabal list-bin exe:mptcpanalyzer)
+          if [ $? -eq 0 ]; then
+            export PATH="$(dirname $result):$PATH"
+          fi
+          alias hls=haskell-language-server
         '';
-      };
-
+      });
     });
 }

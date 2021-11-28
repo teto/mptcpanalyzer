@@ -5,11 +5,11 @@ Maintainer  : matt
 License     : GPL-3
 -}
 
-{-# LANGUAGE AllowAmbiguousTypes   #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module MptcpAnalyzer.Cache (
   CacheId(..)
   , Cache(..)
@@ -27,16 +27,16 @@ import MptcpAnalyzer.Types
 import Prelude hiding (writeFile)
 import System.Directory (doesFileExist)
 -- import System.Posix.Files.ByteString
-import System.FilePath.Posix (takeBaseName)
 import Control.Exception as CE
-import Polysemy
+import Data.ByteString (writeFile)
+import Data.Hashable
 import Data.List (intercalate)
+import Data.Serialize
 import Frames
 import Frames.CSV
-import Data.Hashable
 import GHC.Generics
-import Data.Serialize
-import Data.ByteString (writeFile)
+import Polysemy
+import System.FilePath.Posix (takeBaseName)
 
 
 -- | Cache item identifier
@@ -46,9 +46,12 @@ data CacheId = CacheId {
   , cacheSuffix :: String
 } deriving (Generic, Show, Eq, Hashable)
 
--- | Cache config
+-- | Cache config (this is a test)
+-- test
 data CacheConfig = CacheConfig {
+  -- | Folder where to store stuff
   cacheFolder :: FilePath
+  -- | Whether the cachie is fixed
   , cacheEnabled :: Bool
 } deriving Show
 
@@ -85,7 +88,7 @@ runCache :: Members '[Embed IO] r => CacheConfig -> Sem (Cache : r) a -> Sem r a
 runCache config = do
   interpret $ \case
       PutCache cid frame -> doPutCache config cid frame
-      GetCache cid -> doGetCache config cid 
+      GetCache cid -> doGetCache config cid
         -- return $ Left "not implemented"
         -- use config to get the final path too
         -- let csvFilename = filenameFromCacheId cid

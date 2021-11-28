@@ -15,31 +15,36 @@ where
 import Net.IP
 import Net.Tcp
 -- import MptcpAnalyzer.Arti
-import Data.Word (Word8, Word16, Word32, Word64)
-import Data.Text as TS
 import qualified Data.Set as Set
-import MptcpAnalyzer.Stream
+import Data.Text as TS
+import Data.Word (Word16, Word32, Word64, Word8)
 import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Stream
 
 
-{- Holds all necessary information about a multipath TCP connection
--}
+-- | Holds all necessary information about a multipath TCP connection
 data MptcpConnection = MptcpConnection {
   -- todo prefix as mpcon
+  -- |The wireshark mptcp.stream identifier (a number)
   mptcpStreamId :: StreamIdMptcp
-  , mptcpServerKey :: Word64    -- ^ MPTCP server key
-  , mptcpClientKey :: Word64    -- ^ MPTCP client key
-  , mptcpServerToken :: Word32  -- ^ Hash of the server key
+  -- |Server key exchanged during the handshake
+  , mptcpServerKey :: Word64
+  -- |Client key exchanged during the handshake
+  , mptcpClientKey :: Word64
+  -- |Hash of the server key
+  , mptcpServerToken :: Word32
   , mptcpClientToken :: Word32
+  -- | Mptcp version negotiated during the handshake Not implemented yet ?
   , mptcpNegotiatedVersion :: Word8  -- ^ 0 or 1 at least for now
-  -- should be a subflow
-  , mpconSubflows :: Set.Set MptcpSubflow  -- ^ List of all subflows seen during communication
+  -- ^ List of past/present/future subflows seen during communication
+  , mpconSubflows :: Set.Set MptcpSubflow
 
 -- Ord to be able to use fromList
 } deriving (Show, Eq, Ord)
 
 -- | Extension of @TcpConnection@
 -- master subflow has implicit addrid 0
+-- TODO add start/end dates ?
 data MptcpSubflow = MptcpSubflow {
       sfConn :: TcpConnection
       -- shall keep token instead ? or as a boolean ?

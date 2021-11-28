@@ -6,34 +6,59 @@ License     : GPL-3
 -}
 module MptcpAnalyzer.Loader (
   loadPcapIntoFrame
+  , loadPcapIntoFrameNoCache
   , buildAFrameFromStreamIdTcp
   , buildAFrameFromStreamIdMptcp
   )
 where
-import MptcpAnalyzer.Types
 import MptcpAnalyzer.Cache
+import MptcpAnalyzer.Frame
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
-import MptcpAnalyzer.Frame
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
+import Tshark.Main
 
-import Prelude hiding (log)
 import Control.Monad.Trans (liftIO)
+import Prelude hiding (log)
 import System.Exit (ExitCode(..))
--- import Colog.Polysemy (Log, log)
-import Polysemy (Sem, Members, Embed)
-import Polysemy.State as P
-import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
+import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
 import Frames
 import Frames.CSV
-import Net.Tcp
-import Net.Mptcp
 import qualified Frames.InCore
+import Net.Mptcp
+import Net.Tcp
+import Polysemy (Embed, Members, Sem)
+import Polysemy.State as P
 
-import Polysemy.Log (Log)
-import qualified Polysemy.Log as Log
 import qualified Data.Vinyl as V
 import qualified Data.Vinyl.Class.Method as V
+import Polysemy.Log (Log)
+import qualified Polysemy.Log as Log
+import GHC.IO.Handle (hClose)
 
+loadPcapIntoFrameNoCache :: (
+    Frames.InCore.RecVec a
+    , Frames.CSV.ReadRec a
+    , ColumnHeaders a
+   )
+    => TsharkParams
+    -> FilePath
+    -> IO (Either String (FrameRec a))
+loadPcapIntoFrameNoCache params path = do
+  res <- liftIO $ withTempFileEx opts "/tmp" "mptcp.csv" $ \tmpPath handle -> do
+    res <- exportToCsv params path handle
+    case res of
+      (ExitSuccess, _ ) -> do
+        -- we have to close the handle else loadRows can't access the file !
+        hClose handle
+        loaded <- loadRows tmpPath
+        return $ Right loaded
+      (exitCode, stdErr) -> return $ Left $ "Error happened " ++ show exitCode ++ "\n" ++ show stdErr
+  return res
+  where
+    opts :: TempFileOptions
+    opts = TempFileOptions False
 
 -- TODO return an Either or Maybe ?
 -- return an either instead
@@ -56,7 +81,11 @@ loadPcapIntoFrame params path = do
       Left err -> do
           Log.debug $ "cache miss: " <> tshow  err
           Log.debug "Calling tshark"
-          (tempPath , exitCode, stdErr) <- liftIO $ withTempFileEx opts "/tmp" "mptcp.csv" (exportToCsv params path)
+          (tempPath , exitCode, stdErr) <- liftIO $ do
+            withTempFileEx opts "/tmp" "mptcp.csv" $ \tmpPath handle -> do
+                (exitCode, herr) <- exportToCsv params path handle
+                return (tmpPath, exitCode, herr)
+
           if exitCode == ExitSuccess
               then do
                 Log.debug $ "exported to file " <> tshow tempPath
@@ -78,7 +107,6 @@ loadPcapIntoFrame params path = do
       cacheId = CacheId [path] "" "csv"
       opts :: TempFileOptions
       opts = TempFileOptions True
-
 
 
 -- buildTcpFrameFromFrame

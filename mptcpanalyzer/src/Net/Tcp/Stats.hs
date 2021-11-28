@@ -1,31 +1,42 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-
+Module:  Net.Tcp.Stats
+Description : Uni/bidirectional statistics for subflows
+Maintainer  : matt
+Portability : Linux
+-}
+
 module Net.Tcp.Stats (
   TcpUnidirectionalStats (..)
   , getTcpGoodput
   , getTcpThroughput
   , getTcpSeqRange
+  , getTcpStats
+  , getSeqRange
+  , showTcpUnidirectionalStats
 )
 where
 
 import MptcpAnalyzer.ArtificialFields
--- import MptcpAnalyzer.Types
--- import MptcpAnalyzer.Pcap
--- import MptcpAnalyzer.Frame
--- import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
 import Net.Tcp.Connection
-import qualified Data.Map as Map
 
-
--- import qualified Control.Foldl as L
+import qualified Control.Foldl as L
 import Control.Lens hiding (argument)
-import Data.Word (Word32, Word64)
+import qualified Data.Map as Map
 import Data.Maybe (fromJust)
+import Data.Word (Word32, Word64)
 -- import Data.ByteUnits
 
-import qualified Frames as F
 import qualified Data.Foldable as F
+import Data.Ord (comparing)
+import qualified Data.Text as T
+import Frames
+import qualified Frames as F
+import qualified Frames.InCore as F
 
 type Byte = Int
 
@@ -35,9 +46,9 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     -- Include redundant packets contrary to '''
     -- tusThroughput :: Byte
 
-    tusStartPacketId :: Word64
-    , tusEndPacketId :: Word64
-    , tusNrPackets :: Int
+    -- tusStartPacketId :: Word64
+    -- , tusEndPacketId :: Word64
+    tusNrPackets :: Int
     -- duration
     -- , tusDuration :: Double
     , tusStartTime :: Double
@@ -68,7 +79,7 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     -- TODO this should be updated
     -- For now = max(tcpseq) - minx(tcpseq). Should add the size of packets'''
     -- , tusGoodput :: Byte
-    } 
+    }  deriving (Show, Eq)
     -- deriving Semigroup via WrappedMonoid TcpUnidirectionalStats
 
 -- deriving instance Semigroup TcpUnidirectionalStats
@@ -79,11 +90,11 @@ instance Semigroup TcpUnidirectionalStats where
    -- TODO this does nothing
    (<>) a b = TcpUnidirectionalStats {
       -- tusThroughput = 0
-      tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
-      , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
-      , tusNrPackets = 0
-      , tusStartTime = 0
-      , tusEndTime = 0
+      -- tusStartPacketId = min (tusStartPacketId a) (tusStartPacketId b)
+      -- , tusEndPacketId = max (tusEndPacketId a) (tusEndPacketId b)
+      tusNrPackets = tusNrPackets a + tusNrPackets b
+      , tusStartTime = min (tusStartTime a) (tusStartTime b)
+      , tusEndTime = max (tusEndTime a) (tusEndTime b)
       -- TODO fill it
       , tusMinSeq = 0
 
@@ -98,13 +109,12 @@ instance Semigroup TcpUnidirectionalStats where
 instance Monoid TcpUnidirectionalStats where
   mempty = TcpUnidirectionalStats {
       -- tusThroughput = 0
-      tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
-      , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
-      , tusNrPackets = 0
+      -- tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
+      -- , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
+      tusNrPackets = 0
       , tusStartTime = 0
       , tusEndTime = 0
-      -- TODO fill it
-      , tusMinSeq = 0
+      , tusMinSeq = 0        -- TODO fill it
 
       -- TODO should be max of seen acks
       , tusSndUna = 0
@@ -114,6 +124,100 @@ instance Monoid TcpUnidirectionalStats where
       -- , tusNumberOfPackets = mempty
     }
 
+-- | TODO check boundaries etc
+getSeqRange :: Num a => a -> a
+  -> a
+  -- -> (a, a, a)
+-- getSeqRange maxSeq minSeq = (maxSeq - minSeq + 1, maxSeq, minSeq)
+getSeqRange maxSeq minSeq = maxSeq - minSeq + 1
+
+
+
+-- TODO add a Functor to FilteredFrame
+genTcpStats :: Frame Packet -> TcpUnidirectionalStats
+genTcpStats aframe = TcpUnidirectionalStats {
+
+    -- TODO we should run a minmax instead
+    -- tusStartPacketId = minPktId
+    -- , tusEndPacketId = maxPktId
+    tusNrPackets = frameLength aframe
+    --     maxTime = maximum $ F.toList $ view relTime <$> frame
+    -- minTime = minimum $ F.toList $ view relTime <$> frame
+
+    -- We could just take first and last
+    , tusStartTime = minTime
+    , tusEndTime = maxTime
+
+    , tusMinSeq = 0
+    , tusSndUna = 0
+    , tusSndNext = 0
+    , tusReinjectedBytes = 0
+  }
+  where
+    -- we could use the Statistics vector if we could use the
+    (minPktId, maxPktId) = case L.fold ((,) <$> L.minimum <*> L.maximum) $ F.toList $ view packetId <$> aframe of
+        (Just pmin, Just pmax) -> (pmin, pmax)
+        _otherwise -> error "Could not find either min or max"
+
+    (minTime, maxTime) = case L.fold ((,) <$> L.minimum <*> L.maximum) $ F.toList $ view relTime <$> aframe of
+        (Just pmin, Just pmax) -> (pmin, pmax)
+        _otherwise -> error "Could not find either min or max"
+
+    (minSeq, maxSeq) = case L.fold ((,) <$> L.minimum <*> L.maximum) $ F.toList $ view tcpSeq <$> aframe of
+        (Just pmin, Just pmax) -> (pmin, pmax)
+        _otherwise -> error "Could not find either min or max"
+
+-- | Destination should have been filtered upstream
+-- see @genTcpDestFrame@
+getTcpStats :: (
+  TcpSeq F.∈ rs
+  , F.RecVec rs
+  , TcpLen F.∈ rs, RelTime F.∈ rs
+  , PacketId F.∈ rs
+  -- disabled for now, we assumed it's filtered upstream
+  , TcpDest F.∈ rs
+  )
+  => FrameFiltered TcpConnection (F.Record rs)
+  -> ConnectionRole
+  -> TcpUnidirectionalStats
+getTcpStats aframe dest =
+  if frameLength frame == 0 then
+    mempty
+  else
+    TcpUnidirectionalStats {
+      -- tusThroughput = 0
+      -- tusStartPacketId = 0 -- (frameRow frame 0) ^. packetId
+      -- , tusEndPacketId = 0 -- (frameRow frame (frameLength frame - 1)) ^. packetId
+      tusNrPackets = frameLength frame
+      , tusStartTime = minTime
+      , tusEndTime = maxTime
+      -- TODO fill it
+      , tusMinSeq = minSeq
+
+      -- TODO should be max of seen acks
+      , tusSndUna = maxSeqRow ^. tcpSeq + fromIntegral ( maxSeqRow ^. tcpLen) :: Word32
+      , tusSndNext = maxSeqRow ^. tcpSeq + fromIntegral ( maxSeqRow ^. tcpLen ) :: Word32
+      , tusReinjectedBytes = 0
+    }
+  where
+    frame = F.filterFrame (\x -> x ^. tcpDest == dest) (ffFrame aframe)
+
+    -- these return Maybes
+    -- I need to find its id and add tcpSize afterwards
+    -- TODO use     minimumBy
+    minSeq = case F.toList $ view tcpSeq <$> frame of
+      [] -> 0
+      l -> minimum l
+    -- maxSeq = maximum $ F.toList $ view tcpSeq <$> frame
+
+    -- $ F.toList $ view tcpSeq <$> frame
+    maxSeqRow = F.maximumBy (comparing (^. tcpSeq)) frame
+
+    -- compareRows x y = if (x ^. tcpSeq) (y ^. tcpSeq)
+
+    maxTime = maximum $ F.toList $ view relTime <$> frame
+    minTime = minimum $ F.toList $ view relTime <$> frame
+
 
 -- byteValue
 getTcpSeqRange :: TcpUnidirectionalStats -> Double
@@ -121,15 +225,24 @@ getTcpSeqRange s =
   fromIntegral (tusSndUna s - tusMinSeq s - 1)
 
 -- | Computes throughput
+-- TODO should return a quantity with number
 getTcpThroughput :: TcpUnidirectionalStats -> Double
 getTcpThroughput s =
-  fromIntegral (tusSndUna s - tusMinSeq s - 1) / (tusEndTime s - tusStartTime s)
+  if tusNrPackets s == 0 then 0
+  else fromIntegral (tusSndUna s - tusMinSeq s - 1) / (tusEndTime s - tusStartTime s)
 
 -- | Computes goodput
 getTcpGoodput :: TcpUnidirectionalStats -> Double
 getTcpGoodput s =
   fromIntegral (tusSndUna s - tusMinSeq s + 1 - tusReinjectedBytes s) / (tusEndTime s - tusStartTime s)
 
+showTcpUnidirectionalStats :: TcpUnidirectionalStats -> Text
+showTcpUnidirectionalStats stats =
+  T.unlines [
+    "Timestamps:" <> tshow (tusStartTime stats) <> " -> " <> tshow (tusEndTime stats)
+    , "Reinjected bytes: " <> tshow (tusReinjectedBytes stats)
+    , "Current goodput: " <> tshow (getTcpGoodput stats)
+  ]
 
     -- duration = maxTime - minTime
 
@@ -157,7 +270,7 @@ getTcpGoodput s =
 
 --     msg = "seq_range ({}) = {} (seq_max) - {} (seq_min) - 1"
 --     log.log(mp.TRACE, msg.format(seq_range, seq_max, seq_min))
- 
+
 --     return seq_range, seq_max, seq_min
 
 

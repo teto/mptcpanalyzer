@@ -17,15 +17,12 @@ A similar analysis applies to MPTCP streams as reinjections can happen cross-sub
 If we can distinguish the first successful transmission from the redundant ones,
 it becomes possible to compute the real contribution ("goodput") of a subflow to
 the overall MPTCP transmission.
-We can thus compare different retransmissions schemes, a crucial area of research 
+We can thus compare different retransmissions schemes, a crucial area of research
 in the MPTCP community.
 
 You can easily generate retransmissions using the "redundant scheduler".
 
 -}
-{-# LANGUAGE TypeApplications             #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -55,45 +52,46 @@ module MptcpAnalyzer.Merge (
 )
 where
 
-import Prelude hiding (log)
-import MptcpAnalyzer.Types
-import Tshark.TH
 import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Types
+import Prelude hiding (log)
+import Tshark.TH
 -- for retypeColumn
-import MptcpAnalyzer.Frames.Utils
-import MptcpAnalyzer.Pcap
+-- import MptcpAnalyzer.Frames.Utils
 import MptcpAnalyzer.Map
+import MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Utils.Text
 -- (addTcpDestToFrame, StreamConnection)
+import Net.IP (IP)
+import Net.Tcp
 
 
+import Control.Lens
+import Data.Either (fromRight)
+import Data.Foldable (toList)
+import Data.Hashable
+import Data.List (intercalate, intersperse, sortBy, sortOn)
+import Data.Maybe (catMaybes)
+import Data.Vinyl
+import qualified Data.Vinyl as V
+import Data.Vinyl.TypeLevel as V
+import Data.Word (Word16, Word32, Word64, Word8)
 import Frames as F
 import Frames.CSV
 import Frames.Joins
-import Data.List (sortBy, sortOn, intersperse, intercalate)
-import Data.Vinyl
-import Data.Vinyl.TypeLevel as V --(type (++), Snd)
-import Data.Hashable
+import Frames.Melt (ElemOf, RDeleteAll)
 import GHC.TypeLits (KnownSymbol, Symbol)
-import qualified Data.Vinyl as V
 import Language.Haskell.TH (Name)
-import Net.IP (IP)
-import Net.Tcp
 import Net.Mptcp
-import Data.Word (Word8, Word16, Word32, Word64)
-import Data.Maybe (catMaybes)
-import Data.Foldable (toList)
-import Control.Lens
-import Frames.Melt          (RDeleteAll, ElemOf)
-import Data.Either (fromRight)
 
+import qualified Control.Foldl as L
+import qualified Data.Foldable as F
 import qualified Pipes
 import qualified Pipes.Prelude as Pipes
-import qualified Data.Foldable as F
 import Polysemy
+import qualified Polysemy.Embed as P
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
-import qualified Polysemy.Embed as P
-import qualified Control.Foldl                  as L
 
 -- convert_to_sender_receiver
 -- merge_tcp_dataframes_known_streams(
@@ -249,7 +247,7 @@ mergeMptcpConnectionsFromKnownStreams (FrameTcp con1 frame1) (FrameTcp con2 fram
     convertDest :: Record '[MptcpDest] -> Record '[SenderDest]
     convertDest = withNames . stripNames
 
-    -- frameWithDests = addMptcpDest frame1 con1 
+    -- frameWithDests = addMptcpDest frame1 con1
 
     -- frameWithSenderDest :: FrameRec (MptcpDest ': TcpDest ': HostCols) -> FrameRec (SenderDest ': HostCols)
     -- frameWithSenderDest = fmap convertDest frameWithDests
@@ -264,13 +262,13 @@ mergeMptcpConnectionsFromKnownStreams (FrameTcp con1 frame1) (FrameTcp con2 fram
       mergedSf <- mergeTcpSubflowFromKnownStreams
             (FrameTcp (ffCon aframe1) (zipFrames aframe1Dest (ffFrame aframe1)))
             aframe2
-      -- TODO print justRecs / 
+      -- TODO print justRecs /
       -- let
       --   mbRecs = map recMaybe mergedSf
       --   justRecs = catMaybes mbRecs
       -- -- Log.debug $ "Merging pcap1 stream" <> tshow streamId1 <> " (" <> tshow (frameLength frame1)
       --     -- <> " packets) and " <> tshow streamId2 <> " (" <> tshow (frameLength frame2) <> " packets)"
-      -- Log.debug $ "There are " <> tshow (length justRecs) <> " valid rows (out of " 
+      -- Log.debug $ "There are " <> tshow (length justRecs) <> " valid rows (out of "
       --   <> tshow (length mergedSf) <> " merged rows)"
       -- Log.debug $ (concat . showFields) (head justRecs)
 
@@ -295,8 +293,8 @@ mergeMptcpConnectionsFromKnownStreams (FrameTcp con1 frame1) (FrameTcp con2 fram
 --     mappedSubflows = mapSubflows con1 con2
 --     mergedFrames = map mergeSubflow mappedSubflows
 
---     -- aframeSf1 = buildFrameFromStreamId frame1 (conTcpStreamId $ sfConn con1) 
---     -- aframeSf1 = buildFrameFromStreamId frame2 (conTcpStreamId $ sfConn con1) 
+--     -- aframeSf1 = buildFrameFromStreamId frame1 (conTcpStreamId $ sfConn con1)
+--     -- aframeSf1 = buildFrameFromStreamId frame2 (conTcpStreamId $ sfConn con1)
 --     -- sf1 = buildTcpConnectionFromStreamId (
 
 --     -- :: MptcpSubflow ->
@@ -324,7 +322,7 @@ validateMergedRes l = do
 -- mergeTcpSubflow ::
 
 
-mergeTcpSubflowFromKnownStreams :: 
+mergeTcpSubflowFromKnownStreams ::
   (Members '[Log, P.Embed IO] r)
   => FrameFiltered MptcpSubflow PacketWithSenderDest
   -> FrameFiltered MptcpSubflow Packet
@@ -411,7 +409,7 @@ convertToHost2Cols = fmap convertCols'
     -- convertCols' r = F.rcast @HostColsPrefixed (retypeColumns @'[ '("fakePacketId", "fake_fakePacketId", Word64), '("fakeInterfaceName", "fake_fakeInterfaceName", Text) ] r)
 
 -- convertCols :: Record a -> Record b
--- convertCols = withNames . stripNames 
+-- convertCols = withNames . stripNames
 
 -- TODO and then we should compute a owd
 -- , RcvAbsTime

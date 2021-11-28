@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Tshark.TH (
   declarePrefixedColumns
   , genExplicitRecord
@@ -12,27 +12,27 @@ where
 
 import Tshark.Fields
 
+import Control.Arrow (first, second)
 import qualified Data.Text as T
-import Language.Haskell.TH
-import GHC.TypeLits
-import Net.IP
-import Control.Arrow (second, first)
 import Data.Word (Word16, Word32, Word64)
+import GHC.TypeLits
+import Language.Haskell.TH
+import Net.IP
 -- import Language.Haskell.TH.Syntax
 import Data.Vinyl ()
-import Language.Haskell.TH.Syntax (sequenceQ, Q)
+import Language.Haskell.TH.Syntax (Q, sequenceQ)
 -- for ( (:->)())
 import Frames.Col ()
 -- ((:->))
 import Frames
-import Frames.TH hiding (tablePrefix, rowTypeName)
+import Frames.TH hiding (rowTypeName, tablePrefix)
 -- import Frames
-import Frames.Utils
-import Data.Proxy (Proxy(..))
 import Control.Monad (foldM)
 import Data.Char (toLower)
 import Data.Map (mapWithKey, toList)
 import qualified Data.Map as Map
+import Data.Proxy (Proxy(..))
+import Frames.Utils
 
 
 -- WARN the behavior here differs from Frames

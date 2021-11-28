@@ -3,16 +3,40 @@ name: mptcpanalyzer
 version: 0.0.1
 license: GPL-3.0-only
 license-file: LICENSE
-build-type: Simple
+-- we need custom because of cabal-doctest
+build-type: Custom
 Author: Matthieu Coudron
 Maintainer:  teto
 Category:   Network
 Synopsis: A Multipath TCP analyzer
 Homepage:   https://github.com/teto/quantum
-Description: Multipath TCP (www.multipath-tcp.org) protocol analyzer
+Description:
+  __mptcpanalyzer__ is a multipath TCP (www.multipath-tcp.org) protocol analyzer.
+  Multipath TCP is an extension of the Transmission Control Protocol that allows applications to send
+  one single stream of data over multiple TCP connections.
+
+  This software can automatically plot MPTCP characteristics such as Data Sequence Numbers, Data Acknowledgements etc.
+  It can also map one packet capture to another to give more detailed statistics such
+  as One-Way delays and reinjection qualifications.
+  * list the MPTCP connections in the pcap
+  * display chosen statistics on a specific MPTCP connection (list of subflows, number of reinjections, etc)
+  * convert packet capture files (\*.pcap) to \*.csv files
+  * plot data sequence numbers, dataacks for all subflows
+  * can map packets between the client and server pcaps to plot one-way delays
+    -- |prog| looks for files in certain directories. will try to load your configuration from `$XDG_CONFIG_HOME/mptcpanalyzer/config`
+  -- TODO restore
+  -- * caching mechanism: mptcpanalyzer compares your pcap creation time and will
+    -- regenerate the cache if it exists in `$XDG_CACHE_HOME/mptcpanalyzer/<path_to_the_file>`
+extra-doc-files:
+    CHANGELOG
+    README.md
+
 extra-source-files:
   README.md CHANGELOG
   tests/integration/list-tcp.test
+  -- benchmarks/*
+tested-with:
+  GHC == 8.10.7
 
 Source-repository head
   type:       git
@@ -28,63 +52,68 @@ Flag Dev {
   Default:     True
 }
 
+-- Flag ExtraChecks {
+--   Description: Run some extra checks
+--   Default:     True
+-- }
+
+-- mandatory since we set 
+custom-setup
+ setup-depends:
+   base >= 4 && <5,
+   Cabal,
+   cabal-doctest >= 1 && <1.1
+
 -- aeson to (de)serialize to json
 -- text is used to convert from string and in aeson
 -- http://hackage.haskell.org/package/bitset-1.4.8/docs/Data-BitSet-Word.html
 common shared-properties
-    build-depends: base >= 4.12 && < 4.20
-      , optparse-applicative
-      , byteunits
-      , containers
-      -- polysemybased logger
-      , cereal
-      , co-log
-      , co-log-core
-      , polysemy-log
-      , polysemy-log-co
-      , formatting
-      , readable
-      , polysemy
-      , hashable
+    build-depends:
+        base >= 4.12
+      , ansi-terminal
+      , Cabal
+      , Chart >= 1.5
+      , Chart-cairo
+      , Frames
       , bytestring
+      , byteunits
+      , cereal
+      , containers
+      , directory
+      , filepath
+      , foldl
+      , formatting
+      , hashable
+      , haskeline >= 0.8.0.0
       , ip
+      , lens
+      , mptcp-pm >= 0.0.3
+      , mtl
+      , optparse-applicative
+      , pipes
+      , pipes-parse
+      , pipes-safe
+      , polysemy
+      , polysemy-log >= 0.2.2.4
+      , polysemy-log-co
+      , process
+      , readable
+      , template-haskell
+      , temporary
+      , text
+      , time
+      , unix
       , utf8-string
-      -- , netlink >= 1.1.1.0
-      -- for liftIO
-       , mtl
-       , template-haskell
-       -- , ghc-prim
-       -- for L.nub / L.fold
-       , foldl
-       , text
-       -- microlens taken from Frames
-       -- , microlens
-       , lens
-       , pipes
-       , process
-       -- to create temp folder/files
-       , temporary
-       -- , singletons
-       , filepath
-       -- , repline
-       , Frames
-       -- could be interesting in the future
-        -- , Frames-map-reduce
-       , Cabal
-       , directory
-       , vinyl
-       , vector
-       , haskeline >= 0.8.0.0
-       , mptcp-pm >= 0.0.3
-       , pipes-safe
-       , pipes-parse
-
-       -- for plotting that's what is used in Frames
-       , Chart >= 1.5
-       -- , Chart-diagrams >= 1.5
-       , Chart-cairo
-       , wide-word
-       , time
+      , vector
+      , vinyl
+      , wide-word
+      -- Debug Adapter Plugins (DAP)
+      , haskell-dap
+      , ghci-dap
+      , haskell-debug-adapter
+      -- , Chart-diagrams >= 1.5
+      -- for plotting that's what is used in Frames
+      -- polysemybased logger
     default-language: Haskell2010
     -- -fno-warn-unused-imports
     -- -fforce-recomp  makes it build twice
@@ -92,28 +121,32 @@ common shared-properties
         ghc-options: -fplugin=Polysemy.Plugin
         build-depends: polysemy-plugin
 
+    -- if flag(ExtraChecks)
+    --     ghc-options: -DMPTCP_EXTRA_CHECKS
+
     if flag(Dev)
         ghc-options:
           -fprof-auto
-          -ddump-splices
-          -ddump-to-file
+          -- -ddump-splices
+          -- -ddump-to-file
           -- -ddump-timings
-        -- TODO remove
           -Wno-unused-imports
         -- build-depends: polysemy-plugin
           -fno-warn-unused-binds
           -fno-warn-unused-matches
 
     -- -ddump-splices to dump TH code
+            -- -O0
     ghc-options:
         -Wall
         -Werror=missing-methods
-        -Werror=warn-missing-methods
+        -- -Werror=warn-missing-methods
         -Wpartial-fields
         -- -dth-dec-file
         -fwrite-ide-info
-        -O0
         -hiedir=.hie
+        -haddock
+        -- -fexternal-interpreter
         -- -fplugin=Polysemy.Plugin
     default-extensions:
         -- , OverloadedStrings
@@ -134,20 +167,23 @@ common shared-properties
     -- Other-modules:
 
 
-library libmptcpanalyzer
+library
     import: shared-properties
-    visibility: public
+    -- visibility: public
     -- Other-modules:
     Exposed-Modules:
         Tshark.TH
         , Tshark.Fields
         , Tshark.Interfaces
+        , Tshark.Live
+        , Tshark.Main
         , Net.Mptcp.Types
         , Net.Tcp.Stats
         , Net.Tcp.Connection
         , Net.Tcp
         , Net.Mptcp
         , Net.Mptcp.Stats
+        , Net.Mptcp.Flags
         , Net.Mptcp.Connection
         -- reexport the rest
         , MptcpAnalyzer
@@ -173,33 +209,47 @@ library libmptcpanalyzer
         -- , MptcpAnalyzer.Commands.List
         -- , MptcpAnalyzer.Commands.ListMptcp
         -- , MptcpAnalyzer.Commands.Plot
-        , MptcpAnalyzer.Frames.Utils
-        , Columns
+        -- TODO rename to Utils.Frames
+        -- , MptcpAnalyzer.Frames.Utils
+        , MptcpAnalyzer.Utils.Completion
+        , MptcpAnalyzer.Utils.Text
         -- , Connection
     build-depends:
         Chart
         , Chart-cairo
+        , transformers
     hs-source-dirs: src/
-    ghc-options: -O0
+    ghc-options:
+      -O0
+      -haddock
 
--- monitor new mptcp connections
+-- TODO add data-files
 executable mptcpanalyzer
     import: shared-properties
     build-depends:
-        mptcpanalyzer:libmptcpanalyzer
+        mptcpanalyzer
         , ansi-terminal
+        , transformers
     Other-modules:
-        -- Tshark.TH
+          Tshark.Live
+        , Tshark.Interfaces
+        , Tshark.Fields
+        , Tshark.Main
         -- , Net.Mptcp.Types
         -- reexport the rest
-        -- , MptcpAnalyzer
-        -- , MptcpAnalyzer.Loader
-        -- , MptcpAnalyzer.Types
-        -- , MptcpAnalyzer.Plots.Types
-        -- , MptcpAnalyzer.Debug
-        -- , MptcpAnalyzer.Pcap
-        -- , MptcpAnalyzer.Cache
-        -- , MptcpAnalyzer.Merge
+        , MptcpAnalyzer
+        , MptcpAnalyzer.Frame
+        , MptcpAnalyzer.Map
+        , MptcpAnalyzer.Loader
+        , MptcpAnalyzer.Types
+        , MptcpAnalyzer.Plots.Types
+        , MptcpAnalyzer.Debug
+        , MptcpAnalyzer.Pcap
+        , MptcpAnalyzer.Cache
+        , MptcpAnalyzer.Merge
+        , Net.Tcp
+        , Net.Mptcp
+        , MptcpAnalyzer.ArtificialFields
         , MptcpAnalyzer.Commands
         , MptcpAnalyzer.Commands.Definitions
         , MptcpAnalyzer.Commands.Load
@@ -208,7 +258,6 @@ executable mptcpanalyzer
         , MptcpAnalyzer.Commands.Plot
         , MptcpAnalyzer.Commands.PlotOWD
         , MptcpAnalyzer.Commands.Map
-        , Columns
         , MptcpAnalyzer.Commands.List
         , MptcpAnalyzer.Types
         -- , Connection
@@ -219,28 +268,79 @@ executable mptcpanalyzer
     -- build-depends: mptcp-pm >= 0.0.3
     main-is: app/Main.hs
     hs-source-dirs: src/
+    ghc-options:
     -- -fprof-auto
-    ghc-options: 
-      -threaded -rtsopts -O0
+      -threaded -rtsopts -haddock -fprof-auto
 
 benchmark map-stream
   type:             exitcode-stdio-1.0
   main-is:          Map.hs
   hs-source-dirs:   benchmarks
-  build-depends:    base, Frames, criterion
+  build-depends:
+      base
+      , Frames
+      -- criterion depends on optparse-applicative so be careful
+      -- to rely on 0.16.1 fork (master has breaking changes)
+      , criterion
+      , mptcpanalyzer:mptcpanalyzer
+      , polysemy
+      , polysemy-log >= 0.2.2.4
+      , polysemy-log-co
+
   ghc-options:      -O2
   default-language: Haskell2010
 
 
 Test-Suite test
-  -- 2 types supported, exitcode is based on ... exit codes ....
   type:               exitcode-stdio-1.0
-  main-is:            PcapSpec.hs
+  main-is:
+    Spec.hs
   hs-source-dirs:     tests
-  -- Other-modules:     Pcap, Columns
+  default-language: Haskell2010
+  default-extensions:
+      -- , OverloadedStrings
+        FlexibleContexts
+        , StrictData
+        , DataKinds
+  other-modules:
+      Tshark.MainSpec
+    , Net.Tcp.StatsSpec
+    , MptcpAnalyzer.PcapSpec
+    , MptcpAnalyzer.LoaderSpec
+    , MptcpAnalyzer.MapSpec
+    , Utils
+  build-depends:
+      base >=4.12 && <4.20
+    , Cabal
+    , HUnit
+    , hspec
+    , QuickCheck
+    , mptcpanalyzer
+    , ip
+    , Frames
+    , polysemy
+    , polysemy-log >= 0.2.2.4
+    , polysemy-log-co
+  ghc-options:
+    -Wall
+    -threaded 
 
-  build-depends:      base >=4.12 && <4.20
-                     , HUnit
-                     , hspec
-                     , QuickCheck
-                     , libmptcpanalyzer
+
+-- doctests are a pain
+-- test-suite doctests
+--   type:             exitcode-stdio-1.0
+--   main-is:          doctests.hs
+--   build-depends:
+--       base
+--     , base-compat       >=0.10.5 && <0.12
+--     , doctest           >=0.15   && <0.18
+--     , QuickCheck        >=2.12   && <2.15
+--     , template-haskell
+--     , mptcpanalyzer
+--   -- there are several custom packages
+--   -- exe:example
+--   -- x-doctest-components:
+--   --   lib:mptcpanalyzer
+--   ghc-options:      -Wall -threaded
+--   hs-source-dirs:   tests
+--   default-language: Haskell2010

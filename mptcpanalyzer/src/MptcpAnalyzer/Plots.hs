@@ -16,6 +16,6 @@ import MptcpAnalyzer.Types
 --   where
 --     showIp = Net.IP.encode
 
--- plotTcpSeq :: 
+-- plotTcpSeq ::
 --         plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
 

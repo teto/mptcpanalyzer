@@ -6,6 +6,7 @@ License     : GPL-3
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module MptcpAnalyzer.Commands.Plot (
   -- * Actual commands that plot
@@ -15,68 +16,75 @@ module MptcpAnalyzer.Commands.Plot (
   -- * parsers
   , piPlotTcpMainParser
   , parserPlotTcpMain
+  , parserPlotTcpLive
   , parserPlotMptcpMain
 )
 where
 
-import           MptcpAnalyzer.ArtificialFields
-import           MptcpAnalyzer.Cache
-import           MptcpAnalyzer.Plots.Types
-import           MptcpAnalyzer.Types
--- import MptcpAnalyzer.Commands.Definitions
-import           MptcpAnalyzer.Commands.Definitions     as CMD
-import           MptcpAnalyzer.Commands.PlotOWD
-import           MptcpAnalyzer.Debug
-import           MptcpAnalyzer.Loader
-import           MptcpAnalyzer.Pcap
-import           "this" Net.Mptcp
-import           "this" Net.Tcp
-import           Tshark.Fields                          (TsharkFieldDesc (tfieldLabel), baseFields)
+import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
+import Data.Vinyl.Class.Method
 
-import           Frames
-import           Frames.CSV
-import           Options.Applicative
-import           Prelude                                hiding (filter, log, lookup, repeat)
+import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Cache
+import MptcpAnalyzer.Plots.Types
+import MptcpAnalyzer.Types
+-- import MptcpAnalyzer.Commands.Definitions
+import MptcpAnalyzer.Commands.Definitions as CMD
+import MptcpAnalyzer.Commands.PlotOWD
+import MptcpAnalyzer.Debug
+import MptcpAnalyzer.Loader
+import MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Utils.Text
+import Net.IP
+import "this" Net.Mptcp
+import "this" Net.Tcp
+import Tshark.Fields (TsharkFieldDesc(tfieldLabel), baseFields)
+-- import Net.IPv4
+import Frames
+import Frames.CSV
+import Options.Applicative
+import Prelude hiding (filter, log, lookup, repeat)
 
 -- import Graphics.Rendering.Chart.Backend.Diagrams (defaultEnv, runBackendR)
 -- import Graphics.Rendering.Chart.Easy
 
-import           Data.Word                              (Word16, Word32, Word64, Word8)
-import           Graphics.Rendering.Chart.Backend.Cairo (toFile)
-import           Graphics.Rendering.Chart.Easy          hiding (argument)
+import Data.Word (Word16, Word32, Word64, Word8)
+import Graphics.Rendering.Chart.Backend.Cairo (toFile)
+import Graphics.Rendering.Chart.Easy hiding (argument)
 
-import           Data.List                              (filter, intercalate)
-import           Data.Text                              (Text)
-import qualified Data.Text                              as T
-import qualified Pipes                                  as P
-import qualified Pipes.Prelude                          as P
-import           Polysemy
-import qualified Polysemy                               as P
-import           Polysemy.State                         as P
-import           Polysemy.Trace                         as P
+import Data.List (filter, intercalate)
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Pipes as P
+import qualified Pipes.Prelude as P
+import Polysemy
+import qualified Polysemy as P
+import Polysemy.State as P
+import Polysemy.Trace as P
 -- import Colog.Polysemy (Log, log)
-import           System.Exit
-import           System.Process                         hiding (runCommand)
+import System.Exit
+import System.Process hiding (runCommand)
 -- import Data.Time.LocalTime
 -- import Data.Foldable (toList)
-import qualified Data.Foldable                          as F
-import qualified Data.Map                               as Map
-import           Data.Maybe                             (catMaybes, fromMaybe, isJust, maybeToList)
-import qualified Data.Set                               as Set
-import           Data.String
-import           Data.Vinyl.TypeLevel
-import           Debug.Trace
-import           Distribution.Simple.Utils              (TempFileOptions (..), withTempFileEx)
-import           Frames.ShowCSV                         (showCSV)
-import           Polysemy.Log                           (Log)
-import qualified Polysemy.Log                           as Log
-import           System.Directory                       (renameFile)
-import           System.IO                              (Handle)
-import           Text.Read                              (readEither)
-import           Data.Time
+import qualified Data.Foldable as F
+import qualified Data.Map as Map
+import Data.Maybe (catMaybes, fromMaybe, isJust, maybeToList)
+import qualified Data.Set as Set
+import Data.String
+import Data.Time
+import Data.Vinyl.TypeLevel
+import Debug.Trace
+import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
+import Frames.ShowCSV (showCSV)
+import Polysemy.Log (Log)
+import qualified Polysemy.Log as Log
+import System.Directory (renameFile)
+import System.IO (Handle)
+import Text.Read (readEither)
 
 -- import Data.Time.Calendar
 import Data.Time.LocalTime
+import MptcpAnalyzer.Stream
 
 mkDate :: Integer -> LocalTime
 mkDate jday =
@@ -116,6 +124,48 @@ piPlotTcpMainParser :: ParserInfo CommandArgs
 piPlotTcpMainParser = info parserPlotTcpMain
   ( progDesc " TCP Plots"
   )
+
+-- loadConnectionsFromFile
+plotLiveFilter :: Parser ArgsPlots
+plotLiveFilter = ArgsPlotLiveTcp <$>
+    parserConnection
+    <*> optional (strOption
+      ( long "fake" <> short 'f'
+      <> help "Load data from a pcap. This is used only for testing."
+      -- this is a filename !
+      -- TODO create a completer inspired by haskeline
+      -- completer ( String -> IO [String])
+      -- <> completeWith ["eno1"]
+      <> metavar "PCAP" ))
+    <*> optional (parserDestinationRole)
+  <*> strArgument (
+    metavar "interface" <> help "interface to monitor"
+    -- TODO fetch list of interfaces in advance !
+    <> completeWith ["eno1"]
+    )
+
+
+-- |Helper to load an IP
+readIP :: ReadM IP
+-- encode or decode available, IP has
+readIP = eitherReader $ \arg -> case decode $ T.pack arg of
+    Just ip -> Right ip
+    _otherwise -> Left $ "Could not decode ip " ++ arg
+
+parserConnection :: Parser TcpConnection
+parserConnection = TcpConnection <$>
+  argument readIP (metavar "CLIENT_IP" <> help "Client IP (v4 or v6)")
+  <*> argument readIP (metavar "SERVER_IP" <> help "Server IP (v4 or v6)")
+  <*> argument auto (metavar "CLIENT_PORT" <> help "Client port")
+  <*> argument auto (metavar "SERVER_PORT" <> help "Server port")
+  -- Stream id wont be used anyway
+  <*> pure (StreamId 0)
+  -- <*> strArgument ( metavar "interface" <> help "interface to monitor")
+
+parserPlotTcpLive :: Parser CommandArgs
+parserPlotTcpLive  = ArgsPlotGeneric <$> parserPlotSettings False
+    <*> (plotLiveFilter)
+
 
 -- -> Bool -- ^ for mptcp yes or no
 parserPlotTcpMain :: Parser CommandArgs
@@ -183,10 +233,18 @@ validationErrorMsg validFields entry = "validatedField: incorrect value `" ++ en
 -- readStreamId = eitherReader $ \arg -> case reads arg of
 --   [(r, "")] -> return $ StreamId r
 --   _ -> Left $ "readStreamId: cannot parse value `" ++ arg ++ "`"
+parserDestinationRole :: Parser ConnectionRole
+parserDestinationRole = argument readConnectionRole (
+          metavar "Destination"
+        -- <> Options.Applicative.value RoleServer
+        <> help "Only show in a specific direction"
+        <> completeWith ["server", "client"]
+      )
 
 -- TODO pass the list of accepted attributes (so that it works for TCP/MPTCP)
 plotStreamParser ::
-    [String]
+       [String]
+    -- ^ List of TCP attribute names
     -> Bool -- ^ for mptcp yes or no
     -> Parser ArgsPlots
 plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
@@ -209,13 +267,10 @@ plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
       <*> argument (validateField _validAttributes) (
           metavar "TCP_ATTR"
           <> help "A TCP attr in the list: "
+          <> completeWith _validAttributes
       )
       -- TODO ? if nothing prints both directions
-      <*> optional (argument readConnectionRole (
-          metavar "Destination"
-        -- <> Options.Applicative.value RoleServer
-        <> help "Only show in a specific direction"
-      ))
+      <*> optional (parserDestinationRole)
       -- <*> option auto (
       --     metavar "MPTCP"
       --   -- internal is stronger than --belive, hides from all descriptions
@@ -288,25 +343,28 @@ cmdPlotTcpAttribute field destinations aFrame = do
     frame2 = addTcpDestinationsToAFrame aFrame
     -- plotAttr :: ( PlotValue y) => ConnectionRole -> EC (Layout Double y) ()
     plotAttr dest =
-        plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
+        plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ [ (d,v) | (d,v) <- plotData ] ])
         -- plot (line ("TCP " ++ field ++ " (" ++ show dest ++ ")") [ my_data ])
         where
           -- frameDest = ffTcpFrame tcpFrame
           frameDest = frame2
           unidirectionalFrame = filterFrame (\x -> x ^. tcpDest == dest) (ffFrame frameDest)
 
-          plotData :: ([Double], [Double])
-          plotData = getData unidirectionalFrame field
-          (timeData, seqData) = plotData
+          plotData :: [(Double, Double)]
+          plotData = getData (unidirectionalFrame') field
+
+          -- we add a fake mptcpDest column to satisfy
+          unidirectionalFrame' = fmap (\x -> Col RoleServer :& x) unidirectionalFrame
+          -- (timeData, seqData) = plotData
 
 
 -- it should be possible to get something more abstract
-getData :: forall t a2. (Num a2,
+getData ::
             -- RecElem
             --   Rec TcpLen TcpLen rs rs (Data.Vinyl.TypeLevel.RIndex TcpLen rs),
             -- (Record HostCols) <: (Record rs)
-            Foldable t, Functor t) =>
-            t (Record (TcpDest ': HostCols) ) -> String -> ([Double], [a2])
+            -- Foldable t, Functor t
+            FrameRec (MptcpDest ': TcpDest ': HostCols) -> String -> [(Double, Double)]
 getData frame attr =
   getAttr
   where
@@ -314,12 +372,13 @@ getData frame attr =
     timeData = F.toList $ view relTime <$> frame
 
     getAttr = case attr of
-      "tcpSeq" -> (timeData, getTcpData tcpSeq)
+      "tcpSeq" -> [ (t, v) | (t, v) <- zip timeData (getTcpData tcpSeq) ]
       -- "tcpLen" -> fromIntegral. view tcpLen
       -- "rwnd" -> fromIntegral. view rwnd
       -- "tcpAck" -> fromIntegral. view tcpAck
       -- "tsval" -> tsval
-      -- "mptcpSeq" -> getMptcpData frame mptcpSeq
+      "mptcpDsn" -> getMptcpData frame mptcpDsn
+      "mptcpDack" -> getMptcpData frame mptcpDack
 
       _          -> error "unsupported attr"
 
@@ -328,11 +387,13 @@ getData frame attr =
 
     getTcpData getter = F.toList ((fromIntegral . view getter) <$> frame)
 
---
-getMptcpData  frame getter =
-  (timeData, view relTime <$> justFrame)
+getMptcpData :: _
+getMptcpData frame getter =
+  [ (t, v) | (t, v) <- zip timeData values ]
+  -- (timeData, view relTime <$> justFrame)
   where
     timeData = F.toList $ view relTime <$> justFrame
+    values = fmap fromIntegral $ catMaybes $ F.toList $ (view getter) <$> justFrame
     -- filter on the field
     justFrame = filterFrame (\x -> isJust $ x ^. getter) frame
 
@@ -368,17 +429,20 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
     -- add dest to the whole frame
     frameDest = addMptcpDest (ffFrame aFrame) (ffCon aFrame)
     plotAttr (dest, sf) =
-      plot (line lineLabel [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
-
-        where
+      -- plot (line lineLabel [ [ (d,v) | (d,v) <- zip timeData seqData ] ])
+      plot (line lineLabel [ frameData ])
+      where
+          -- frameData :: ([Double], [
+          -- strip down
+          frameData = getData unidirectionalFrame field
           -- show sf
           lineLabel = "subflow " ++ show (conTcpStreamId (sfConn sf))  ++ " seq (" ++ show dest ++ ")"
           -- frameDest = frame2
           unidirectionalFrame = filterFrame (\x -> x ^. mptcpDest == dest
                     && x ^. tcpStream == conTcpStreamId (sfConn sf) ) frameDest
 
-          seqData :: [Double]
-          seqData = map fromIntegral (F.toList $ view tcpSeq <$> unidirectionalFrame)
-          timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> unidirectionalFrame
+          -- seqData :: [Double]
+          -- seqData = map fromIntegral (F.toList $ view tcpSeq <$> unidirectionalFrame)
+          -- timeData = traceShow ("timedata" ++ show (frameLength unidirectionalFrame)) F.toList $ view relTime <$> unidirectionalFrame
 
 

@@ -3,21 +3,19 @@ Module      : MptcpAnalyzer.Commands.PlotOwd
 Description : Plot One way delays
 Maintainer  : matt
 -}
-{-# LANGUAGE AllowAmbiguousTypes   #-}
-{-# LANGUAGE DataKinds   #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE PackageImports   #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE Rank2Types          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module MptcpAnalyzer.Commands.PlotOWD (
   cmdPlotTcpOwd
@@ -28,60 +26,62 @@ module MptcpAnalyzer.Commands.PlotOWD (
 where
 
 import MptcpAnalyzer.ArtificialFields
-import MptcpAnalyzer.Types
-import MptcpAnalyzer.Plots.Types
-import MptcpAnalyzer.Commands.Definitions
 import MptcpAnalyzer.Cache
+import MptcpAnalyzer.Commands.Definitions
 import MptcpAnalyzer.Commands.Definitions as CMD
-import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Debug
-import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Merge
+import MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Plots.Types
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
 -- for retypeColumn
-import MptcpAnalyzer.Frames.Utils
+-- import MptcpAnalyzer.Frames.Utils
 -- for fields
-import "this" Net.Tcp
 import "this" Net.Mptcp
+import "this" Net.Tcp
 
-import Prelude hiding (filter, lookup, repeat, log)
-import Options.Applicative
-import Polysemy
-import qualified Polysemy.Trace as P
 import Frames
 import qualified Frames as F
 import Frames.CSV
+import Options.Applicative
+import Polysemy
+import qualified Polysemy.Trace as P
+import Prelude hiding (filter, log, lookup, repeat)
 
 -- import Graphics.Rendering.Chart.Backend.Diagrams (defaultEnv, runBackendR)
 -- import Graphics.Rendering.Chart.Easy
 
-import Graphics.Rendering.Chart.Easy hiding (argument)
+import Data.Word (Word16, Word32, Word64, Word8)
 import Graphics.Rendering.Chart.Backend.Cairo
-import Data.Word (Word8, Word16, Word32, Word64)
+import Graphics.Rendering.Chart.Easy hiding (argument)
 
-import Data.Vinyl.TypeLevel as V --(type (++), Snd)
+import Data.Vinyl.TypeLevel as V
 
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Pipes as P hiding (embed)
 import qualified Pipes.Prelude as P
-import Polysemy (Member, Members, Sem, Embed)
+import Polysemy (Embed, Member, Members, Sem)
 import qualified Polysemy as P
 import Polysemy.State as P
-import System.Process hiding (runCommand)
 import System.Exit
+import System.Process hiding (runCommand)
 -- import Data.Time.LocalTime
 import Data.Foldable (toList)
-import Data.Maybe (fromMaybe, catMaybes)
-import Distribution.Simple.Utils (withTempFileEx, TempFileOptions(..))
-import System.Directory (renameFile)
-import System.IO (Handle)
-import Frames.ShowCSV (showCSV)
+import Data.Maybe (catMaybes, fromMaybe)
 import qualified Data.Set as Set
 import Debug.Trace
+import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
+import Frames.ShowCSV (showCSV)
 import GHC.TypeLits (Symbol)
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
+import System.Directory (renameFile)
+import System.IO (Handle)
+import Tshark.Main (defaultTsharkPrefs)
 
 -- data PlotTypes = PlotTcpAttribute {
 --     pltAttrField :: Text

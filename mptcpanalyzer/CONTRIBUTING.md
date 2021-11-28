@@ -36,7 +36,7 @@ To run tests
 $ replica run tests/tcp.json
 ```
 
-To regenerate the tests:
+To regenerate the golden tests:
 ```sh
 make tests/tcp.json  # generates tcp.json from its tests/tcp.dhall spec
 $ replica run -i tests/tcp.json  # -i interactive

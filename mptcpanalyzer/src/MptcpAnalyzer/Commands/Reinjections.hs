@@ -6,7 +6,7 @@ Maintainer  : matt
 
 
 -}
-{-# LANGUAGE PackageImports         #-}
+{-# LANGUAGE PackageImports #-}
 module MptcpAnalyzer.Commands.Reinjections (
 
   piListReinjections
@@ -17,41 +17,42 @@ module MptcpAnalyzer.Commands.Reinjections (
 )
 where
 
+import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Commands.Definitions as CMD
 import MptcpAnalyzer.Commands.List as CMD
-import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Types
 import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Merge
+import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
-import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Types
 import "this" Net.Mptcp
 
-import Prelude hiding (log)
-import Options.Applicative
-import Polysemy (Member, Members, Sem, Embed)
-import qualified Polysemy as P
-import Polysemy.State as P
-import Polysemy.Trace as P
-import Polysemy.Log (Log)
-import qualified Polysemy.Log as Log
+import Control.Lens ((^.))
+import Control.Lens hiding (argument)
+import Data.Either (lefts, rights)
+import Data.Foldable (toList)
+import qualified Data.Foldable as F
 import Data.Function (on)
-import Data.List (sortBy, sortOn, intersperse, intercalate)
-import Data.Either (rights, lefts)
+import Data.List (intercalate, intersperse, sortBy, sortOn)
+import Data.Maybe
 import Frames
 import Frames.CSV
 import Frames.Rec
-import Data.Maybe
-import Control.Lens ((^.))
-import Data.Foldable (toList)
-import qualified Data.Foldable as F
+import Options.Applicative
 import qualified Pipes
 import qualified Pipes.Prelude as Pipes
-import Control.Lens hiding (argument)
+import Polysemy (Embed, Member, Members, Sem)
+import qualified Polysemy as P
+import Polysemy.Log (Log)
+import qualified Polysemy.Log as Log
+import Polysemy.State as P
+import Polysemy.Trace as P
+import Prelude hiding (log)
 
-import qualified Debug.Trace as D
 import Control.Monad
+import qualified Debug.Trace as D
+import Tshark.Main (defaultTsharkPrefs)
 
 piListReinjections :: ParserInfo CommandArgs
 piListReinjections = info (
@@ -191,7 +192,7 @@ cmdQualifyReinjections (PcapMapping pcap1 streamId1 pcap2 streamId2) destination
           -- Log.debug $ "reinjectionsOf in host1 frame " <> tshow $ showFrame myFrame
           -- Log.debug $ "showing merged res" <> tshow (showMergedRes $ take 3 mergedRes)
           -- P.embed $ writeMergedPcap ("mergedRes-"  ++ ".csv") mergedRes
-          trace $ "Size after conversion to sender/receiver " ++ show (frameLength myFrame) 
+          trace $ "Size after conversion to sender/receiver " ++ show (frameLength myFrame)
                   ++ "( " ++ show (length mergedRes) ++ ")"
           -- trace $ "Number of reinjected packets: " ++ show (frameLength reinjectedPacketsFrame)
 
@@ -226,14 +227,14 @@ cmdQualifyReinjections (PcapMapping pcap1 streamId1 pcap2 streamId2) destination
 
 
 -- buildConnectionFromSndPacket :: Record SenderReceiverCols -> TcpConnection
--- buildConnectionFromSndPacket row -> 
+-- buildConnectionFromSndPacket row ->
 
 
 -- | Returns (Client,Server)
 -- kinbda hackish
-assignRoles :: FrameFiltered MptcpConnection Packet -> FrameFiltered MptcpConnection Packet 
+assignRoles :: FrameFiltered MptcpConnection Packet -> FrameFiltered MptcpConnection Packet
   -> (FrameFiltered MptcpConnection Packet , FrameFiltered MptcpConnection Packet)
-assignRoles aframe1 aframe2 = 
+assignRoles aframe1 aframe2 =
   if delta > 0 then
     (aframe1, aframe2)
   else
@@ -281,7 +282,7 @@ qualifyReinjections frame (aframeH1, aframeH2) dest = do
       let
         reinjectOf = fromJust (rgetField @SndReinjectionOf row)
         hostType = rgetField @SenderHost row
-        senderDest = rgetField @SenderDest row
+        senderDestVal = rgetField @SenderDest row
 
         -- originalFrame = if senderDest == RoleClient then (ffFrame aframeH2) else (ffFrame aframeH1)
         originalFrame = frame
@@ -300,7 +301,7 @@ qualifyReinjections frame (aframeH1, aframeH2) dest = do
       -- of packet id " ++ show initialPktId
       -- from host" ++ show hostType
       trace $ show (row ^. sndPacketId) ++ " is a reinjection of packet id " ++ show initialPktId
-      trace $ "number of original packets " ++ show (frameLength originalPackets) ++ " Host " ++ show senderDest
+      trace $ "number of original packets " ++ show (frameLength originalPackets) ++ " Host " ++ show senderDestVal
       trace $ describeReinjection row originalPackets
       -- TODO check if pktId is available
 

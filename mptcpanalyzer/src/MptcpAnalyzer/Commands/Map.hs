@@ -1,3 +1,9 @@
+{-
+Module:  MptcpAnalyzer.Commands.Map
+Description :
+Maintainer  : matt
+Portability : Linux
+-}
 module MptcpAnalyzer.Commands.Map (
   mapTcpOpts
   , mapMptcpOpts
@@ -10,30 +16,32 @@ where
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Commands.Definitions as CMD
 import MptcpAnalyzer.Commands.List as CMD
-import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Types
 import MptcpAnalyzer.Loader
-import MptcpAnalyzer.Merge
-import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Map
+import MptcpAnalyzer.Merge
+import MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
 
-import Prelude hiding (log)
 import Options.Applicative
-import Polysemy (Member, Members, Sem, Embed)
+import Polysemy (Embed, Member, Members, Sem)
 import qualified Polysemy as P
 import Polysemy.State as P
 import Polysemy.Trace as P
+import Prelude hiding (log)
 -- import Colog.Polysemy (Log, log)
+import Data.Either (lefts, rights)
 import Data.Function (on)
 import Data.List (sortBy, sortOn)
 import Data.Text (intercalate)
 import qualified Data.Text as TS
-import Data.Either (rights, lefts)
-import System.Console.Haskeline
-import System.Console.ANSI
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
+import System.Console.ANSI
+import System.Console.Haskeline
+import Tshark.Main (defaultTsharkPrefs)
 
 -- tshow :: Show a => a -> TS.Text
 -- tshow = TS.pack . Prelude.show
