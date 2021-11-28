@@ -18,9 +18,8 @@ module Net.Mptcp.Stats (
 where
 
 import MptcpAnalyzer.ArtificialFields
--- import MptcpAnalyzer.Types
--- import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Pcap
+import MptcpAnalyzer.Units
 import MptcpAnalyzer.Stream
 
 import qualified Data.Map as Map
@@ -88,16 +87,17 @@ instance Semigroup MptcpUnidirectionalStats where
 
 -- |Goodput is defined as the amount of effective data exchanged over time
 -- I.e., (maxDsn - minDsn) / (Mptcp communication Duration)
-getMptcpGoodput :: MptcpUnidirectionalStats -> Double
-getMptcpGoodput s = fromIntegral (musApplicativeBytes s) / ((getMptcpStatsDuration s) ^. _1)
+getMptcpGoodput :: MptcpUnidirectionalStats -> Throughput
+getMptcpGoodput s = Throughput (Bytes $ musApplicativeBytes s) ((getMptcpStatsDuration s) ^. _1)
 
+-- fromIntegral
 
 -- | return max - min across subflows
-getMptcpStatsDuration :: MptcpUnidirectionalStats -> (Double, Double, Double)
-getMptcpStatsDuration s = (end - start, start, end)
+getMptcpStatsDuration :: MptcpUnidirectionalStats -> (Duration, Timestamp, Timestamp)
+getMptcpStatsDuration s = (diffTime end start, start, end)
   where
-    start = head $ sort starts
-    end = last $ sort ends
+    start = Timestamp $ head $ sort starts
+    end = Timestamp $ last $ sort ends
     -- min of
     -- TODO get min
     starts = map (tusStartTime . tssStats) (Map.elems $ musSubflowStats s)

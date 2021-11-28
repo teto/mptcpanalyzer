@@ -51,6 +51,8 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     tusNrPackets :: Int
     -- duration
     -- , tusDuration :: Double
+
+    -- TODO convert to date ?
     , tusStartTime :: Double
     , tusEndTime :: Double
 

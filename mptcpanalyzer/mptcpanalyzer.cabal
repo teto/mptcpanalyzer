@@ -76,7 +76,8 @@ common shared-properties
       , Chart-cairo
       , Frames
       , bytestring
-      , byteunits
+      -- , byteunits
+      -- , time-units
       , cereal
       , containers
       , directory
@@ -197,7 +198,9 @@ library
         , MptcpAnalyzer.Cache
         , MptcpAnalyzer.Map
         , MptcpAnalyzer.Merge
+        , MptcpAnalyzer.Units
         , MptcpAnalyzer.Plots
+        , MptcpAnalyzer.Plots.Live
         , MptcpAnalyzer.Plots.Stream
         -- TODO remove les commandes ?
         -- , MptcpAnalyzer.Commands
@@ -243,6 +246,8 @@ executable mptcpanalyzer
         , MptcpAnalyzer.Debug
         , MptcpAnalyzer.Pcap
         , MptcpAnalyzer.Cache
+        , MptcpAnalyzer.Stats
+        , MptcpAnalyzer.Stream
         , MptcpAnalyzer.Merge
         , Net.Tcp
         , Net.Mptcp

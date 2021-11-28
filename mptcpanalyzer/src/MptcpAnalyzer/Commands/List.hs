@@ -193,14 +193,15 @@ tcpstream 4 transferred 0.0 Bytes out of 469.0 Bytes, accounting for 0.00%
 tcpstream 6 transferred 0.0 Bytes out of 469.0 Bytes, accounting for 0.00%
 -}
 showMptcpStats :: MptcpUnidirectionalStats -> String
-showMptcpStats s = " Mptcp stats towards " ++ show (musDirection s) ++ " :\n"
-    ++ "- Duration " ++ show (getMptcpStatsDuration s) ++ "\n"
-    -- getMptcpGoodput
-    ++ "- Goodput " ++ show (getMptcpGoodput s)
-    ++ "<TODO>\n"
-    ++ "Applicative Bytes : " ++ show (musApplicativeBytes s) ++ "\n"
-    ++ "Subflow stats:\n"
-    ++ intercalate "\n" (map showSubflowStats (Map.toList $ musSubflowStats s))
+showMptcpStats s = unlines [
+    " Mptcp stats towards " ++ show (musDirection s) ++ " :"
+    , "- Duration " ++ show (getMptcpStatsDuration s)
+    , "- Goodput " ++ show (getMptcpGoodput s)
+    , "<TODO>\n"
+    , "Applicative Bytes : " ++ show (musApplicativeBytes s)
+    , "Subflow stats:"
+    , intercalate "\n" (map showSubflowStats (Map.toList $ musSubflowStats s))
+    ]
     where
       -- ++ show (tusStreamId)
       showSubflowStats (sf, sfStats) = let

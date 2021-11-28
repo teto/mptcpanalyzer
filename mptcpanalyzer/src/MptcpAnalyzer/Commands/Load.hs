@@ -51,9 +51,7 @@ filenameReader = eitherReader readFilename
 loadPcapArgs :: Parser CommandArgs
 loadPcapArgs =  ArgsLoadPcap <$>
   argument filenameReader (metavar "PCAP"
-    -- <> completeWith ["toto", "tata"]
     <> completer completePath
-    -- <> action "file"
     <> help "Load a Pcap file"
   )
 

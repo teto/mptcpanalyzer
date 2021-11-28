@@ -24,6 +24,7 @@ import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
 import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
+import MptcpAnalyzer.Utils.Completion (completePath, readFilename)
 
 import Options.Applicative
 import Polysemy (Embed, Member, Members, Sem)
@@ -65,10 +66,12 @@ parserMapConnection forMptcp =
       CommandMapPcap <$>
       strArgument (
           metavar "PCAP1"
+          <> completer completePath
           <> help "File to analyze"
       )
       <*> strArgument (
           metavar "PCAP2"
+          <> completer completePath
           <> help "File to analyze"
       )
       -- readStreamId
