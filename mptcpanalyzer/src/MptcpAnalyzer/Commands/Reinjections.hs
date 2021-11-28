@@ -282,7 +282,7 @@ qualifyReinjections frame (aframeH1, aframeH2) dest = do
       let
         reinjectOf = fromJust (rgetField @SndReinjectionOf row)
         hostType = rgetField @SenderHost row
-        senderDest = rgetField @SenderDest row
+        senderDestVal = rgetField @SenderDest row
 
         -- originalFrame = if senderDest == RoleClient then (ffFrame aframeH2) else (ffFrame aframeH1)
         originalFrame = frame
@@ -301,7 +301,7 @@ qualifyReinjections frame (aframeH1, aframeH2) dest = do
       -- of packet id " ++ show initialPktId
       -- from host" ++ show hostType
       trace $ show (row ^. sndPacketId) ++ " is a reinjection of packet id " ++ show initialPktId
-      trace $ "number of original packets " ++ show (frameLength originalPackets) ++ " Host " ++ show senderDest
+      trace $ "number of original packets " ++ show (frameLength originalPackets) ++ " Host " ++ show senderDestVal
       trace $ describeReinjection row originalPackets
       -- TODO check if pktId is available
 

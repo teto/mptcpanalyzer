@@ -166,6 +166,7 @@ import Tshark.Main
        )
 
 
+import qualified Data.Text as T
 import Options.Applicative
 import Options.Applicative.Common
 import Options.Applicative.Help (parserHelp)
@@ -349,16 +350,8 @@ main = do
   putStrLn "Commands:"
   print $ extraCommands options
 
-  -- let out = mapParser debugParser mainParser
-  -- putStrLn $ "out=" ++ show  out
-
   let haskelineSettings = (Settings {
-      -- complete = customCompleteFunc
-      -- TODO test with loadPcapArgs instead
-      -- complete = customHaskelineParser defaultParserPrefs mainParserInfo
       complete = generateHaskelineCompleterFromParserInfo defaultParserPrefs mainParserInfo
-      -- piLoadCsv
-        -- piLoadPcapOpts
       , historyFile = Just $ cacheFolderXdg </> "history"
       , autoAddHistory = True
       })
@@ -625,6 +618,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
                 , delegate_ctlc = True
               }
 
+        Log.info $ "Looking at destination " <> tshow destination
 
         trace $ "Command run: " ++ show (RawCommand bin args)
         trace $ "Command run: " ++ showCommandForUser bin args
@@ -668,13 +662,7 @@ startLivePlot :: LiveStatsTcp -> CreateProcess -> IO ()
 --   -- threadId <- forkIO $
 --   readTsharkOutputAndPlotIt hout herr
 --   exitCode <- waitForProcess ph
---   case exitCode of
---     ExitSuccess -> putStrLn "Success"
---     _  -> do
---       hGetContents herr >>= putStrLn
---   pure ()
 startLivePlot initialLiveStats createProc = do
-  -- withCreateProcess
   (_, Just hout, Just herr, ph) <-  createProcess_ "error when creating process" createProc
   hSetBuffering stdout NoBuffering
   -- non blocking
@@ -686,6 +674,7 @@ startLivePlot initialLiveStats createProc = do
       -- hSetBuffering herr NoBuffering
       putStrLn $ "Live stats (before): " ++ show (lsPackets initialLiveStats)
       liveStats <- execStateT (runEffect (tsharkLoop hout)) initialLiveStats
+      putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsTcp) liveStats
       putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
       -- blocking
       exitCode2 <- waitForProcess ph

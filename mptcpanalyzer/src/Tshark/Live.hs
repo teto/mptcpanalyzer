@@ -7,6 +7,7 @@ Portability : Linux
 -}
 module Tshark.Live (
   tsharkLoop
+  , showLiveStatsTcp
   , LiveStats(..)
   , LiveStatsTcp
   , LiveStatsMptcp
@@ -116,6 +117,24 @@ pipeTableEitherOpt' opts = do
 
 type TsharkMonad = (StateT (LiveStatsTcp) IO)
 -- type TsharkMonad = IO
+--
+-- | Show live stats TCP
+-- showLiveStatsTcp :: LiveStatsTcp -> Text
+-- showLiveStatsTcp stats = T.unlines [
+--   showLiveStats (SomeStats stats)
+--   , showTcpUnidirectionalStats (lsStats stats)
+--   ]
+
+showLiveStatsTcp :: LiveStatsTcp -> Text
+showLiveStatsTcp  liveStats =
+      T.unlines ([
+            showLiveStats (SomeStats liveStats)
+            ]
+            -- ++ if lsDestination liveStats == RoleServer then else []
+            ++ ["Showing towards server:", showTcpUnidirectionalStats (lsForwardStats liveStats)]
+            -- ++ if lsDestination liveStats == RoleClient then else []
+            ++ ["Showing towards client:", showTcpUnidirectionalStats (lsBackwardStats liveStats)] 
+            )
 
 -- produceFrameChunks
 -- inCoreAoS
@@ -140,17 +159,15 @@ tsharkLoop hout = do
         in stats {
         lsPackets = lsPackets stats + 1
         , lsFrame = (lsFrame stats)  <> frame
-        , lsForwardStats = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
+        , lsForwardStats = let 
+            merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
+            in traceShowId merged
         , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
         })
       -- liftIO $ cursorUp 1
       liveStats <- get
       -- showLiveStatsTcp liveStats
-      let output = T.unlines ([
-            showLiveStats (SomeStats liveStats)
-            ] ++ if lsDestination liveStats == RoleServer then [showTcpUnidirectionalStats (lsForwardStats liveStats)] else []
-              ++ if lsDestination liveStats == RoleClient then [showTcpUnidirectionalStats (lsBackwardStats liveStats)] else []
-            )
+      let output = showLiveStatsTcp liveStats
 
       -- liftIO $ cursorUpLine $ (+) 1 (Prelude.length $ T.lines output)
       liftIO clearFromCursorToScreenEnd
@@ -158,8 +175,8 @@ tsharkLoop hout = do
       -- liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
       -- lift $ hPutStrLn stdout "test"
 
+  -- liftIO $ (putStrLn . T.unpack . showLiveStatsTcp) ls
   pure ls
-  -- pure ()
 
   where
     -- tokenize = tokenizeRow popts
@@ -212,12 +229,6 @@ data SomeStats where
 tshow :: Show a => a -> T.Text
 tshow = T.pack . Prelude.show
 
--- | Show live stats TCP
--- showLiveStatsTcp :: LiveStatsTcp -> Text
--- showLiveStatsTcp stats = T.unlines [
---   showLiveStats (SomeStats stats)
---   , showTcpUnidirectionalStats (lsStats stats)
---   ]
 
 -- showLiveStatsMptcp :: LiveStatsMptcp -> Text
 -- showLiveStatsMptcp stats =

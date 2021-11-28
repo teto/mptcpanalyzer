@@ -53,8 +53,10 @@ artificialFields = fromList [
 --   , ("tcpSeq", ''Word32)
 --   ]
 
+
 readConnectionRole :: ReadM ConnectionRole
-readConnectionRole = eitherReader $ \arg -> case reads arg of
-  [(a, "")] -> return $ a
+readConnectionRole = eitherReader $ \arg -> case arg of
+  "server" -> return RoleServer
+  "client" -> return RoleClient
   -- [("client", "")] -> return $ RoleClient
-  _ -> Left $ "readConnectionRole: cannot parse value `" ++ arg ++ "`"
+  _other -> Left $ "readConnectionRole: cannot parse value `" ++ arg ++ "`. It must be either 'server' or 'client'"

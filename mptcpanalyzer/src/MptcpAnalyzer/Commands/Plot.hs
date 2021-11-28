@@ -137,7 +137,7 @@ plotLiveFilter = ArgsPlotLiveTcp <$>
       -- completer ( String -> IO [String])
       -- <> completeWith ["eno1"]
       <> metavar "PCAP" ))
-    <*> pure Nothing
+    <*> optional (parserDestinationRole)
   <*> strArgument (
     metavar "interface" <> help "interface to monitor"
     -- TODO fetch list of interfaces in advance !
@@ -233,10 +233,18 @@ validationErrorMsg validFields entry = "validatedField: incorrect value `" ++ en
 -- readStreamId = eitherReader $ \arg -> case reads arg of
 --   [(r, "")] -> return $ StreamId r
 --   _ -> Left $ "readStreamId: cannot parse value `" ++ arg ++ "`"
+parserDestinationRole :: Parser ConnectionRole
+parserDestinationRole = argument readConnectionRole (
+          metavar "Destination"
+        -- <> Options.Applicative.value RoleServer
+        <> help "Only show in a specific direction"
+        <> completeWith ["server", "client"]
+      )
 
 -- TODO pass the list of accepted attributes (so that it works for TCP/MPTCP)
 plotStreamParser ::
-    [String]
+       [String]
+    -- ^ List of TCP attribute names
     -> Bool -- ^ for mptcp yes or no
     -> Parser ArgsPlots
 plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
@@ -262,12 +270,7 @@ plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
           <> completeWith _validAttributes
       )
       -- TODO ? if nothing prints both directions
-      <*> optional (argument readConnectionRole (
-          metavar "Destination"
-        -- <> Options.Applicative.value RoleServer
-        <> help "Only show in a specific direction"
-        <> completeWith _validAttributes
-      ))
+      <*> optional (parserDestinationRole)
       -- <*> option auto (
       --     metavar "MPTCP"
       --   -- internal is stronger than --belive, hides from all descriptions
