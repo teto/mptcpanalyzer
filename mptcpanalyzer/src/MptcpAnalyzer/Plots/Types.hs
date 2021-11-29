@@ -10,7 +10,7 @@ Trying to come up with a userspace abstraction for MPTCP path management
 module MptcpAnalyzer.Plots.Types (
   PlotSettings(..)
   , ArgsPlots(..)
-
+  , LivePlotTcpSettings(..)
 )
 where
 
@@ -35,6 +35,13 @@ data PlotSettings = PlotSettings {
   }
       -- parser.add_argument('--display', action="store", default="term", choices=["term", "gui", "no"],
 
+data LivePlotTcpSettings = LivePlotTcpSettings {
+    lvsFilter :: TcpConnection   -- ^the connection to filter
+  , lvsTestPcap :: (Maybe FilePath) -- ^a pcap file used to test, when set, ignore interface name
+  , lvsDestination :: (Maybe ConnectionRole) -- % to filter destination
+  , lvsIfName :: String -- ^Interface name
+}
+
 -- | The list of possible plots
 data ArgsPlots =
 
@@ -50,7 +57,6 @@ data ArgsPlots =
     | ArgsPlotOwdTcp (PcapMapping Tcp) (Maybe ConnectionRole)
     | ArgsPlotOwdMptcp (PcapMapping Mptcp) (Maybe ConnectionRole)
     -- Maybe filename
-    | ArgsPlotLiveTcp TcpConnection   -- ^the connection to filter
-                      (Maybe FilePath) -- ^a pcap file used to test, when set, ignore interface name
-                      (Maybe ConnectionRole) -- % to filter destination
-                      String -- ^Interface name
+    -- TODO use LivePlotTcpSettings instead ?
+    | ArgsPlotLiveTcp LivePlotTcpSettings
+    | ArgsPlotLiveMptcp LivePlotTcpSettings
