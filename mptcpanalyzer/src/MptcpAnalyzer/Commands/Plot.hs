@@ -21,13 +21,12 @@ module MptcpAnalyzer.Commands.Plot (
 )
 where
 
-import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
-import Data.Vinyl.Class.Method
-
+-- from mptcpanalyzer
 import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Plots.Types
 import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Completion (completePath, readFilename)
 -- import MptcpAnalyzer.Commands.Definitions
 import MptcpAnalyzer.Commands.Definitions as CMD
 import MptcpAnalyzer.Commands.PlotOWD
@@ -48,6 +47,8 @@ import Prelude hiding (filter, log, lookup, repeat)
 -- import Graphics.Rendering.Chart.Backend.Diagrams (defaultEnv, runBackendR)
 -- import Graphics.Rendering.Chart.Easy
 
+import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
+import Data.Vinyl.Class.Method
 import Data.Word (Word16, Word32, Word64, Word8)
 import Graphics.Rendering.Chart.Backend.Cairo (toFile)
 import Graphics.Rendering.Chart.Easy hiding (argument)
@@ -111,10 +112,6 @@ parserPlotSettings mptcpPlot = PlotSettings
         <> Options.Applicative.value mptcpPlot
         <> help ""
       )
-    -- <*> (switch
-    --   ( long "protocol"
-    --   <> help "Uses xdg-open to display plot"
-    --   ))
 
 
 -- |
@@ -125,17 +122,15 @@ piPlotTcpMainParser = info parserPlotTcpMain
   ( progDesc " TCP Plots"
   )
 
--- loadConnectionsFromFile
-plotLiveFilter :: Parser ArgsPlots
-plotLiveFilter = ArgsPlotLiveTcp <$>
+
+--
+parserLivePlotTcpSettings :: Parser LivePlotTcpSettings
+parserLivePlotTcpSettings = LivePlotTcpSettings <$>
     parserConnection
     <*> optional (strOption
       ( long "fake" <> short 'f'
       <> help "Load data from a pcap. This is used only for testing."
-      -- this is a filename !
-      -- TODO create a completer inspired by haskeline
-      -- completer ( String -> IO [String])
-      -- <> completeWith ["eno1"]
+      <> completer completePath
       <> metavar "PCAP" ))
     <*> optional (parserDestinationRole)
   <*> strArgument (
@@ -143,6 +138,10 @@ plotLiveFilter = ArgsPlotLiveTcp <$>
     -- TODO fetch list of interfaces in advance !
     <> completeWith ["eno1"]
     )
+
+-- loadConnectionsFromFile
+plotLiveFilter :: Parser ArgsPlots
+plotLiveFilter = ArgsPlotLiveTcp <$> parserLivePlotTcpSettings
 
 
 -- |Helper to load an IP

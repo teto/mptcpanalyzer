@@ -629,7 +629,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
         return CMD.Continue
 
       (ArgsPlotLiveMptcp connectionFilter mbFake mbConnectionRole ifname) -> do
-        Log.info $ "Looking at destination " 
+        Log.info $ "Looking at destination "
         return CMD.Continue
 
       -- _ -> error "unsupported plot"
@@ -658,6 +658,7 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
       return Continue
     where
       getDests mbDest = maybe [RoleClient, RoleServer] (: []) mbDest
+
 
 
 -- TODO use genericRunCommand

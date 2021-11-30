@@ -18,7 +18,7 @@ where
 
 import Data.List (intercalate)
 import qualified Data.Text as T
-import MptcpAnalyzer.ArtificialFields (ConnectionRole (RoleClient, RoleServer))
+import MptcpAnalyzer.ArtificialFields (ConnectionRole(RoleClient, RoleServer))
 import qualified Net.IP
 import Net.Tcp (TcpConnection(..))
 import System.Process
@@ -52,10 +52,10 @@ showIP = T.unpack . Net.IP.encode
 
 
 -- |One way filter
--- genReadFilterUnidirectional :: 
+-- genReadFilterUnidirectional ::
 -- genReadFilterUnidirectional =
 
--- genReadFilterBidirectional :: 
+-- genReadFilterBidirectional ::
 -- genReadFilterBidirectional =
 
 -- |Create a tshark read filter from a 'TcpConnection'
@@ -65,7 +65,7 @@ genReadFilterFromTcpConnection ::
   -> String
 genReadFilterFromTcpConnection con dest =
   case dest of
-    Just RoleClient -> 
+    Just RoleClient ->
       -- TODO should depend on destination
       "tcp and ip.src==" ++ (showIP . conTcpClientIp) con ++ " and ip.dst==" ++ (showIP . conTcpServerIp) con
         ++ " and tcp.srcport==" ++ show (conTcpClientPort con) ++ " and tcp.dstport==" ++ show (conTcpServerPort con)

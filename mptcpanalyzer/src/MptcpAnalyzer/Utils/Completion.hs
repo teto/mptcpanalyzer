@@ -54,10 +54,10 @@ readFilename path =
   case exists of
     True ->
 #ifdef DEBUG_COMPLETION
-  trace "right path"
+      trace "right path"
 #endif
       Right path
-    False -> 
+    False ->
 #ifdef DEBUG_COMPLETION
       trace ("path " ++ path ++ " DOES NOT EXIST (returning Left)")
 #endif
@@ -79,15 +79,16 @@ hl2oa (Completion replacement' display' isFinished') =
 -- The first 'String' argument is the contents of the line to the left of the cursor,
 -- reversed.
 -- The second 'String' argument is the contents of the line to the right of the cursor.
+-- TODO this should accept a filter ? like for which type of file
 completePath :: Completer
 completePath = mkCompleter $ \entry -> do
   -- case words entry of
   --   [] -> ""
   --   x -> tail
-  (_, completions) <- 
+  (_, completions) <-
 #ifdef DEBUG_COMPLETION
     trace "completeFilename called with entry"
-#endif 
+#endif
     completeFilename (reverse entry, "")
   let completions' = map hl2oa completions
   putStrLn $ "completePath called !! with entry: [" ++ entry ++ "]"
@@ -118,16 +119,16 @@ haskelineCompletionQuery pinfo pprefs ws rest = case runCompletion compl pprefs 
     trace "terminal completer\n"
 #endif
     run_completer c
-  Nothing -> 
+  Nothing ->
 #ifdef DEBUG_COMPLETION
-  trace "runCompletion into Nothing\n"
+    trace "runCompletion into Nothing\n"
 #endif
     return []
   where
     --current word
     -- runParserInfo te renvoie une (Completion a)
     -- drop 1 looks necesary here ?
-    compl = 
+    compl =
 #ifdef DEBUG_COMPLETION
       traceShow ("Passing args " ++ show ws ++ "\n")
 #endif

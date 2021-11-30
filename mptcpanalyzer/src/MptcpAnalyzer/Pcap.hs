@@ -5,6 +5,7 @@ License     : GPL-3
 
 Pot-pourri
 -}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -25,7 +26,6 @@ Pot-pourri
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE PackageImports #-}
 module MptcpAnalyzer.Pcap (
@@ -120,15 +120,15 @@ import Numeric (readHex)
 import Pipes (Producer, cat, (>->))
 import qualified Pipes.Prelude as P
 -- import qualified Frames.InCore
+import Control.Exception (assert)
 import Data.Either (lefts, rights)
 import qualified Data.Map as Map
 import Debug.Trace
 import qualified Frames.InCore as I
+import GHC.IO.Handle (hClose)
 import System.Environment (getEnvironment)
 import System.IO.Temp
 import Tshark.Main
-import GHC.IO.Handle (hClose)
-import Control.Exception (assert)
 
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 

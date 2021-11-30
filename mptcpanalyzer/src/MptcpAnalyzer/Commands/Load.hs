@@ -59,8 +59,8 @@ cmdLoadCsvArgs :: Parser CommandArgs
 cmdLoadCsvArgs =  ArgsLoadCsv <$> (
     argument str (
       metavar "CSV"
-      <> completeWith ["toto", "tata"]
       -- <> action "file"
+      <> completer completePath
       <> help "Load a Csv file"
     ))
     <*> argument auto (metavar "bool"

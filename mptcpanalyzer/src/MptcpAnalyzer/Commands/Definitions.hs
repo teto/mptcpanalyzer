@@ -11,6 +11,7 @@ import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
 
 import Data.Word (Word32)
+import MptcpAnalyzer.Utils.Completion (completePath, readFilename)
 import Options.Applicative
 
 
@@ -63,6 +64,7 @@ parserPcapMapping forMptcp =
   -- toto =
       strArgument (
           metavar "PCAP1"
+          <> completer completePath
           <> help "File to analyze"
       )
       <*> argument readStreamId (
@@ -71,6 +73,7 @@ parserPcapMapping forMptcp =
       )
       <*> strArgument (
           metavar "PCAP2"
+          <> completer completePath
           <> help "File to analyze"
       )
       <*> argument readStreamId (

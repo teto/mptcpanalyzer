@@ -22,9 +22,9 @@ import MptcpAnalyzer.Merge
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Completion (completePath, readFilename)
 import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
-import MptcpAnalyzer.Utils.Completion (completePath, readFilename)
 
 import Options.Applicative
 import Polysemy (Embed, Member, Members, Sem)

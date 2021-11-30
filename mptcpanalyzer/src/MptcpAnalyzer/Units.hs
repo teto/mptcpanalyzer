@@ -30,7 +30,7 @@ data Bytes = Bytes Word64
 data TimeUnit = Second | MilliSecond | NanoSecond
 -- TimeUnit
 -- TODO pass unit
-data Timestamp  = Timestamp Double deriving (Show, Eq, Ord) 
+data Timestamp  = Timestamp Double deriving (Show, Eq, Ord)
 data Duration = Duration Double
 
 instance Show Duration where

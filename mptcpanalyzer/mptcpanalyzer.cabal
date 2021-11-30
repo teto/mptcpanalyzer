@@ -186,6 +186,7 @@ library
         , Net.Mptcp.Connection
         -- reexport the rest
         , MptcpAnalyzer
+        , MptcpAnalyzer.Prelude
         , MptcpAnalyzer.ArtificialFields
         , MptcpAnalyzer.Stream
         , MptcpAnalyzer.Stats

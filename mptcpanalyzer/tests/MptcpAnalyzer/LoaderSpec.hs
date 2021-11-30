@@ -3,7 +3,9 @@ spec
 ) where
 -- import           Test.Tasty
 -- import           Test.Tasty.HUnit
+import Data.Maybe (fromJust)
 import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
+import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
 import Net.IP
@@ -14,8 +16,6 @@ import System.IO
 import Test.Hspec
 import Test.QuickCheck hiding (Success)
 import Tshark.Main
-import MptcpAnalyzer.ArtificialFields
-import Data.Maybe (fromJust)
 
 
 

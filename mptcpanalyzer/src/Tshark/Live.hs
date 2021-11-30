@@ -53,6 +53,9 @@ import Control.Monad.State (MonadState(get), StateT, gets, modify')
 import Control.Monad.State.Lazy (execStateT)
 import Data.Text.IO (hPutStrLn)
 import MptcpAnalyzer (FrameFiltered(ffFrame))
+import MptcpAnalyzer.ArtificialFields
+import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
+import MptcpAnalyzer.Types (FrameFiltered(FrameTcp))
 import Net.Mptcp (MptcpUnidirectionalStats)
 import Net.Mptcp.Connection (MptcpConnection(MptcpConnection))
 import Net.Mptcp.Stats (MptcpUnidirectionalStats, showMptcpUnidirectionalStats)
@@ -62,9 +65,6 @@ import Net.Tcp.Stats
 import Pipes.Prelude (fromHandle)
 import System.Console.ANSI
 import System.IO (stdout)
-import MptcpAnalyzer.Types (FrameFiltered(FrameTcp))
-import MptcpAnalyzer.ArtificialFields
-import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 
 
 -- --         +--------+-- A 'Producer' that yields 'String's
@@ -133,7 +133,7 @@ showLiveStatsTcp  liveStats =
             -- ++ if lsDestination liveStats == RoleServer then else []
             ++ ["Showing towards server:", showTcpUnidirectionalStats (lsForwardStats liveStats)]
             -- ++ if lsDestination liveStats == RoleClient then else []
-            ++ ["Showing towards client:", showTcpUnidirectionalStats (lsBackwardStats liveStats)] 
+            ++ ["Showing towards client:", showTcpUnidirectionalStats (lsBackwardStats liveStats)]
             )
 
 -- produceFrameChunks
@@ -159,7 +159,7 @@ tsharkLoop hout = do
         in stats {
         lsPackets = lsPackets stats + 1
         , lsFrame = (lsFrame stats)  <> frame
-        , lsForwardStats = let 
+        , lsForwardStats = let
             merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
             in traceShowId merged
         , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest

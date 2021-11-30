@@ -10,14 +10,14 @@ import Net.Tcp.Connection
 import Test.Hspec
 -- import Test.QuickCheck hiding (Success)
 -- import Tshark.Main
-import MptcpAnalyzer.ArtificialFields
 import Data.Maybe (fromJust)
+import MptcpAnalyzer.ArtificialFields
 import Utils
 -- import MptcpAnalyzer.Loader (loadPcapIntoFrame)
-import MptcpAnalyzer.Types
-import Frames (filterFrame)
-import Distribution.Compat.Lens ((^.), view)
 import qualified Data.Foldable as F
+import Distribution.Compat.Lens (view, (^.))
+import Frames (filterFrame)
+import MptcpAnalyzer.Types
 
 
 
@@ -29,7 +29,7 @@ exampleTcpConnection0 = TcpConnection (fromJust $ decode "10.0.0.1") (fromJust $
 
 
 -- addTcpDestinationsToAFrame
--- genTcpDestFrame 
+-- genTcpDestFrame
 
 spec :: Spec
 spec = describe "absolute" $ do

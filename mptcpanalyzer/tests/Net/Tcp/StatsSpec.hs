@@ -18,6 +18,7 @@ import Test.QuickCheck hiding (Success)
 
 import Data.Either (fromRight)
 import Frames
+import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
@@ -33,7 +34,6 @@ import Polysemy.Log.Colog (interpretLogStdout)
 import qualified Polysemy.State as P
 import qualified Polysemy.Trace as P
 import Tshark.Main (defaultTsharkPrefs)
-import MptcpAnalyzer.ArtificialFields
 import Utils
 
 -- cacheConfig :: CacheConfig
@@ -105,7 +105,7 @@ splitAFrame aframe chunkSize  =
         go (FrameTcp (ffCon aframe') (dropRows chunkSize $ ffFrame aframe'))
            acc ++ [(FrameTcp (ffCon aframe') (takeRows chunkSize $ ffFrame aframe'))]
 
--- beforeWith (loadAFrame) $ 
+-- beforeWith (loadAFrame) $
 -- before loadAFrame $ describ
 spec :: Spec
 spec = before (loadAFrame "examples/client_2_cleaned.pcapng") $

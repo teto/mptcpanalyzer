@@ -19,8 +19,8 @@ where
 
 import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Pcap
-import MptcpAnalyzer.Units
 import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Units
 
 import qualified Data.Map as Map
 import Net.Mptcp.Connection
