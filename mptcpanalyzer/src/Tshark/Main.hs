@@ -81,6 +81,9 @@ genReadFilterFromTcpConnection con dest =
 -- |Create a tshark read filter from a 'MptcpConnection'
 -- genReadFilterFromMptcpConnection :: MptcpConnection -> String
 -- genReadFilterFromMptcpConnection con =
+--
+genReadFilterMptcpFromMptcpConnection :: MptcpConnection -> String
+genReadFilterMptcpFromMptcpConnection con = "mptcp"
 
 
 
