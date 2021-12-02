@@ -283,6 +283,11 @@ buildTcpConnectionFromStreamId frame streamId =
       streamPackets = filterFrame  (\x -> x ^. tcpStream == streamId) frame
       synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
 
+
+-- |
+-- buildMasterSubflowFromRecord ::
+
+
 -- | Builds
 -- should expect a filteredFrame with MPTCP
 -- buildSubflowFromTcpStreamId :: FrameFiltered TcpConnection Packet -> StreamId Tcp -> Either String (FrameFiltered MptcpSubflow Packet)

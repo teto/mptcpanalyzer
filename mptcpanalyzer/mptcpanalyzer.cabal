@@ -173,6 +173,7 @@ library
     Exposed-Modules:
         Tshark.TH
         , Tshark.Fields
+        , Tshark.Capture
         , Tshark.Interfaces
         , Tshark.Live
         , Tshark.Main

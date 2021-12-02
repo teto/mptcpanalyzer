@@ -13,6 +13,7 @@ module Tshark.Main (
   , defaultTsharkPrefs
   , defaultTsharkOptions
   , genReadFilterFromTcpConnection
+  , genReadFilterMptcpFromMptcpConnection
 )
 where
 
@@ -81,9 +82,12 @@ genReadFilterFromTcpConnection con dest =
 -- |Create a tshark read filter from a 'MptcpConnection'
 -- genReadFilterFromMptcpConnection :: MptcpConnection -> String
 -- genReadFilterFromMptcpConnection con =
---
-genReadFilterMptcpFromMptcpConnection :: MptcpConnection -> String
-genReadFilterMptcpFromMptcpConnection con = "mptcp"
+
+
+-- we cant update the filter on the fly so we need to look at all the mptcp traffic
+-- and match on master subflow
+genReadFilterMptcpFromMptcpConnection :: String
+genReadFilterMptcpFromMptcpConnection = "mptcp"
 
 
 
