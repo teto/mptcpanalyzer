@@ -10,6 +10,7 @@ module Tshark.Live (
   , LiveStats(..)
   , LiveStatsTcp
   , LiveStatsMptcp
+  , CaptureSettingsMptcp(..)
 )
 where
 
@@ -26,6 +27,7 @@ import Control.Monad (liftM, unless, when)
 import Data.Maybe (isNothing)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
+import qualified Data.Map.Strict as Map
 import Data.Vinyl.Functor (Compose(..), (:.))
 import Debug.Trace (trace, traceShow, traceShowId)
 import Frames
@@ -63,6 +65,8 @@ import Net.Tcp.Stats
        (TcpUnidirectionalStats, getTcpStats, showTcpUnidirectionalStats)
 import System.Console.ANSI
 import System.IO (stdout)
+import Net.Mptcp.Connection
+import qualified Data.Set as Set
 
 
 -- --         +--------+-- A 'Producer' that yields 'String's
@@ -153,12 +157,14 @@ data LiveStats stats con packet = LiveStats {
   }
 
 type LiveStatsTcp = LiveStats TcpUnidirectionalStats TcpConnection Packet
-type LiveStatsMptcp = LiveStats TcpUnidirectionalStats MptcpConnection Packet
+type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats MptcpConnection Packet
 
 -- should be richer
 data CaptureSettingsMptcp = CaptureSettingsMptcp {
-  Maybe MptcpSub
-  lsmStats :: LiveStats MptcpUnidirectionalStats MptcpConnection Packet
+    -- tcpStreamId
+    lsmMaster :: Maybe MptcpSubflow
+  , lsmSubflows :: Map.Map MptcpSubflow MptcpUnidirectionalStats
+  , lsmStats :: LiveStatsMptcp
   }
 
 

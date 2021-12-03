@@ -69,5 +69,7 @@ showMptcpConnectionText con =
   where
     -- todo show version
     tpl :: Text
-    tpl = "Server key/token: " <> tshow (mptcpServerKey con) <> "/" <> tshow ( mptcpServerToken con)
-        <> "\nClient key/token: " <> tshow (mptcpClientKey con) <> "/" <> tshow ( mptcpClientToken con)
+    tpl = TS.unlines [
+      "Server key/token: " <> tshow (mptcpServerKey con) <> "/" <> tshow ( mptcpServerToken con)
+      , "Client key/token: " <> tshow (mptcpClientKey con) <> "/" <> tshow ( mptcpClientToken con)
+      ]
