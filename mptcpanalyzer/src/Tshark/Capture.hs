@@ -32,6 +32,7 @@ import Net.Tcp (getTcpStats)
 import Debug.Trace (trace, traceShow, traceShowId)
 import System.Console.ANSI
 import Data.Vinyl.Functor (getCompose)
+import Net.Tcp.Connection
 
 type TsharkMonad = (StateT (LiveStatsTcp) IO)
 -- type TsharkMonad = IO
@@ -100,9 +101,9 @@ tsharkLoopTcp hout = do
 -- Tricky function:
 -- Contrary to TCP we have to filter on the master subflow but as we can't update the filter as we discover
 -- the subflows, we configure tshark to capture all MPTCP traffic and filter it in the application
--- Need to filter
-tsharkLoopMptcp :: Handle -> Effect TsharkMonad ()
-tsharkLoopMptcp hout = do
+-- 1/ first we need to find the master subflow
+tsharkLoopMptcp :: TcpConnection -> Handle -> Effect (StateT (CaptureSettingsMptcp) IO) ()
+tsharkLoopMptcp masterFilter hout = do
   -- hSetBuffering stdout NoBuffering
   -- ls <- for (tsharkProducer hout) $ \x -> do
   ls <- for (P.fromHandle hout) $ \x -> do
@@ -113,8 +114,8 @@ tsharkLoopMptcp hout = do
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
       liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       -- if we have no master subflow yet, we should check against it
-      -- so now we should 
-      stFrame <- gets lsFrame
+      -- so now we should
+      mptcpstats <- gets lsmStats
       modify' (\stats -> let
         frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)
         forwardFrameWithDest = getTcpStats frameWithDest RoleServer

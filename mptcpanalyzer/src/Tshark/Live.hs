@@ -9,8 +9,8 @@ module Tshark.Live (
     showLiveStatsTcp
   , LiveStats(..)
   , LiveStatsTcp
-  , LiveStatsMptcp
-  , CaptureSettingsMptcp(..)
+  , LiveStatsMptcp(..)
+  , CaptureSettingsMptcp
 )
 where
 
@@ -146,7 +146,7 @@ data LiveStats stats con packet = LiveStats {
   , lsBackwardStats :: stats
   -- keep to check everything worked fine? else we can retreive the count from lsFrame
   , lsPackets :: Int
-  , lsConnection :: con
+  , lsConnection :: TcpConnection
   , lsDestination :: ConnectionRole
   -- , lsConnection :: TcpConnection
   , lsFrame :: Frame packet
@@ -157,16 +157,18 @@ data LiveStats stats con packet = LiveStats {
   }
 
 type LiveStatsTcp = LiveStats TcpUnidirectionalStats TcpConnection Packet
-type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats MptcpConnection Packet
+-- type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats MptcpConnection Packet
 
 -- should be richer
-data CaptureSettingsMptcp = CaptureSettingsMptcp {
+-- type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats MptcpConnection Packet
+data LiveStatsMptcp =  LiveStatsMptcp {
     -- tcpStreamId
     lsmMaster :: Maybe MptcpSubflow
   , lsmSubflows :: Map.Map MptcpSubflow MptcpUnidirectionalStats
-  , lsmStats :: LiveStatsMptcp
+  , lsmStats :: LiveStats MptcpUnidirectionalStats MptcpConnection Packet
   }
 
+type CaptureSettingsMptcp = LiveStatsMptcp
 
 data SomeStats where
   SomeStats :: LiveStats a b c -> SomeStats
