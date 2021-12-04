@@ -56,7 +56,7 @@ data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
 -- newtype TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats
 
 
--- | Holds MPTCP statistics for one direction
+-- | Holds MPTCP application level statistics for one direction
 data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
   musDirection          :: ConnectionRole
   , musApplicativeBytes :: Word64

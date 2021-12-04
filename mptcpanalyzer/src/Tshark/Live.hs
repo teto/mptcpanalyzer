@@ -59,7 +59,7 @@ import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 import MptcpAnalyzer.Types (FrameFiltered(FrameTcp))
 import Net.Mptcp (MptcpUnidirectionalStats)
 import Net.Mptcp.Connection (MptcpConnection(MptcpConnection))
-import Net.Mptcp.Stats (MptcpUnidirectionalStats, showMptcpUnidirectionalStats)
+import Net.Mptcp.Stats (MptcpUnidirectionalStats, showMptcpUnidirectionalStats, TcpSubflowUnidirectionalStats)
 import Net.Tcp (TcpConnection)
 import Net.Tcp.Stats
        (TcpUnidirectionalStats, getTcpStats, showTcpUnidirectionalStats)
@@ -164,7 +164,8 @@ type LiveStatsTcp = LiveStats TcpUnidirectionalStats TcpConnection Packet
 data LiveStatsMptcp =  LiveStatsMptcp {
     -- tcpStreamId
     lsmMaster :: Maybe MptcpSubflow
-  , lsmSubflows :: Map.Map MptcpSubflow MptcpUnidirectionalStats
+
+  , lsmSubflows :: Map.Map MptcpSubflow (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
   , lsmStats :: LiveStats MptcpUnidirectionalStats MptcpConnection Packet
   }
 
@@ -177,9 +178,11 @@ tshow :: Show a => a -> T.Text
 tshow = T.pack . Prelude.show
 
 
--- showLiveStatsMptcp :: LiveStatsMptcp -> Text
--- showLiveStatsMptcp stats =
---   showLiveStats (SomeStats stats) <> showMptcpUnidirectionalStats (lsStats stats)
+showLiveStatsMptcp :: LiveStatsMptcp -> Text
+showLiveStatsMptcp stats = T.unlines [
+    "Forward: "  <> showMptcpUnidirectionalStats ((lsForwardStats . lsmStats) stats)
+    , "Backward: " <> showMptcpUnidirectionalStats ((lsForwardStats . lsmStats) stats)
+    ]
 
 showLiveStats :: SomeStats -> Text
 showLiveStats (SomeStats liveStats) =
