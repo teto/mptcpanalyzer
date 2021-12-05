@@ -17,6 +17,7 @@ module MptcpAnalyzer.Commands.Plot (
   , piPlotTcpMainParser
   , parserPlotTcpMain
   , parserPlotTcpLive
+  , parserPlotMptcpLive
   , parserPlotMptcpMain
 )
 where
@@ -164,6 +165,10 @@ parserConnection = TcpConnection <$>
 parserPlotTcpLive :: Parser CommandArgs
 parserPlotTcpLive  = ArgsPlotGeneric <$> parserPlotSettings False
     <*> (plotLiveFilter)
+
+parserPlotMptcpLive :: Parser CommandArgs
+parserPlotMptcpLive  = ArgsPlotGeneric <$> parserPlotSettings False
+    <*> (ArgsPlotLiveMptcp <$> parserLivePlotTcpSettings)
 
 
 -- -> Bool -- ^ for mptcp yes or no

@@ -43,6 +43,7 @@ module MptcpAnalyzer.Pcap (
     , getTcpStreams
     , getMptcpStreams
     , buildSubflowFromTcpStreamId
+    , buildTcpConnectionFromRecord
 
     -- TODO remove ? use instance instead
     , showMptcpSubflowText
@@ -256,8 +257,7 @@ getTcpFrame = buildTcpConnectionFromStreamId
 
 -- | For now assume the packet is the first syn from client to server
 buildTcpConnectionFromRecord :: (
-  IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
-    -- rs ⊆ HostCols
+  IpFields rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
   ) => Record rs -> TcpConnection
 buildTcpConnectionFromRecord r =
   TcpConnection {

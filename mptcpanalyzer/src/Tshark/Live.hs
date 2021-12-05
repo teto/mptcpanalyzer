@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-|
 Module: Tshark.Live
 Description : Load incrementally a PCAP into a frame
@@ -7,10 +8,12 @@ Portability : Linux
 -}
 module Tshark.Live (
     showLiveStatsTcp
+  , showLiveStatsMptcp
   , LiveStats(..)
   , LiveStatsTcp
+  , LiveStatsConfig(..)
   , LiveStatsMptcp(..)
-  , CaptureSettingsMptcp
+  -- , CaptureSettingsMptcp
 )
 where
 
@@ -138,16 +141,20 @@ showLiveStatsTcp  liveStats =
 --   , lsFrame :: FrameRec HostCols
 --   }
 
+-- TODO rename to liveplotConfig ?
+data LiveStatsConfig = LiveStatsConfig {
+    lsConnection :: TcpConnection
+  , lsDestination :: ConnectionRole
+  }
+
 -- TODO should be instance of a Monoid !
 -- | for now unidirectional ?
-data LiveStats stats con packet = LiveStats {
+data LiveStats stats packet = LiveStats {
   -- lsCon :: MptcpConnection,
   lsForwardStats :: stats
   , lsBackwardStats :: stats
   -- keep to check everything worked fine? else we can retreive the count from lsFrame
   , lsPackets :: Int
-  , lsConnection :: TcpConnection
-  , lsDestination :: ConnectionRole
   -- , lsConnection :: TcpConnection
   , lsFrame :: Frame packet
   -- , lsFrame :: FrameFiltered con packet
@@ -156,23 +163,44 @@ data LiveStats stats con packet = LiveStats {
   -- , lsFrame :: FrameRec HostCols
   }
 
-type LiveStatsTcp = LiveStats TcpUnidirectionalStats TcpConnection Packet
+instance Semigroup stats => Semigroup (LiveStats stats packets) where
+  (<>) a b = LiveStats {
+      lsForwardStats = lsForwardStats a <> lsForwardStats b
+      , lsBackwardStats = lsBackwardStats a <> lsBackwardStats b
+      , lsPackets = lsPackets a + lsPackets b
+      , lsFrame = lsFrame a <> lsFrame b
+      , lsHasFinished = (lsHasFinished a) || (lsHasFinished b)
+    }
+
+
+instance Monoid stats => Monoid (LiveStats stats packets) where
+  mempty = LiveStats {
+    lsForwardStats = mempty
+    , lsBackwardStats = mempty
+    -- keep to check everything worked fine? else we can retreive the count from lsFrame
+    , lsPackets = 0
+    -- , lsConnection :: TcpConnection
+    , lsFrame = mempty
+    -- , lsFrame :: FrameFiltered con packet
+    , lsHasFinished = False
+    }
+
+type LiveStatsTcp = LiveStats TcpUnidirectionalStats Packet
 -- type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats MptcpConnection Packet
 
 -- should be richer
--- type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats MptcpConnection Packet
 data LiveStatsMptcp =  LiveStatsMptcp {
     -- tcpStreamId
     lsmMaster :: Maybe MptcpSubflow
 
   , lsmSubflows :: Map.Map MptcpSubflow (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
-  , lsmStats :: LiveStats MptcpUnidirectionalStats MptcpConnection Packet
+  , lsmStats :: LiveStats MptcpUnidirectionalStats Packet
   }
 
-type CaptureSettingsMptcp = LiveStatsMptcp
+-- type CaptureSettingsMptcp = LiveStatsMptcp
 
 data SomeStats where
-  SomeStats :: LiveStats a b c -> SomeStats
+  SomeStats :: LiveStats a b -> SomeStats
 
 tshow :: Show a => a -> T.Text
 tshow = T.pack . Prelude.show

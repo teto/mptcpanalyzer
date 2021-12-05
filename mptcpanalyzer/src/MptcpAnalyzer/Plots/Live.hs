@@ -44,8 +44,9 @@ import Tshark.Fields
 import Tshark.Capture
 
 -- (ArgsPlotLiveTcp connectionFilter mbFake mbConnectionRole ifname)
-configureLivePlotTcp :: Members '[Log, P.Trace, P.Embed IO] r =>
-  LivePlotTcpSettings -> Sem r LiveStatsTcp
+configureLivePlotTcp :: Members '[Log, P.Trace, P.Embed IO] r
+  => LivePlotTcpSettings
+  -> Sem r LiveStatsTcp
 configureLivePlotTcp (LivePlotTcpSettings connectionFilter mbFake mbConnectionRole ifname) = do
     let
       fields = Map.elems $ Map.map tfieldFullname baseFields
@@ -53,7 +54,8 @@ configureLivePlotTcp (LivePlotTcpSettings connectionFilter mbFake mbConnectionRo
       -- stats/packetCount/Frame
       -- keeping it light for now
       destination = fromMaybe RoleServer mbConnectionRole
-      initialLiveStats :: LiveStatsTcp = LiveStats mempty mempty 0 connectionFilter destination mempty False
+      lsConfig = LiveStatsConfig connectionFilter destination 
+
       -- initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
       toLoad = case mbFake of
         Just filename -> Right filename
@@ -80,11 +82,13 @@ configureLivePlotTcp (LivePlotTcpSettings connectionFilter mbFake mbConnectionRo
     trace $ "Command run: " ++ show (RawCommand bin args)
     trace $ "Command run: " ++ showCommandForUser bin args
     -- Log.info $ "Starting " <> tshow bin <> tshow args
-    ls <- P.embed $ startLivePlot initialLiveStats createProc
+    ls <- P.embed $ startLivePlot lsConfig createProc
     pure ls
 
-startLivePlot :: LiveStatsTcp -> CreateProcess -> IO LiveStatsTcp
-startLivePlot initialLiveStats createProc = do
+startLivePlot :: LiveStatsConfig -> CreateProcess -> IO LiveStatsTcp
+startLivePlot lsConfig createProc = do
+  let initialLiveStats :: LiveStatsTcp = LiveStats mempty mempty 0 mempty False
+
   (_, Just hout, Just herr, ph) <-  createProcess_ "error when creating process" createProc
   hSetBuffering stdout NoBuffering
   -- non blocking
@@ -94,8 +98,8 @@ startLivePlot initialLiveStats createProc = do
     _ -> do
       -- hSetBuffering hout LineBuffering
       -- hSetBuffering herr NoBuffering
-      putStrLn $ "Live stats (before): " ++ show (lsPackets initialLiveStats)
-      liveStats <- execStateT (runEffect (tsharkLoopTcp hout)) initialLiveStats
+      putStrLn $ "Starting live TCP plot with initial stats: (before): " ++ show (lsPackets initialLiveStats)
+      liveStats <- execStateT (runEffect (tsharkLoopTcp lsConfig hout)) initialLiveStats
       putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsTcp) liveStats
       putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
       -- blocking
@@ -110,27 +114,23 @@ startLivePlot initialLiveStats createProc = do
 -- LiveStatsMptcp
 startMptcpCapture :: 
 -- Members '[Log, P.Trace, P.Embed IO] r =>
-      TcpConnection
-   -- ^ The master subflow we want to filter on
-   -> CaptureSettingsMptcp
-   -- -> IO CaptureSettingsMptcp
-   -- CaptureSettingsMptcp 
+   LiveStatsConfig 
+   -> LiveStatsMptcp
    -> CreateProcess
-   -> IO CaptureSettingsMptcp
+   -> IO LiveStatsMptcp
 
-startMptcpCapture masterFilter initialCaptureSettings createProc = do
+startMptcpCapture lsConfig initialLiveStats createProc = do
   (_, Just hout, Just herr, ph) <- createProcess_ "error when creating process" createProc
   hSetBuffering stdout NoBuffering
   -- non blocking
-  -- let initialCaptureSettings = CaptureSettingsMptcp { }
   exitCode <- getProcessExitCode ph
   case exitCode of
-    Just code -> putStrLn "Finished" >> pure initialCaptureSettings
+    Just code -> putStrLn "Finished" >> pure initialLiveStats
     _ -> do
       -- hSetBuffering hout LineBuffering
       -- hSetBuffering herr NoBuffering
-      -- putStrLn $ "Live stats (before): " ++ show (lsPackets initialLiveStats)
-      liveStats <- execStateT (runEffect (tsharkLoopMptcp masterFilter hout)) initialCaptureSettings
+      putStrLn $ "Starting live mptcp plotting stats (before): "
+      liveStats <- execStateT (runEffect (tsharkLoopMptcp lsConfig hout)) initialLiveStats
       -- putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsTcp) liveStats
       -- putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
       -- blocking
@@ -147,11 +147,14 @@ startMptcpCapture masterFilter initialCaptureSettings createProc = do
 configureLivePlotMptcp :: Members '[Log, Cache, P.Trace, P.Embed IO] r =>
        LivePlotTcpSettings
     -- -> CaptureSettingsMptcp
-    -> Sem r CaptureSettingsMptcp
+    -> Sem r LiveStatsMptcp
 
 configureLivePlotMptcp (LivePlotTcpSettings connectionFilter mbFake mbConnectionRole ifname) = do
     let
-      captureSettings = CaptureSettingsMptcp {
+      destination = fromMaybe RoleServer mbConnectionRole
+
+      lpConfig = LiveStatsConfig connectionFilter destination
+      captureSettings = LiveStatsMptcp {
         lsmMaster = Nothing
         , lsmSubflows = mempty
         , lsmStats = mempty
@@ -160,8 +163,7 @@ configureLivePlotMptcp (LivePlotTcpSettings connectionFilter mbFake mbConnection
 
       -- stats/packetCount/Frame
       -- keeping it light for now
-      destination = fromMaybe RoleServer mbConnectionRole
-      initialLiveStats :: LiveStatsMptcp = LiveStats mempty mempty 0 connectionFilter destination mempty False
+      initialLiveStats = captureSettings
       -- initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
       toLoad = case mbFake of
         Just filename -> Right filename
@@ -188,6 +190,6 @@ configureLivePlotMptcp (LivePlotTcpSettings connectionFilter mbFake mbConnection
     trace $ "Command run: " ++ show (RawCommand bin args)
     trace $ "Command run: " ++ showCommandForUser bin args
     -- Log.info $ "Starting " <> tshow bin <> tshow args
-    ls <- P.embed $ tsharkLoopMptcp connectionFilter captureSettings createProc
+    ls <- P.embed $ startMptcpCapture lpConfig captureSettings createProc
     pure ls
 

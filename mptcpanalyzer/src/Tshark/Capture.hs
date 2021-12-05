@@ -16,7 +16,7 @@ import GHC.IO.Handle
 import Pipes (Effect)
 import Frames
 import Tshark.Live
-import MptcpAnalyzer.Types (HostCols, Packet, FrameFiltered(..))
+import MptcpAnalyzer.Types
 import Data.Text as T
 import Frames.CSV (columnSeparator, ReadRec, ParserOptions, readRow, defaultParser)
 import qualified Pipes as P
@@ -33,9 +33,10 @@ import Debug.Trace (trace, traceShow, traceShowId)
 import System.Console.ANSI
 import Data.Vinyl.Functor (getCompose)
 import Net.Tcp.Connection
+import qualified Control.Foldl                 as Foldl
+import Net.Tcp.Constants
+import Control.Lens ((^.))
 
-type TsharkMonad = (StateT (LiveStatsTcp) IO)
--- type TsharkMonad = IO
 
 -- copy/pasted
 pipeTableEitherOpt' :: (Monad m, ReadRec rs)
@@ -49,10 +50,8 @@ pipeTableEitherOpt' opts = do
 -- inCoreAoS
 -- --capture-comment
 -- TODO return the frame/ stats
-tsharkLoopTcp :: Handle -> Effect TsharkMonad ()
-tsharkLoopTcp hout = do
-  -- hSetBuffering stdout NoBuffering
-  -- ls <- for (tsharkProducer hout) $ \x -> do
+tsharkLoopTcp :: LiveStatsConfig -> Handle -> Effect (StateT (LiveStatsTcp) IO) ()
+tsharkLoopTcp lsConfig hout = do
   ls <- for (P.fromHandle hout) $ \x -> do
 
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
@@ -61,18 +60,7 @@ tsharkLoopTcp hout = do
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
       liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       stFrame <- gets lsFrame
-      modify' (\stats -> let
-        frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)
-        forwardFrameWithDest = getTcpStats frameWithDest RoleServer
-        backwardFrameWithDest = getTcpStats frameWithDest RoleClient
-        in stats {
-        lsPackets = lsPackets stats + 1
-        , lsFrame = (lsFrame stats)  <> frame
-        , lsForwardStats = let
-            merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
-            in traceShowId merged
-        , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
-        })
+      modify' (updateState frame)
       -- liftIO $ cursorUp 1
       liveStats <- get
       -- showLiveStatsTcp liveStats
@@ -97,13 +85,26 @@ tsharkLoopTcp hout = do
       Right pkt -> pkt
 
     recEither = rtraverse getCompose
+    updateState :: FrameRec HostCols -> LiveStatsTcp -> LiveStatsTcp
+    updateState frame stats = let
+            frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection lsConfig) frame)
+            forwardFrameWithDest = getTcpStats frameWithDest RoleServer
+            backwardFrameWithDest = getTcpStats frameWithDest RoleClient
+        in (stats {
+        lsPackets = lsPackets stats + 1
+        , lsFrame = (lsFrame stats)  <> frame
+        , lsForwardStats = let
+            merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
+            in traceShowId merged
+        , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
+        })
 
 -- Tricky function:
 -- Contrary to TCP we have to filter on the master subflow but as we can't update the filter as we discover
 -- the subflows, we configure tshark to capture all MPTCP traffic and filter it in the application
 -- 1/ first we need to find the master subflow
-tsharkLoopMptcp :: TcpConnection -> Handle -> Effect (StateT (CaptureSettingsMptcp) IO) ()
-tsharkLoopMptcp masterFilter hout = do
+tsharkLoopMptcp :: LiveStatsConfig -> Handle -> Effect (StateT LiveStatsMptcp IO) ()
+tsharkLoopMptcp config hout = do
   -- hSetBuffering stdout NoBuffering
   -- ls <- for (tsharkProducer hout) $ \x -> do
   ls <- for (P.fromHandle hout) $ \x -> do
@@ -116,22 +117,11 @@ tsharkLoopMptcp masterFilter hout = do
       -- if we have no master subflow yet, we should check against it
       -- so now we should
       mptcpstats <- gets lsmStats
-      modify' (\stats -> let
-        frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)
-        forwardFrameWithDest = getTcpStats frameWithDest RoleServer
-        backwardFrameWithDest = getTcpStats frameWithDest RoleClient
-        in stats {
-        lsPackets = lsPackets stats + 1
-        , lsFrame = (lsFrame stats)  <> frame
-        , lsForwardStats = let
-            merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
-            in traceShowId merged
-        , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
-        })
+      modify' (updateStats frame)
       -- liftIO $ cursorUp 1
-      liveStats <- get
+      liveStatsMptcp <- get
       -- showLiveStatsTcp liveStats
-      let output = showLiveStatsTcp liveStats
+      let output = showLiveStatsMptcp liveStatsMptcp
 
       -- liftIO $ cursorUpLine $ (+) 1 (Prelude.length $ T.lines output)
       liftIO clearFromCursorToScreenEnd
@@ -152,6 +142,31 @@ tsharkLoopMptcp masterFilter hout = do
       Right pkt -> pkt
 
     recEither = rtraverse getCompose
+
+
+    -- expects a frame and a LiveStatsMptcp
+    updateStats :: FrameRec HostCols -> LiveStatsMptcp -> LiveStatsMptcp
+    updateStats frame lstats@(LiveStatsMptcp (Just master) subflows stats) = lstats
+    -- looking for the tokens
+    updateStats frame lstats@(LiveStatsMptcp Nothing subflows stats) = 
+      -- synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
+      let
+        synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags) && lsConnection config == buildTcpConnectionFromRecord x) frame
+      in
+        lstats
+
+      -- lstats
+      --   frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)
+      --   forwardFrameWithDest = getTcpStats frameWithDest RoleServer
+      --   backwardFrameWithDest = getTcpStats frameWithDest RoleClient
+      --   in stats {
+      --   lsPackets = lsPackets stats + 1
+      --   , lsFrame = (lsFrame stats)  <> frame
+      --   , lsForwardStats = let
+      --       merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
+      --       in traceShowId merged
+      --   , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
+      --   })
 
 
 
