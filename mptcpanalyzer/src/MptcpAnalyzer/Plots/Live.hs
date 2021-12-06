@@ -164,7 +164,6 @@ configureLivePlotMptcp (LivePlotTcpSettings connectionFilter mbFake mbConnection
       -- stats/packetCount/Frame
       -- keeping it light for now
       initialLiveStats = captureSettings
-      -- initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
       toLoad = case mbFake of
         Just filename -> Right filename
         Nothing -> Left ifname

@@ -17,7 +17,7 @@ import Pipes (Effect)
 import Frames
 import Tshark.Live
 import MptcpAnalyzer.Types
-import Data.Text as T
+import qualified Data.Text as T
 import Frames.CSV (columnSeparator, ReadRec, ParserOptions, readRow, defaultParser)
 import qualified Pipes as P
 import qualified Pipes.Parse as P
@@ -36,6 +36,11 @@ import Net.Tcp.Connection
 import qualified Control.Foldl                 as Foldl
 import Net.Tcp.Constants
 import Control.Lens ((^.))
+import Net.Mptcp.Connection
+import qualified Data.Set as Set
+import Data.Maybe (fromJust)
+import MptcpAnalyzer.Stream (StreamIdMptcp)
+import Data.Either (rights)
 
 
 -- copy/pasted
@@ -148,12 +153,35 @@ tsharkLoopMptcp config hout = do
     updateStats :: FrameRec HostCols -> LiveStatsMptcp -> LiveStatsMptcp
     updateStats frame lstats@(LiveStatsMptcp (Just master) subflows stats) = lstats
     -- looking for the tokens
-    updateStats frame lstats@(LiveStatsMptcp Nothing subflows stats) = 
+    updateStats frame lstats@(LiveStatsMptcp Nothing _ stats) = 
       -- synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
       let
         synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags) && lsConnection config == buildTcpConnectionFromRecord x) frame
       in
-        lstats
+        if frameLength synPackets > 0 then
+          let
+            synPacket = frameRow frame 0
+            myMptcpStreamId :: Maybe StreamIdMptcp
+            myMptcpStreamId =  synPacket ^. mptcpStream
+            streamPackets = filterFrame (\x -> x ^. mptcpStream == myMptcpStreamId) frame
+            subflows = map (buildSubflowFromTcpStreamId frame) (getTcpStreams streamPackets)
+          in
+            lstats { lsmMaster = Just $ MptcpConnection {
+                  mptcpStreamId = fromJust $ myMptcpStreamId
+                -- fromJust $ synAckPacket ^. mptcpSendKey
+                , mptcpServerKey = 0
+                , mptcpClientKey = fromJust $ synPacket ^. mptcpSendKey
+                -- , mptcpServerToken = fromJust $ synAckPacket ^. mptcpExpectedToken
+                , mptcpServerToken = 0
+                , mptcpClientToken = fromJust $ synPacket ^. mptcpExpectedToken
+                , mptcpNegotiatedVersion = 0 -- ignore for now
+                , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
+
+              }
+              }
+
+        else
+          lstats
 
       -- lstats
       --   frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)

@@ -191,7 +191,7 @@ type LiveStatsTcp = LiveStats TcpUnidirectionalStats Packet
 -- should be richer
 data LiveStatsMptcp =  LiveStatsMptcp {
     -- tcpStreamId
-    lsmMaster :: Maybe MptcpSubflow
+    lsmMaster :: Maybe MptcpConnection
 
   , lsmSubflows :: Map.Map MptcpSubflow (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
   , lsmStats :: LiveStats MptcpUnidirectionalStats Packet

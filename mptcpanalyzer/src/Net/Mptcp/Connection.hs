@@ -26,7 +26,7 @@ import MptcpAnalyzer.Stream
 data MptcpConnection = MptcpConnection {
   -- todo prefix as mpcon
   -- |The wireshark mptcp.stream identifier (a number)
-  mptcpStreamId :: StreamIdMptcp
+    mptcpStreamId :: StreamIdMptcp
   -- |Server key exchanged during the handshake
   , mptcpServerKey :: Word64
   -- |Client key exchanged during the handshake

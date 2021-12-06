@@ -256,6 +256,7 @@ getTcpFrame :: FrameRec HostCols -> StreamId Tcp -> Either String (FrameFiltered
 getTcpFrame = buildTcpConnectionFromStreamId
 
 -- | For now assume the packet is the first syn from client to server
+-- TODO this is wrong, assumes source ip is client, convert to return a TcpConnectionOriented
 buildTcpConnectionFromRecord :: (
   IpFields rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
   ) => Record rs -> TcpConnection
@@ -462,9 +463,7 @@ addTcpDestToRec :: (TcpStream ∈ rs, IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort
 addTcpDestToRec x role = (Col role) :& x
 
 
-
-buildMptcpConnectionFromStreamId ::
-    FrameRec HostCols
+buildMptcpConnectionFromStreamId :: FrameRec HostCols
     -> StreamId Mptcp -> Either String (FrameFiltered MptcpConnection Packet)
 buildMptcpConnectionFromStreamId frame streamId = do
     -- Right $ frameLength synPackets
