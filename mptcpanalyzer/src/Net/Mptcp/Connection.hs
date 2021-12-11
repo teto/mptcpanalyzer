@@ -23,6 +23,7 @@ import MptcpAnalyzer.Stream
 
 
 -- | Holds all necessary information about a multipath TCP connection
+-- TODO add an imcomplete constructor ?
 data MptcpConnection = MptcpConnection {
   -- todo prefix as mpcon
   -- |The wireshark mptcp.stream identifier (a number)

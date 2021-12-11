@@ -110,7 +110,7 @@ tsharkLoopTcp lsConfig hout = do
 -- 1/ first we need to find the master subflow
 tsharkLoopMptcp :: LiveStatsConfig -> Handle -> Effect (StateT LiveStatsMptcp IO) ()
 tsharkLoopMptcp config hout = do
-  -- hSetBuffering stdout NoBuffering
+  -- hSetBuffering hout LineBuffering
   -- ls <- for (tsharkProducer hout) $ \x -> do
   ls <- for (P.fromHandle hout) $ \x -> do
 
@@ -151,22 +151,27 @@ tsharkLoopMptcp config hout = do
 
     -- expects a frame and a LiveStatsMptcp
     updateStats :: FrameRec HostCols -> LiveStatsMptcp -> LiveStatsMptcp
-    updateStats frame lstats@(LiveStatsMptcp (Just master) subflows stats) = lstats
+    updateStats frame lstats@(LiveStatsMptcp (Just master) subflows stats) = trace "JUST MASTER" lstats
     -- looking for the tokens
     updateStats frame lstats@(LiveStatsMptcp Nothing _ stats) = 
       -- synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
       let
-        synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags) && lsConnection config == buildTcpConnectionFromRecord x) frame
+        matchConnection row = let
+            tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
+          in
+            TcpFlagSyn `elem` (row ^. tcpFlags) && lsConnection config == tcpConnectionfromOriented tuple
+        synPackets = filterFrame (matchConnection) frame
       in
-        if frameLength synPackets > 0 then
+        if traceShowId (frameLength synPackets > 0) then
           let
-            synPacket = frameRow frame 0
+            synPacket = frameRow synPackets 0
             myMptcpStreamId :: Maybe StreamIdMptcp
             myMptcpStreamId =  synPacket ^. mptcpStream
             streamPackets = filterFrame (\x -> x ^. mptcpStream == myMptcpStreamId) frame
             subflows = map (buildSubflowFromTcpStreamId frame) (getTcpStreams streamPackets)
           in
-            lstats { lsmMaster = Just $ MptcpConnection {
+            trace "SYN FOUND! " lstats {
+              lsmMaster = Just $ MptcpConnection {
                   mptcpStreamId = fromJust $ myMptcpStreamId
                 -- fromJust $ synAckPacket ^. mptcpSendKey
                 , mptcpServerKey = 0
@@ -181,7 +186,7 @@ tsharkLoopMptcp config hout = do
               }
 
         else
-          lstats
+          trace "No syn\n" lstats
 
       -- lstats
       --   frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)

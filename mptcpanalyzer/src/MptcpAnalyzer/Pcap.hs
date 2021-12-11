@@ -44,6 +44,7 @@ module MptcpAnalyzer.Pcap (
     , getMptcpStreams
     , buildSubflowFromTcpStreamId
     , buildTcpConnectionFromRecord
+    , buildTcpConnectionTupleFromRecord
 
     -- TODO remove ? use instance instead
     , showMptcpSubflowText
@@ -262,11 +263,23 @@ buildTcpConnectionFromRecord :: (
   ) => Record rs -> TcpConnection
 buildTcpConnectionFromRecord r =
   TcpConnection {
-    conTcpClientIp = r ^. ipSource
+      conTcpClientIp = r ^. ipSource
     , conTcpServerIp = r ^. ipDest
     , conTcpClientPort = r ^. tcpSrcPort
     , conTcpServerPort = r ^. tcpDestPort
     , conTcpStreamId = r ^. tcpStream
+  }
+
+buildTcpConnectionTupleFromRecord :: (
+  IpFields rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
+  ) => Record rs -> TcpConnectionOriented
+buildTcpConnectionTupleFromRecord r =
+  TcpConnectionOriented {
+      conTcpSourceIp = r ^. ipSource
+    , conTcpDestinationIp = r ^. ipDest
+    , conTcpSourcePort = r ^. tcpSrcPort
+    , conTcpDestinationPort = r ^. tcpDestPort
+    -- , conTcpStreamId = r ^. tcpStream
   }
 
 {- Builds a Tcp connection from a non filtered frame
@@ -462,6 +475,11 @@ addTcpDestToRec :: (TcpStream ∈ rs, IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort
   => Record rs -> ConnectionRole ->  Record  ( TcpDest ': rs )
 addTcpDestToRec x role = (Col role) :& x
 
+
+-- TODO take into account the different mptcp versions ?
+updateMptcpConnectionFromSynAck ::
+updateMptcpConnectionFromSynAck =
+-- TODO
 
 buildMptcpConnectionFromStreamId :: FrameRec HostCols
     -> StreamId Mptcp -> Either String (FrameFiltered MptcpConnection Packet)

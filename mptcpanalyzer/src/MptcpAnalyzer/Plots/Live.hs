@@ -121,6 +121,7 @@ startMptcpCapture ::
 
 startMptcpCapture lsConfig initialLiveStats createProc = do
   (_, Just hout, Just herr, ph) <- createProcess_ "error when creating process" createProc
+  -- or LineBuffering
   hSetBuffering stdout NoBuffering
   -- non blocking
   exitCode <- getProcessExitCode ph
@@ -154,7 +155,7 @@ configureLivePlotMptcp (LivePlotTcpSettings connectionFilter mbFake mbConnection
       destination = fromMaybe RoleServer mbConnectionRole
 
       lpConfig = LiveStatsConfig connectionFilter destination
-      captureSettings = LiveStatsMptcp {
+      initialLiveStats = LiveStatsMptcp {
         lsmMaster = Nothing
         , lsmSubflows = mempty
         , lsmStats = mempty
@@ -163,7 +164,6 @@ configureLivePlotMptcp (LivePlotTcpSettings connectionFilter mbFake mbConnection
 
       -- stats/packetCount/Frame
       -- keeping it light for now
-      initialLiveStats = captureSettings
       toLoad = case mbFake of
         Just filename -> Right filename
         Nothing -> Left ifname
@@ -189,6 +189,6 @@ configureLivePlotMptcp (LivePlotTcpSettings connectionFilter mbFake mbConnection
     trace $ "Command run: " ++ show (RawCommand bin args)
     trace $ "Command run: " ++ showCommandForUser bin args
     -- Log.info $ "Starting " <> tshow bin <> tshow args
-    ls <- P.embed $ startMptcpCapture lpConfig captureSettings createProc
+    ls <- P.embed $ startMptcpCapture lpConfig initialLiveStats createProc
     pure ls
 
