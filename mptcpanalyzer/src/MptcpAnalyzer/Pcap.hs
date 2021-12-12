@@ -306,6 +306,8 @@ buildTcpConnectionFromStreamId frame streamId =
 -- | Builds
 -- should expect a filteredFrame with MPTCP
 -- buildSubflowFromTcpStreamId :: FrameFiltered TcpConnection Packet -> StreamId Tcp -> Either String (FrameFiltered MptcpSubflow Packet)
+-- buildSubflowFromRecord ::
+
 buildSubflowFromTcpStreamId ::
   (
   rs ⊆ HostCols
@@ -479,7 +481,7 @@ addTcpDestToRec x role = (Col role) :& x
 
 -- TODO take into account the different mptcp versions ?
 genMptcpEndpointConfigFromRow :: Packet -> Maybe MptcpEndpointConfiguration
-genMptcpEndpointConfigFromRow synAckPacket = 
+genMptcpEndpointConfigFromRow synAckPacket =
   case (synAckPacket ^. mptcpSendKey, synAckPacket ^. mptcpExpectedToken, synAckPacket ^. mptcpVersion) of 
     (Just key, Just token, Just version) -> Just $ MptcpEndpointConfiguration key token version
     _ -> Nothing
@@ -516,7 +518,7 @@ buildMptcpConnectionFromStreamId frame streamId = do
           in
             if frameLength clientFrame == 0 then
               Left $ "Could not find mptcp client key"
-            else 
+            else
               -- TODO now add a check on abstime
               -- if ds.loc[server_id, "abstime"] < ds.loc[client_id, "abstime"]:
               --     log.error("Clocks are not synchronized correctly")
@@ -535,7 +537,7 @@ buildMptcpConnectionFromStreamId frame streamId = do
           -- kinda risky, assumes we have the server key always
           , mptcpServerConfig = fromJust mbServerConfig
           , mptcpClientConfig = fromJust clientConfig
-          , mptcpNegotiatedVersion = fromIntegral $ fromJust clientMptcpVersion :: Word8
+          -- , mptcpNegotiatedVersion = fromIntegral $ fromJust clientMptcpVersion :: Word8
 
           , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
         }

@@ -55,6 +55,18 @@ data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
   } deriving Show
 -- newtype TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats
 
+instance Semigroup TcpSubflowUnidirectionalStats where
+   -- (<>) :: a -> a -> a
+   -- TODO this does nothing
+   (<>) a b = a
+
+instance Monoid TcpSubflowUnidirectionalStats where
+  mempty = TcpSubflowUnidirectionalStats {
+      tssStats = mempty 
+    , tssMinDsn = 0
+    , tssMaxDsn = 0
+    }
+
 
 -- | Holds MPTCP application level statistics for one direction
 data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
@@ -69,6 +81,7 @@ instance Monoid MptcpUnidirectionalStats where
   mempty = MptcpUnidirectionalStats RoleServer 0 0 0 mempty
 
 instance Semigroup MptcpUnidirectionalStats where
+  -- TODO fix
   (<>) s1 s2 = s1
 
 

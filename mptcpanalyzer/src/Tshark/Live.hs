@@ -22,6 +22,8 @@ where
 import Tshark.Main (csvDelimiter, defaultTsharkPrefs)
 
 import Data.Text as T
+import qualified Data.Map.Strict as Map
+
 import GHC.IO.Handle
 import Pipes ((>->))
 import Pipes hiding (Proxy)
@@ -204,7 +206,14 @@ data LiveStatsMptcp = LiveStatsMptcp {
   }
 
 
--- 
+-- |Search for the master subflow
+-- TODO could
+getMasterSubflow :: [MptcpSubflow] -> Maybe MptcpSubflow
+getMasterSubflow l = case Prelude.filter (isNothing . sfJoinToken) l of
+  [] -> Nothing
+  (x:_) -> Just x
+
+-- helper to create LiveStatsMptcp
 mkLiveStatsMptcp :: LiveStatsMptcp
 mkLiveStatsMptcp = LiveStatsMptcp {
           lsmMaster = Nothing

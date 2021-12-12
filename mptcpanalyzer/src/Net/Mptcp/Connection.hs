@@ -28,6 +28,8 @@ data MptcpEndpointConfiguration = MptcpEndpointConfiguration {
   , mecToken :: Word32
   -- ^Hash of the server key
   , mecVersion :: Int -- ^ 0 or 1 at least for now
+  -- , mecIdsn :: Word64
+  -- ^ Initial data sequence number
   } deriving (Show, Eq)
 
 -- | Holds all necessary information about a multipath TCP connection
@@ -40,7 +42,7 @@ data MptcpConnection = MptcpConnection {
   , mptcpServerConfig :: MptcpEndpointConfiguration
   , mptcpClientConfig :: MptcpEndpointConfiguration
   -- | Mptcp version negotiated during the handshake Not implemented yet ?
-  , mptcpNegotiatedVersion :: Word8  -- ^ 0 or 1 at least for now
+  -- , mptcpNegotiatedVersion :: Word8  -- ^ 0 or 1 at least for now
   -- ^ List of past/present/future subflows seen during communication
   , mpconSubflows :: Set.Set MptcpSubflow
 
