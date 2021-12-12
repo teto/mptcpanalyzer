@@ -46,7 +46,7 @@ module MptcpAnalyzer.Pcap (
     , buildTcpConnectionFromRecord
     , buildTcpConnectionTupleFromRecord
 
-    , retreiveMptcpKeyFromRow 
+    , genMptcpEndpointConfigFromRow 
     -- TODO remove ? use instance instead
     , showMptcpSubflowText
     , StreamConnection(..)
@@ -111,7 +111,7 @@ import qualified Data.Set as Set
 -- import Lens.Micro.Extras
 import Control.Lens
 import qualified Data.Foldable as F
-import Data.Maybe (catMaybes, fromJust)
+import Data.Maybe (catMaybes, fromJust, isNothing)
 import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
 import Data.Vinyl.Class.Method
 import Data.Vinyl.Functor (Compose(..), (:.))
@@ -383,7 +383,7 @@ getMptcpDest :: MptcpConnection -> MptcpSubflow -> ConnectionRole
 getMptcpDest mptcpCon sf = case sfJoinToken sf of
   -- master subflow, dest is by definition the server
   Nothing -> RoleServer
-  Just token -> if token == mptcpServerToken mptcpCon then
+  Just token -> if token == (mecToken . mptcpServerConfig) mptcpCon then
     RoleServer
   else
     RoleClient
@@ -478,11 +478,12 @@ addTcpDestToRec x role = (Col role) :& x
 
 
 -- TODO take into account the different mptcp versions ?
-retreiveMptcpKeyFromRow :: Packet -> Maybe (Word64, Word32)
-retreiveMptcpKeyFromRow synAckPacket = 
-  case (synAckPacket ^. mptcpSendKey, synAckPacket ^. mptcpExpectedToken) of 
-    (Just key, Just token) -> Just (key, token)
-    _ -> error "Could not generate"
+genMptcpEndpointConfigFromRow :: Packet -> Maybe MptcpEndpointConfiguration
+genMptcpEndpointConfigFromRow synAckPacket = 
+  case (synAckPacket ^. mptcpSendKey, synAckPacket ^. mptcpExpectedToken, synAckPacket ^. mptcpVersion) of 
+    (Just key, Just token, Just version) -> Just $ MptcpEndpointConfiguration key token version
+    _ -> Nothing
+    -- error $ "Could not find key/token/version " ++ show synAckPacket
 
 -- retreiveMptcpServerTokenFromRow :: Packet -> Maybe (Word64, Word32)
 -- retreiveMptcpServerTokenFromRow synAckPacket = 
@@ -503,33 +504,37 @@ buildMptcpConnectionFromStreamId frame streamId = do
       -- ++ show streamPackets
     else if lefts subflows /= [] then
       Left $ concat (lefts subflows)
+    else if mbServerConfig == Nothing then
+      Left $ "Could not find MPTCP server config in " ++ show synAckPacket
     else
-      -- TODO now add a check on abstime
-      -- if ds.loc[server_id, "abstime"] < ds.loc[client_id, "abstime"]:
-      --     log.error("Clocks are not synchronized correctly")
-      -- update temporary fframe with the computed subflows
-      Right tempFframe
-      -- {
-      --     ffCon = (ffCon tempFframe) {
-      --         mpconSubflows = Set.fromList $ map ffCon (rights subflows)
-      --     }
-      -- }
-      --  $ frameRow synPackets 0
+
+      case buildTcpConnectionFromStreamId streamPackets (synPacket ^. tcpStream) of
+        Left err -> Left err
+        Right aframe -> let
+            clientFrame = filterFrame (\x -> ((not . isNothing) (x ^. mptcpSendKey))) (ffFrame aframe)
+            mbClientConfig = genMptcpEndpointConfigFromRow (frameRow clientFrame 0)
+          in
+            if frameLength clientFrame == 0 then
+              Left $ "Could not find mptcp client key"
+            else 
+              -- TODO now add a check on abstime
+              -- if ds.loc[server_id, "abstime"] < ds.loc[client_id, "abstime"]:
+              --     log.error("Clocks are not synchronized correctly")
+              -- update temporary fframe with the computed subflows
+              Right $ FrameTcp {
+                    ffCon = tempMptcpConn mbClientConfig
+                  , ffFrame = streamPackets
+                }
     where
       streamPackets :: FrameRec HostCols
       streamPackets = filterFrame  (\x -> x ^. mptcpStream == Just streamId) frame
       --
-      tempFframe = FrameTcp {
-          ffCon = tempMptcpConn
-        , ffFrame = streamPackets
-      }
       -- |Just for the time
-      tempMptcpConn = MptcpConnection {
+      tempMptcpConn clientConfig = MptcpConnection {
           mptcpStreamId = streamId
-          , mptcpServerKey = fromJust $ synAckPacket ^. mptcpSendKey
-          , mptcpClientKey = fromJust $ synPacket ^. mptcpSendKey
-          , mptcpServerToken = fromJust $ synAckPacket ^. mptcpExpectedToken
-          , mptcpClientToken = fromJust $ synPacket ^. mptcpExpectedToken
+          -- kinda risky, assumes we have the server key always
+          , mptcpServerConfig = fromJust mbServerConfig
+          , mptcpClientConfig = fromJust clientConfig
           , mptcpNegotiatedVersion = fromIntegral $ fromJust clientMptcpVersion :: Word8
 
           , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
@@ -540,11 +545,18 @@ buildMptcpConnectionFromStreamId frame streamId = do
       synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
       synAckPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags) && TcpFlagAck `elem` (x ^. tcpFlags)) streamPackets
 
+
       synPacket = frameRow synPackets 0
       synAckPacket = frameRow synAckPackets 0
+      mbServerConfig = genMptcpEndpointConfigFromRow synAckPacket
+      -- clientConfig :: Maybe MptcpEndpointConfiguration
+      -- clientConfig = case mbServerConfig of
+      --   Nothing -> Nothing
+      --   Just serverConfig ->
+      --     if mecVersion == 0 then genMptcpEndpointConfigFromRow synPacket
+      --     else genMptcpEndpointConfigFromRow
 
       masterTcpstreamId = synPacket ^. tcpStream
-
       clientMptcpVersion = synPacket ^. mptcpVersion
 
       --
@@ -595,7 +607,8 @@ instance StreamConnection TcpConnection Tcp where
 -- | Computes a score
 scoreMptcpCon :: MptcpConnection -> MptcpConnection -> Int
 scoreMptcpCon con1 con2 =
-  let keyScore = if mptcpServerKey con1 == mptcpServerKey con2 && mptcpClientKey con1 == mptcpClientKey con2
+  let keyScore = if (mecKey . mptcpServerConfig) con1 == (mecKey . mptcpServerConfig) con2
+                    && (mecKey . mptcpClientConfig) con1 == (mecKey . mptcpClientConfig) con2
       then 200
       else 0
   in

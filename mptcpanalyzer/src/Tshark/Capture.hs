@@ -152,40 +152,11 @@ tsharkLoopMptcp config hout = do
 
     -- expects a frame and a LiveStatsMptcp
     updateStats :: FrameRec HostCols -> LiveStatsMptcp -> LiveStatsMptcp
-    updateStats frame lstats@(LiveStatsMptcp (Just master) _ _ subflows stats) = trace "JUST MASTER" lstats
-    -- looking for the tokens
-    -- getTokenFromRecord
-    -- retreiveMptcpClientTokenFromRow
+    updateStats frame lstats@(LiveStatsMptcp (Just master) _ _ subflows stats) = trace "Master established" lstats
 
-    -- look for syn/ack
-    updateStats frame lstats@(LiveStatsMptcp Nothing (Just _) _ subflows stats) = 
-      let
-        synPacket = (frameRow synPackets 0)
-        myMptcpStreamId :: Maybe StreamIdMptcp
-        myMptcpStreamId =  synPacket ^. mptcpStream
-        (key, token) = fromJust $ retreiveMptcpKeyFromRow synPacket 
-        matchConnection row = let
-            tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
-          in
-            TcpFlagSyn `elem` (row ^. tcpFlags) && lsConnection config == tcpConnectionfromOriented tuple
-        synPackets = filterFrame (matchConnection) frame
-      in
-        lstats {
-            lsmServer = Just (key, token)
-          , lsmMaster = Just $ MptcpConnection {
-              mptcpStreamId = fromJust $ myMptcpStreamId
-            -- fromJust $ synAckPacket ^. mptcpSendKey
-            , mptcpServerKey = fst $ fromJust $ lsmServer lstats
-            , mptcpClientKey = fst $ fromJust $ lsmClient lstats
-            -- , mptcpServerToken = fromJust $ synAckPacket ^. mptcpExpectedToken
-            , mptcpServerToken = 0
-            , mptcpClientToken = fromJust $ synPacket ^. mptcpExpectedToken
-            , mptcpNegotiatedVersion = 0 -- ignore for now
-            , mpconSubflows = Set.fromList $ map ffCon (subflows)
-          }
-
-        }
-    updateStats frame lstats@(LiveStatsMptcp Nothing Nothing _ _ stats) = 
+    updateStats frame lstats@(LiveStatsMptcp Nothing (Just _clientCfg) (Just svrConfig) _subflows stats) = error "shouldn't happen"
+    -- attempts to fetch client mptcp key/token from the initial syn (mptcp version 0)
+    updateStats frame lstats@(LiveStatsMptcp Nothing Nothing Nothing _ stats) = 
       -- synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
       let
         matchConnection row = let
@@ -202,25 +173,48 @@ tsharkLoopMptcp config hout = do
             streamPackets = filterFrame (\x -> x ^. mptcpStream == myMptcpStreamId) frame
             subflows = map (buildSubflowFromTcpStreamId frame) (getTcpStreams streamPackets)
           in
-            trace "SYN FOUND! " lstats {
-              lsmClient = retreiveMptcpKeyFromRow synPacket
+            trace "SYN FOUND! retreiving client key" lstats {
+              lsmClient = genMptcpEndpointConfigFromRow synPacket
               }
 
         else
           trace "No syn\n" lstats
 
-      -- lstats
-      --   frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection stats) frame)
-      --   forwardFrameWithDest = getTcpStats frameWithDest RoleServer
-      --   backwardFrameWithDest = getTcpStats frameWithDest RoleClient
-      --   in stats {
-      --   lsPackets = lsPackets stats + 1
-      --   , lsFrame = (lsFrame stats)  <> frame
-      --   , lsForwardStats = let
-      --       merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
-      --       in traceShowId merged
-      --   , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
-      --   })
+    -- fetch server mptcp key/token from the syn/ack
+    -- TODO at the end it should call itself ?
+    updateStats frame lstats@(LiveStatsMptcp Nothing _clientCfg Nothing _subflows stats) = 
+      let
+        synPacket = (frameRow synPackets 0)
+        myMptcpStreamId :: Maybe StreamIdMptcp
+        myMptcpStreamId =  synPacket ^. mptcpStream
+        mptcpServerCfg = fromJust $ genMptcpEndpointConfigFromRow synPacket 
+        matchConnection row = let
+            tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
+          in
+            TcpFlagSyn `elem` (row ^. tcpFlags) && lsConnection config == tcpConnectionfromOriented (reverseTcpConnectionTuple tuple)
+        synPackets = filterFrame (matchConnection) frame
+        streamPackets = filterFrame (\x -> x ^. mptcpStream == myMptcpStreamId) frame
 
+        -- subflows shall be discovered along the way
+        subflows = map (buildSubflowFromTcpStreamId frame) (getTcpStreams streamPackets)
 
+      in
+        case lsmClient lstats of
+          Just clientConfig -> trace "FINALIZING MPTCP connection" lstats {
+              lsmServer = Just mptcpServerCfg
+            , lsmMaster = Just $ MptcpConnection {
+                mptcpStreamId = fromJust $ myMptcpStreamId
+              -- fromJust $ synAckPacket ^. mptcpSendKey
+              , mptcpServerConfig = mptcpServerCfg
+              , mptcpClientConfig = clientConfig
+              , mptcpNegotiatedVersion = 0 -- ignore for now
+              , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
+            }
+          }
+          Nothing -> trace " still waiting for client config" lstats {
+            lsmServer = Just mptcpServerCfg
+          }
+
+    -- fetch client mptcp key/token from the client answer to the syn/ack, in mptcp version 1
+    updateStats frame lstats@(LiveStatsMptcp Nothing Nothing (Just serverConfig) _ stats) = lstats
 

@@ -7,8 +7,9 @@ License     : GPL-3
 {-# LANGUAGE OverloadedStrings #-}
 module Net.Mptcp.Connection (
   -- * Types
-  MptcpConnection(..)
+    MptcpConnection(..)
   , MptcpSubflow(..)
+  , MptcpEndpointConfiguration(..)
   , showMptcpConnectionText
 )
 where
@@ -21,6 +22,13 @@ import Data.Word (Word16, Word32, Word64, Word8)
 import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Stream
 
+data MptcpEndpointConfiguration = MptcpEndpointConfiguration {
+  -- |key exchanged during the handshake
+    mecKey :: Word64
+  , mecToken :: Word32
+  -- ^Hash of the server key
+  , mecVersion :: Int -- ^ 0 or 1 at least for now
+  } deriving (Show, Eq)
 
 -- | Holds all necessary information about a multipath TCP connection
 -- TODO add an imcomplete constructor ?
@@ -29,19 +37,15 @@ data MptcpConnection = MptcpConnection {
   -- |The wireshark mptcp.stream identifier (a number)
     mptcpStreamId :: StreamIdMptcp
   -- |Server key exchanged during the handshake
-  , mptcpServerKey :: Word64
-  -- |Client key exchanged during the handshake
-  , mptcpClientKey :: Word64
-  -- |Hash of the server key
-  , mptcpServerToken :: Word32
-  , mptcpClientToken :: Word32
+  , mptcpServerConfig :: MptcpEndpointConfiguration
+  , mptcpClientConfig :: MptcpEndpointConfiguration
   -- | Mptcp version negotiated during the handshake Not implemented yet ?
   , mptcpNegotiatedVersion :: Word8  -- ^ 0 or 1 at least for now
   -- ^ List of past/present/future subflows seen during communication
   , mpconSubflows :: Set.Set MptcpSubflow
 
 -- Ord to be able to use fromList
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq)
 
 -- | Extension of @TcpConnection@
 -- master subflow has implicit addrid 0
@@ -71,6 +75,6 @@ showMptcpConnectionText con =
     -- todo show version
     tpl :: Text
     tpl = TS.unlines [
-      "Server key/token: " <> tshow (mptcpServerKey con) <> "/" <> tshow ( mptcpServerToken con)
-      , "Client key/token: " <> tshow (mptcpClientKey con) <> "/" <> tshow ( mptcpClientToken con)
+      "Server key/token: " <> tshow ((mecKey . mptcpServerConfig) con) <> "/" <> ((tshow . mecToken . mptcpServerConfig) con)
+      , "Client key/token: " <> tshow ((mecKey . mptcpClientConfig) con) <> "/" <> ((tshow . mecToken . mptcpClientConfig) con)
       ]

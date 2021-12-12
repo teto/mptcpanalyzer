@@ -195,9 +195,9 @@ data LiveStatsMptcp = LiveStatsMptcp {
     -- tcpStreamId
     lsmMaster :: Maybe MptcpConnection
 
-  , lsmClient :: Maybe (Word64, Word32)
+  , lsmClient :: Maybe MptcpEndpointConfiguration
   -- ^ Key / Token
-  , lsmServer :: Maybe (Word64, Word32)
+  , lsmServer :: Maybe MptcpEndpointConfiguration
   -- ^ (Key, Token)
   , lsmSubflows :: Map.Map MptcpSubflow (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
   , lsmStats :: LiveStats MptcpUnidirectionalStats Packet

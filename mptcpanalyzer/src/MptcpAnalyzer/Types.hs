@@ -294,6 +294,7 @@ instance ShowCSV [Word64] where
 instance ShowCSV IP where
   showCSV = encode
 
+instance ShowCSV Word8 where
 instance ShowCSV Word16 where
 instance ShowCSV Word32 where
 instance ShowCSV Word64 where
@@ -309,9 +310,11 @@ instance ShowCSV (StreamId a) where
 
 -- type ManMaybe = Rec (Maybe :. ElField) ManColumns
 -- TODO goal here is to choose the most performant Data.Vector
+type instance VectorFor Word8  = V.Vector
 type instance VectorFor Word16 = V.Vector
 type instance VectorFor Word32 = V.Vector
 type instance VectorFor Word64 = V.Vector
+type instance VectorFor (Maybe Word8) = V.Vector
 type instance VectorFor (Maybe Word16) = V.Vector
 type instance VectorFor (Maybe Word32) = V.Vector
 type instance VectorFor (Maybe Word64) = V.Vector
@@ -331,15 +334,4 @@ type instance VectorFor (Maybe [Word64]) = V.Vector
 
 type TcpFields rs = (TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs)
 type IpFields rs = (IpSource ∈ rs, IpDest ∈ rs)
-
-
--- type instance VectorFor MbTcpStream = V.Vector
-
--- getHeaders :: [(T.Text, TsharkFieldDesc)] -> [(T.Text, Q Type)]
--- getHeaders = map (\(name, x) -> (name, colType x))
-
--- headersFromFields :: [(T.Text, TsharkFieldDesc)] -> Q [(T.Text, Q Type)]
--- headersFromFields fields = do
---   pure (getHeaders fields)
-
 

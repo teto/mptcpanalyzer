@@ -44,6 +44,7 @@ type MbPacketIdList = Maybe [Word64]
 
 type MbMptcpStream = Maybe StreamIdMptcp
 type MbMptcpSendKey = Maybe Word64
+-- TODO convert to a Word8
 type MbMptcpVersion = Maybe Int
 type MbMptcpExpectedToken = Maybe Word32
 
