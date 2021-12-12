@@ -46,6 +46,7 @@ module MptcpAnalyzer.Pcap (
     , buildTcpConnectionFromRecord
     , buildTcpConnectionTupleFromRecord
 
+    , retreiveMptcpKeyFromRow 
     -- TODO remove ? use instance instead
     , showMptcpSubflowText
     , StreamConnection(..)
@@ -477,8 +478,18 @@ addTcpDestToRec x role = (Col role) :& x
 
 
 -- TODO take into account the different mptcp versions ?
-updateMptcpConnectionFromSynAck ::
-updateMptcpConnectionFromSynAck =
+retreiveMptcpKeyFromRow :: Packet -> Maybe (Word64, Word32)
+retreiveMptcpKeyFromRow synAckPacket = 
+  case (synAckPacket ^. mptcpSendKey, synAckPacket ^. mptcpExpectedToken) of 
+    (Just key, Just token) -> Just (key, token)
+    _ -> error "Could not generate"
+
+-- retreiveMptcpServerTokenFromRow :: Packet -> Maybe (Word64, Word32)
+-- retreiveMptcpServerTokenFromRow synAckPacket = 
+--   case (synAckPacket ^. mptcpSendKey, synAckPacket ^. mptcpExpectedToken) of 
+--     (Just key, Just token) -> Just (key, token)
+--     _ -> error "Could not generate"
+
 -- TODO
 
 buildMptcpConnectionFromStreamId :: FrameRec HostCols

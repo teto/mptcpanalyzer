@@ -155,11 +155,7 @@ configureLivePlotMptcp (LivePlotTcpSettings connectionFilter mbFake mbConnection
       destination = fromMaybe RoleServer mbConnectionRole
 
       lpConfig = LiveStatsConfig connectionFilter destination
-      initialLiveStats = LiveStatsMptcp {
-        lsmMaster = Nothing
-        , lsmSubflows = mempty
-        , lsmStats = mempty
-        }
+      initialLiveStats = mkLiveStatsMptcp
       fields = Map.elems $ Map.map tfieldFullname baseFields
 
       -- stats/packetCount/Frame

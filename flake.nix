@@ -36,11 +36,13 @@
         ip = unmarkBroken (dontCheck hold.ip);
         bytebuild = unmarkBroken (dontCheck hold.bytebuild);
 
+        relude = hold.relude_1_0_0_1;
+
         # may not be needed anymore ?
         wide-word = unmarkBroken (dontCheck hold.wide-word);
-        polysemy = hnew.polysemy_1_6_0_0;
+        polysemy = hnew.polysemy_1_7_1_0;
         co-log-polysemy = doJailbreak (hold.co-log-polysemy);
-        polysemy-plugin = hnew.polysemy-plugin_0_4_1_0;
+        polysemy-plugin = hnew.polysemy-plugin_0_4_3_0;
 
         netlink = (overrideSrc hold.netlink {
           # src = builtins.fetchGit {
@@ -70,22 +72,21 @@
       myModifier = drv:
         pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
           cabal-install
-            ghcid
-            replica.packages.${system}.build
-            hls.packages.${system}."haskell-language-server-${compilerVersion}"
-            # hls.packages.${system}."hie-bios-${compilerVersion}"
-            cairo # for chart-cairo
-            dhall  # for the repl
-            pkgs.dhall-json  # for dhall-to-json
-            glib
-            hasktags
-            stan
-            # pkg-config
-            zlib
-            pkgs.dhall-lsp-server
-            pkgs.stylish-haskell
-          #   threadscope
-          ]);
+          replica.packages.${system}.build
+          hls.packages.${system}."haskell-language-server-${compilerVersion}"
+          # hls.packages.${system}."hie-bios-${compilerVersion}"
+          cairo # for chart-cairo
+          dhall  # for the repl
+          pkgs.dhall-json  # for dhall-to-json
+          glib
+          hasktags
+          stan
+          # pkg-config
+          zlib
+          pkgs.dhall-lsp-server
+          pkgs.stylish-haskell
+        #   threadscope
+        ]);
     in {
       packages = {
 
