@@ -7,7 +7,7 @@ Portability : Linux
 
 OverloadedStrings allows Aeson to convert
 -}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Net.Mptcp (
   -- * Types
@@ -19,7 +19,9 @@ module Net.Mptcp (
   , mptcpConnAddSubflow
   , mptcpConnRemoveSubflow
   , newSubflowPkt
+#ifdef EXPERIMENTAL_CWND
   , capCwndPkt
+#endif
   , subflowFromAttributes
   , readToken
   , remoteIdFromAttributes
@@ -273,7 +275,12 @@ attrToPair (SubflowFamily fam) = let
 attrToPair ( SubflowInterface idx) = (fromEnum MPTCP_ATTR_IF_IDX, runPut $ putWord32host idx)
 attrToPair ( SubflowSourcePort port) = (fromEnum MPTCP_ATTR_SPORT, runPut $ putWord16host port)
 attrToPair ( SubflowDestPort port) = (fromEnum MPTCP_ATTR_DPORT, runPut $ putWord16host port)
-attrToPair ( SubflowMaxCwnd limit) = (fromEnum MPTCP_ATTR_CWND, runPut $ putWord32host limit)
+attrToPair ( SubflowMaxCwnd limit) =
+#ifdef EXPERIMENTAL_CWND 
+  (fromEnum MPTCP_ATTR_CWND, runPut $ putWord32host limit)
+#else
+  error "not supported"
+#endif
 attrToPair ( SubflowBackup prio) = (fromEnum MPTCP_ATTR_BACKUP, runPut $ putWord8 prio)
 -- TODO should depend on the ip putWord32be w32
 attrToPair ( SubflowSourceAddress addr) =
@@ -405,7 +412,9 @@ makeAttribute i val =
     MPTCP_ATTR_BACKUP -> Just (SubflowBackup $ readLocId $ Just val )
     MPTCP_ATTR_ERROR -> trace "makeAttribute ERROR" Nothing
     MPTCP_ATTR_TIMEOUT -> undefined
+#ifdef EXPERIMENTAL_CWND
     MPTCP_ATTR_CWND -> undefined
+#endif
     MPTCP_ATTR_FLAGS -> trace "makeAttribute ATTR_FLAGS" Nothing
     MPTCP_ATTR_UNSPEC -> undefined
 
@@ -458,6 +467,7 @@ subflowAttrs con = [
     , SubflowSourcePort $ srcPort con
   ]
 
+#ifdef EXPERIMENTAL_CWND
 -- |Generate a request to create a new subflow
 capCwndPkt :: MptcpSocket -> MptcpConnection
               -> Word32  -- ^Limit to apply to congestion window
@@ -470,7 +480,7 @@ capCwndPkt (MptcpSocket _ fid) mptcpCon limit sf =
         attrs = connectionAttrs mptcpCon
               ++ [ SubflowMaxCwnd limit ]
               ++ subflowAttrs sf
-
+#endif
 
 connectionAttrs :: MptcpConnection -> [MptcpAttribute]
 connectionAttrs con = [ MptcpAttrToken $ connectionToken con ]

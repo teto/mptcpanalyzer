@@ -31,11 +31,11 @@ import Data.Bits ()
 
 -- {underscoreToCase}
 -- add prefix = "e"
-{#enum MPTCP_ATTR_UNSPEC as MptcpAttr {} omit (__MPTCP_ATTR_AFTER_LAST) deriving (Eq, Show, Ord)#}
+{#enum MPTCP_PM_ATTR_UNSPEC as MptcpAttr {} omit (__MPTCP_PM_ATTR_MAX) deriving (Eq, Show, Ord)#}
 
 -- {underscoreToCase}
--- can also be seen as a command
-{#enum MPTCP_CMD_UNSPEC as MptcpGenlEvent {} deriving (Eq, Show)#}
+-- v1 merged events and commands while v1 distinguishes between the two !
+{#enum MPTCP_PM_CMD_UNSPEC as MptcpGenlEvent {} omit (	__MPTCP_PM_CMD_AFTER_LAST) deriving (Eq, Show)#}
 
 -- #define MPTCP_PM_NAME		"mptcp_pm"
 -- #define MPTCP_PM_CMD_GRP_NAME	"mptcp_pm_cmds"

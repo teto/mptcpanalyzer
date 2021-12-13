@@ -7,7 +7,7 @@ build-type: Simple
 Maintainer:  teto
 Category:   Network, Mptcp
 Synopsis: A Multipath TCP path manager
-Homepage:   https://github.com/teto/netlink_pm
+Homepage:   https://github.com/teto/quantum2
 Description:
   Multipath TCP (www.multipath-tcp.org) starting from version 0.95 provides a
   netlink path manager module. This package implements the userspace component
@@ -33,6 +33,12 @@ Flag WithPolysemy {
   Description: Add polysemy plugin
   Default:     True
 }
+
+Flag CwndCapping {
+  Description: With an experimental kernel, it's possible to cap some congestion window
+  Default:     False
+}
+
 
 Flag Dev {
   Description: Relax constraints
@@ -85,7 +91,8 @@ library
       , linux/inet_diag.h
       -- , linux/mptcp.h
       , linux/mptcp_v0.h
-      , linux/mptcp_v1.h
+      -- , linux/mptcp_v1.h
+      -- , linux/mptcp.h
     -- TODO try to pass it from CLI instead , Net.TcpInfo
     include-dirs:
       headers
@@ -129,12 +136,15 @@ library
       , Net.Tcp.Definitions
       , Net.Mptcp
       , Net.Mptcp.Constants
-      , Net.Mptcp.Constants_v1
+      , Net.Mptcp.Constants_v0
+      -- , Net.Mptcp.Constants_v1
       , Net.Mptcp.PathManager
       , Net.Mptcp.PathManager.Default
       , Net.IPAddress
       , Net.SockDiag.Constants
       -- TODO let it high level
+    if flag(CwndCapping)
+      ghc-options: -DEXPERIMENTAL_CWND=1
 
 
 -- monitor new mptcp connections

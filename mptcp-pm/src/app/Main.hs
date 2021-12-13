@@ -24,7 +24,7 @@ iproute2/misc/ss.c to see how `ss` utility interacts with the kernel
 
 Capture netlink packets in your computer ?
 -}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -34,8 +34,8 @@ module Main where
 import Net.IP
 import Net.Mptcp
 
--- import Net.Mptcp.Constants as CONST
-import Net.Mptcp.Constants_v1 as CONST
+import Net.Mptcp.Constants_v0 as CONST
+-- import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
 import Net.Mptcp.PathManager.Default
 import Net.SockDiag
@@ -349,10 +349,12 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
                   Log.info $ "Requesting to set cwnds..." <> tshow cwnds
                   -- TODO fix
                   -- KISS for now (capCwndPkt mptcpSock )
+#ifdef EXPERIMENTAL_CWND
                   let cwndPackets  = map (\(cwnd, sf) -> capCwndPkt mptcpSock mptcpConn cwnd sf) (zip cwnds (Set.toList $ subflows mptcpConn))
-
                   embed $ mapM_ (sendPacket sock) cwndPackets
-
+#else 
+                  Log.debug $ "Cwnd capping not compiled"
+#endif
                   return onSuccessSleepingDelayMs
     Log.debug $ "Finished monitoring token. Waiting " <> tshow duration
     embed $ sleepMs duration
