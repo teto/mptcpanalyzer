@@ -46,7 +46,7 @@ common shared-properties
       -Wall -fno-warn-unused-binds -fno-warn-unused-matches -haddock
     build-depends:
       -- TODO remove that boundary
-      netlink >= 1.1.1.0
+        netlink >= 1.1.1.0
       , formatting
       , readable
       , polysemy
@@ -54,7 +54,7 @@ common shared-properties
       , polysemy-log-co
 
     default-extensions:
-        FlexibleContexts
+          FlexibleContexts
         , StrictData
         , DataKinds
         , FlexibleContexts
@@ -83,7 +83,9 @@ library
         tcp_states.h
       , linux/sock_diag.h
       , linux/inet_diag.h
-      , linux/mptcp.h
+      -- , linux/mptcp.h
+      , linux/mptcp_v0.h
+      , linux/mptcp_v1.h
     -- TODO try to pass it from CLI instead , Net.TcpInfo
     include-dirs:
       headers
@@ -127,6 +129,7 @@ library
       , Net.Tcp.Definitions
       , Net.Mptcp
       , Net.Mptcp.Constants
+      , Net.Mptcp.Constants_v1
       , Net.Mptcp.PathManager
       , Net.Mptcp.PathManager.Default
       , Net.IPAddress
@@ -169,7 +172,7 @@ executable mptcp-manager
 Test-Suite test-tcp
   -- 2 types supported, exitcode is based on ... exit codes ....
   type:               exitcode-stdio-1.0
-  default-language: Haskell2010
+  default-language:   Haskell2010
   main-is:            Main.hs
   hs-source-dirs:     test
   ghc-options: -threaded -rtsopts

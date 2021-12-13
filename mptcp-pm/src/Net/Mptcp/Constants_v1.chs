@@ -11,7 +11,7 @@ https://stackoverflow.com/questions/6689969/how-does-one-interface-with-a-c-enum
 TODO might be best to just use the netlink script and adapt it
 https://github.com/Ongy/netlink-hs/issues/7
 -}
-module Net.Mptcp.Constants (
+module Net.Mptcp.Constants_v1 (
   MptcpAttr(..)
   , MptcpGenlEvent(..)
 
@@ -27,7 +27,7 @@ import Data.Word (Word8)
 import Data.Bits ()
 
 -- from include/uapi/linux/mptcp.h
-#include <linux/mptcp_v0.h>
+#include <linux/mptcp_v1.h>
 
 -- {underscoreToCase}
 -- add prefix = "e"
@@ -37,14 +37,18 @@ import Data.Bits ()
 -- can also be seen as a command
 {#enum MPTCP_CMD_UNSPEC as MptcpGenlEvent {} deriving (Eq, Show)#}
 
+-- #define MPTCP_PM_NAME		"mptcp_pm"
+-- #define MPTCP_PM_CMD_GRP_NAME	"mptcp_pm_cmds"
+-- #define MPTCP_PM_EV_GRP_NAME	"mptcp_pm_events"
+-- #define MPTCP_PM_VER		0x1
+
 -- |Generic netlink MPTCP version
 mptcpGenlVer :: Word8
-mptcpGenlVer = {#const MPTCP_GENL_VER #}
+mptcpGenlVer = {#const MPTCP_PM_VER #}
 
 mptcpGenlName :: String
-mptcpGenlName = {#const MPTCP_GENL_NAME #}
+mptcpGenlName = {#const MPTCP_PM_NAME #}
 mptcpGenlCmdGrpName :: String
-mptcpGenlCmdGrpName = {#const MPTCP_GENL_CMD_GRP_NAME #}
+mptcpGenlCmdGrpName = {#const MPTCP_PM_CMD_GRP_NAME #}
 mptcpGenlEvGrpName :: String
-mptcpGenlEvGrpName  = {#const MPTCP_GENL_EV_GRP_NAME #}
-
+mptcpGenlEvGrpName  = {#const MPTCP_PM_EV_GRP_NAME #}

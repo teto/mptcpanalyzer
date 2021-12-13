@@ -33,7 +33,9 @@ module Main where
 
 import Net.IP
 import Net.Mptcp
-import Net.Mptcp.Constants
+
+-- import Net.Mptcp.Constants as CONST
+import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
 import Net.Mptcp.PathManager.Default
 import Net.SockDiag
@@ -404,6 +406,8 @@ putW32 x = runPut (putWord32host x)
 
 -- I want to override the GenlHeader version
 newtype GenlHeaderMptcp = GenlHeaderMptcp GenlHeader
+
+-- TODO remove shouldn't be a show instance
 instance Show GenlHeaderMptcp where
   show (GenlHeaderMptcp (GenlHeader cmd ver)) =
     "Header: Cmd = " ++ show cmd ++ ", Version: " ++ show ver ++ "\n"
