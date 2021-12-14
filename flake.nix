@@ -85,19 +85,26 @@
           zlib
           pkgs.dhall-lsp-server
           pkgs.stylish-haskell
+
+          # we need the mptcp.h in mptcp-pm
+          pkgs.linux_latest.dev
         #   threadscope
         ]);
+
+      mkPackage = name:
+          hsPkgs.developPackage {
+            root =  pkgs.lib.cleanSource (builtins.toPath ./. + "/${name}");
+            name = name;
+            returnShellEnv = false;
+            withHoogle = true;
+            overrides = haskellOverlay;
+            modifier = myModifier;
+          };
+
     in {
       packages = {
 
-        mptcp-pm = hsPkgs.developPackage {
-          root =  pkgs.lib.cleanSource ./mptcp-pm;
-          name = "mptcp-pm";
-          returnShellEnv = false;
-          withHoogle = true;
-          overrides = haskellOverlay;
-          modifier = myModifier;
-        };
+        mptcp-pm = mkPackage "mptcp-pm";
 
         mptcpanalyzer = hsPkgs.developPackage {
           root = pkgs.lib.cleanSource ./mptcpanalyzer;
@@ -113,16 +120,20 @@
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
 
-      devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
-       postShellHook = ''
-          cd mptcpanalyzer
-          set -x
-          result=$(cabal list-bin exe:mptcpanalyzer)
-          if [ $? -eq 0 ]; then
-            export PATH="$(dirname $result):$PATH"
-          fi
-          alias hls=haskell-language-server
-        '';
-      });
+      devShells = {
+        mptcp-pm = self.packages.${system}.mptcp-pm.envFunc {};
+
+        mptcpanalyzer = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
+          postShellHook = ''
+              cd mptcpanalyzer
+              set -x
+              result=$(cabal list-bin exe:mptcpanalyzer)
+              if [ $? -eq 0 ]; then
+                export PATH="$(dirname $result):$PATH"
+              fi
+              alias hls=haskell-language-server
+            '';
+          });
+      };
     });
 }

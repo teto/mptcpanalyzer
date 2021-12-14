@@ -160,7 +160,12 @@ tsharkLoopMptcp config hout = do
     updateStatsFrame frame lstats = foldl updateStats lstats frame
 
     updateStats :: LiveStatsMptcp -> Record HostCols -> LiveStatsMptcp
-    updateStats lstats@(LiveStatsMptcp (Just master) _ _ subflows stats) row = trace "Master established" lstats
+    -- case where the master subflow was already identified
+    updateStats lstats@(LiveStatsMptcp (Just master) _ _ subflows stats) row = 
+      if row ^. mptcpRecvToken /= Nothing then
+        
+
+      trace "Master established" lstats
 
     updateStats lstats@(LiveStatsMptcp Nothing (Just clientCfg) (Just serverCfg)  _subflows stats) row = error "should not happen"
       -- newStats = lstats {

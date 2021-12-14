@@ -306,7 +306,20 @@ buildTcpConnectionFromStreamId frame streamId =
 -- | Builds
 -- should expect a filteredFrame with MPTCP
 -- buildSubflowFromTcpStreamId :: FrameFiltered TcpConnection Packet -> StreamId Tcp -> Either String (FrameFiltered MptcpSubflow Packet)
--- buildSubflowFromRecord ::
+buildSubflowFromRecord :: Packet -> MptcpSubflow
+buildSubflowFromRecord row =
+  MptcpSubflow {
+        sfConn = sfCon
+        -- TODO ignore if it's master token
+        , sfJoinToken = syn0 ^. mptcpRecvToken
+        , sfPriority = Nothing
+        , sfLocalId = 0
+        , sfRemoteId = 0
+        , sfInterface = "unknown"
+      }
+  where
+      sfCon = buildTcpConnectionFromRecord row
+
 
 buildSubflowFromTcpStreamId ::
   (
