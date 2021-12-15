@@ -3,7 +3,7 @@
 Module      : Net.Mptcp.Constants
 Description : A module to bridge the haskell code to underlying C code
 
-I consider this module internal.
+This module is internal and should only be visible by pathmanagers ?
 The documentation may be a bit sparse.
 Inspired by:
 https://stackoverflow.com/questions/6689969/how-does-one-interface-with-a-c-enum-using-haskell-and-ffi
@@ -14,6 +14,10 @@ https://github.com/Ongy/netlink-hs/issues/7
 module Net.Mptcp.Constants_v1 (
   MptcpAttr(..)
   , MptcpGenlEvent(..)
+  , MptcpGenlCommand(..)
+
+  -- Global socket level events
+  , MptcpPMAttr(..)
 
   , mptcpGenlVer
   , mptcpGenlName
@@ -31,13 +35,14 @@ import Data.Bits ()
 
 -- {underscoreToCase}
 -- add prefix = "e"
-{#enum MPTCP_PM_ATTR_UNSPEC as MptcpAttr {} omit (__MPTCP_PM_ATTR_MAX) deriving (Eq, Show, Ord)#}
+{#enum MPTCP_PM_ATTR_UNSPEC as MptcpPMAttr {} omit (__MPTCP_PM_ATTR_MAX) deriving (Eq, Show, Ord)#}
+{#enum MPTCP_ATTR_UNSPEC as MptcpAttr {} omit (__MPTCP_ATTR_AFTER_LAST) deriving (Eq, Show, Ord)#}
 
 -- {underscoreToCase}
 -- v1 merged events and commands while v1 distinguishes between the two !
-{#enum MPTCP_PM_CMD_UNSPEC as MptcpGenlPMCommand {} omit (	__MPTCP_PM_CMD_AFTER_LAST) deriving (Eq, Show, Ord)#}
+{#enum MPTCP_PM_CMD_UNSPEC as MptcpGenlCommand {} omit (	__MPTCP_PM_CMD_AFTER_LAST) deriving (Eq, Show, Ord)#}
 
-{#enum MPTCP_PM_EVENT_UNSPEC as MptcpGenlPMEvent {} deriving (Eq, Show, Ord)#}
+{#enum MPTCP_EVENT_UNSPEC as MptcpGenlEvent {} deriving (Eq, Show, Ord)#}
 
 -- #define MPTCP_PM_NAME		"mptcp_pm"
 -- #define MPTCP_PM_CMD_GRP_NAME	"mptcp_pm_cmds"

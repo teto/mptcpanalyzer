@@ -34,7 +34,7 @@ module Main where
 import Net.IP
 import Net.Mptcp
 
-import Net.Mptcp.Constants_v0 as CONST
+import Net.Mptcp.Constants_v1 as CONST
 -- import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
 import Net.Mptcp.PathManager.V1.NdiffPorts
