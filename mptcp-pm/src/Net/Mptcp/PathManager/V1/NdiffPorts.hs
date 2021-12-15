@@ -16,6 +16,7 @@ import Debug.Trace
 import Net.Mptcp
 import Net.Mptcp.PathManager
 import Net.Tcp
+import Net.Mptcp.V1.Commands
 
 ndiffports :: PathManager
 ndiffports = PathManager {

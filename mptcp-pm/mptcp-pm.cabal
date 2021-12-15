@@ -139,8 +139,12 @@ library
       , Net.Tcp.Definitions
       , Net.Mptcp
       , Net.Mptcp.Constants
+      , Net.Mptcp.Netlink
       -- , Net.Mptcp.Constants_v0
-      , Net.Mptcp.Constants_v1
+      , Net.Mptcp.V0.Constants
+      , Net.Mptcp.V0.Commands
+      , Net.Mptcp.V1.Constants
+      , Net.Mptcp.V1.Commands
       , Net.Mptcp.PathManager.V0.NdiffPorts
       , Net.Mptcp.PathManager.V1.NdiffPorts
       -- , Net.Mptcp.PathManager.Default

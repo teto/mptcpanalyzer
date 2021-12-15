@@ -8,8 +8,9 @@ Portability : Linux
 -}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module Net.Tcp.Definitions (
-    TcpConnection (..)
+      TcpConnection (..)
     , ConnectionRole (..)
     , reverseTcpConnection
     , showTcpConnection
@@ -29,7 +30,7 @@ import Prelude
 -}
 data TcpConnection = TcpConnection {
   -- TODO use libraries to deal with that ? filter from the command line for instance ?
-  srcIp              :: IP -- ^Source ip
+    srcIp            :: IP -- ^Source ip
   , dstIp            :: IP -- ^Destination ip
   , srcPort          :: Word16  -- ^ Source port
   , dstPort          :: Word16  -- ^Destination port
@@ -41,7 +42,7 @@ data TcpConnection = TcpConnection {
   -- add TcpMetrics member
   -- , tcpMetrics :: Maybe [SockDiagExtension]  -- ^Metrics retrieved from kernel
 
-} deriving (Show, Generic, Ord)
+} deriving (Show, Generic, Ord, FromJSON, ToJSON)
 
 tshow :: Show a => a -> TS.Text
 tshow = TS.pack . Prelude.show
@@ -61,7 +62,7 @@ showTcpConnection = TS.unpack . showTcpConnectionText
 
 reverseTcpConnection :: TcpConnection -> TcpConnection
 reverseTcpConnection con = con {
-  srcIp = dstIp con
+    srcIp = dstIp con
   , dstIp = srcIp con
   , srcPort = dstPort con
   , dstPort = srcPort con
@@ -71,14 +72,10 @@ reverseTcpConnection con = con {
   , subflowInterface = Nothing
 }
 
-instance FromJSON TcpConnection
-instance ToJSON TcpConnection
-
 -- TODO create a specific function for it
 -- ignore the rest
 instance Eq TcpConnection where
   x == y = srcIp x == srcIp y && dstIp x == dstIp y
             && srcPort x == srcPort y && dstPort x == dstPort y
-  -- /= = not ==
 
 

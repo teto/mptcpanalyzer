@@ -1,5 +1,5 @@
 module Net.Mptcp.Constants (
     module C
 ) where
-import Net.Mptcp.Constants_v1 as C
+import Net.Mptcp.V1.Constants as C
 
