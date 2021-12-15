@@ -27,7 +27,7 @@ import Data.Word (Word8)
 import Data.Bits ()
 
 -- from include/uapi/linux/mptcp.h
-#include <linux/mptcp_v1.h>
+#include <linux/mptcp.h>
 
 -- {underscoreToCase}
 -- add prefix = "e"
@@ -35,7 +35,9 @@ import Data.Bits ()
 
 -- {underscoreToCase}
 -- v1 merged events and commands while v1 distinguishes between the two !
-{#enum MPTCP_PM_CMD_UNSPEC as MptcpGenlEvent {} omit (	__MPTCP_PM_CMD_AFTER_LAST) deriving (Eq, Show)#}
+{#enum MPTCP_PM_CMD_UNSPEC as MptcpGenlPMCommand {} omit (	__MPTCP_PM_CMD_AFTER_LAST) deriving (Eq, Show, Ord)#}
+
+{#enum MPTCP_PM_EVENT_UNSPEC as MptcpGenlPMEvent {} deriving (Eq, Show, Ord)#}
 
 -- #define MPTCP_PM_NAME		"mptcp_pm"
 -- #define MPTCP_PM_CMD_GRP_NAME	"mptcp_pm_cmds"

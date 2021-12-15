@@ -2,6 +2,7 @@
 
 This is a userspace path manager for the [linux multipath TCP
 kernel][mptcp-fork], starting from version v0.95.
+It now also supports the upstream linux kernel.
 
 This allows to monitor MPTCP connections and control what subflows to create and
 with a custom kernel it can even set specific values for the congestion windows.
@@ -13,16 +14,14 @@ For now we need a custom version of netlink
 With a custom netlink and kernel
 Compile the custom netlink library with
 ```
-$ cabal configure --enable-library-profiling
+$ cabal configure 
 ```
 You may need some headers as well (NOTE: reference cabal.project instead):
 ```
-kernel $ make headers_install
-$ cabal configure --package-db ~/netlink-hs/dist/package.conf.inplace --extra-include-dirs=~/mptcp/build/usr/include -v3 --enable-profiling
+$ cabal configure --extra-include-dirs=~/mptcp/build/usr/include
+# or on nix you can also pass $(nix-build -A linuxHeaders)/include
+# e.g., `cabal build --extra-include-dirs=/nix/store/3kag193bcwcslzz83chy93ryjv218rbp-linux-headers-5.14/include`
 ```
-
-To compile the doc (and understand why HLS fails displaying anything)
-`cabal haddock --all`
 
 # Usage
 
@@ -30,7 +29,8 @@ The netlink module asks for `GENL_ADMIN_PERM` which requires the `CAP_NET_ADMIN`
 You can assign this privilege via:
 
 ```
-sudo setcap cap_net_admin+ep hs/dist-newstyle/build/x86_64-linux/ghc-8.6.3/netlink-pm-1.0.0/x/daemon/build/daemon/daemon
+res=$(cabal list-bin exe:mptcp-manager)
+sudo setcap cap_net_admin+ep "$res"
 ```
 
 Enter the development shell and start the daemon:

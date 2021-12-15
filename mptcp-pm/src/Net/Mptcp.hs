@@ -19,9 +19,7 @@ module Net.Mptcp (
   , mptcpConnAddSubflow
   , mptcpConnRemoveSubflow
   , newSubflowPkt
-#ifdef EXPERIMENTAL_CWND
   , capCwndPkt
-#endif
   , subflowFromAttributes
   , readToken
   , remoteIdFromAttributes
@@ -467,19 +465,21 @@ subflowAttrs con = [
     , SubflowSourcePort $ srcPort con
   ]
 
-#ifdef EXPERIMENTAL_CWND
 -- |Generate a request to create a new subflow
 capCwndPkt :: MptcpSocket -> MptcpConnection
               -> Word32  -- ^Limit to apply to congestion window
-              -> TcpConnection -> MptcpPacket
+              -> TcpConnection -> Either String MptcpPacket
 capCwndPkt (MptcpSocket _ fid) mptcpCon limit sf =
-    assert (hasFamily attrs) pkt
+#ifdef EXPERIMENTAL_CWND
+    assert (hasFamily attrs) (Right pkt)
     where
         oldPkt = genMptcpRequest fid MPTCP_CMD_SND_CLAMP_WINDOW False attrs
         pkt = oldPkt { packetHeader = (packetHeader oldPkt) { messagePID = 42 } }
         attrs = connectionAttrs mptcpCon
               ++ [ SubflowMaxCwnd limit ]
               ++ subflowAttrs sf
+#else
+    error "support for capping Cwnds not compiled"
 #endif
 
 connectionAttrs :: MptcpConnection -> [MptcpAttribute]

@@ -37,7 +37,7 @@ import Net.Mptcp
 import Net.Mptcp.Constants_v0 as CONST
 -- import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
-import Net.Mptcp.PathManager.Default
+import Net.Mptcp.PathManager.V1.NdiffPorts
 import Net.SockDiag
 import Net.SockDiag.Constants
 import Net.Tcp

@@ -87,11 +87,13 @@ library
     -- apparently this just helps getting a better error messages
     Includes:
         tcp_states.h
-      , linux/sock_diag.h
-      , linux/inet_diag.h
+      -- , linux/sock_diag.h
+      -- , linux/inet_diag.h
       -- , linux/mptcp.h
       , linux/mptcp_v0.h
       -- , linux/mptcp_v1.h
+      -- linux_latest.dev
+      -- pass it via --extra-include-dirs=/nix/store/0l32krcbak7jw4lkwysmsg52k3m0dlm9-linux-5.15.7-dev/lib/modules/5.15.7/source/include/uapi
       -- , linux/mptcp.h
     -- TODO try to pass it from CLI instead , Net.TcpInfo
     include-dirs:
@@ -128,6 +130,7 @@ library
       src/
     build-tool-depends:
       c2hs:c2hs
+    -- other-modules:
     Exposed-Modules:
         Net.SockDiag
       , Net.Tcp
@@ -138,8 +141,10 @@ library
       , Net.Mptcp.Constants
       , Net.Mptcp.Constants_v0
       -- , Net.Mptcp.Constants_v1
+      , Net.Mptcp.PathManager.V0.NdiffPorts
+      , Net.Mptcp.PathManager.V1.NdiffPorts
+      -- , Net.Mptcp.PathManager.Default
       , Net.Mptcp.PathManager
-      , Net.Mptcp.PathManager.Default
       , Net.IPAddress
       , Net.SockDiag.Constants
       -- TODO let it high level
@@ -185,8 +190,9 @@ Test-Suite test-tcp
   default-language:   Haskell2010
   main-is:            Main.hs
   hs-source-dirs:     test
-  ghc-options: -threaded -rtsopts
-  build-depends:      base >=4.12
-                     , HUnit
-                     , mptcp-pm
-                     , ip, text
+  ghc-options:        -threaded -rtsopts
+  build-depends:
+      base >=4.12
+    , HUnit
+    , mptcp-pm
+    , ip, text

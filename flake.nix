@@ -87,7 +87,9 @@
           pkgs.stylish-haskell
 
           # we need the mptcp.h in mptcp-pm
-          pkgs.linux_latest.dev
+          pkgs.linuxHeaders
+          # alternatively we could do makeLinuxHeaders pkgs.linux_latest.dev
+
         #   threadscope
         ]);
 
@@ -131,7 +133,6 @@
               if [ $? -eq 0 ]; then
                 export PATH="$(dirname $result):$PATH"
               fi
-              alias hls=haskell-language-server
             '';
           });
       };

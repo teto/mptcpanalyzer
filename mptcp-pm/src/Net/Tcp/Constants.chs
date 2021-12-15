@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-|
-Module      : Net.Mptcp.Constants
-Description : A module to bridge the haskell code to underlying C code
+Module      : Net.Tcp.Constants
+Description : Bridge the haskell code to underlying C code
 
 I consider this module internal.
 The documentation may be a bit sparse.
