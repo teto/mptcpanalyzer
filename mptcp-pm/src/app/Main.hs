@@ -34,7 +34,7 @@ module Main where
 import Net.IP
 import Net.Mptcp
 
-import Net.Mptcp.Constants_v1 as CONST
+import Net.Mptcp.V0.Constants as CONST
 -- import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
 import Net.Mptcp.PathManager.V1.NdiffPorts
@@ -395,12 +395,12 @@ getCapsForConnection filename prog mptcpConn metrics = do
     return values
 
 -- the library contains showAttrs / showNLAttrs
-showAttributes :: Attributes -> String
-showAttributes attrs =
-  let
-    mapped = Map.foldrWithKey (\k v -> (dumpAttribute k v ++)  ) "\n " attrs
-  in
-    mapped
+-- showAttributes :: Attributes -> String
+-- showAttributes attrs =
+--   let
+--     mapped = Map.foldrWithKey (\k v -> (dumpAttribute k v ++)  ) "\n " attrs
+--   in
+--     mapped
 
 putW32 :: Word32 -> ByteString
 putW32 x = runPut (putWord32host x)

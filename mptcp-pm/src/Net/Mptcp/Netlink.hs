@@ -50,4 +50,3 @@ fixHeader _ dump pkt = let
     flags = if dump then fNLM_F_REQUEST .|. fNLM_F_MATCH .|. fNLM_F_ROOT else fNLM_F_REQUEST
   in
     pkt { packetHeader = myHeader }
-

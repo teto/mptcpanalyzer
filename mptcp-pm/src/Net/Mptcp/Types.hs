@@ -10,7 +10,7 @@ import Data.Aeson
 import qualified Data.Set as Set
 import Net.IP
 import Net.Tcp.Definitions (TcpConnection)
-import Data.ByteString
+-- import Data.ByteString
 
 type MptcpToken = Word32
 type LocId    = Word8

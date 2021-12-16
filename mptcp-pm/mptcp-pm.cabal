@@ -138,6 +138,8 @@ library
       , Net.Tcp.Constants
       , Net.Tcp.Definitions
       , Net.Mptcp
+      , Net.Mptcp.Types
+      , Net.Mptcp.Utils
       , Net.Mptcp.Constants
       , Net.Mptcp.Netlink
       -- , Net.Mptcp.Constants_v0

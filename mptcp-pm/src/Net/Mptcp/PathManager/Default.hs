@@ -6,7 +6,7 @@ Portability : Linux
 -}
 module Net.Mptcp.PathManager.Default (
     -- TODO don't export / move to its own file
-    ndiffports
+      ndiffports
     , meshPathManager
 ) where
 
@@ -15,7 +15,26 @@ import qualified Data.Set as Set
 import Debug.Trace
 import Net.Mptcp
 import Net.Mptcp.PathManager
+import Net.Mptcp.V0.Commands
 import Net.Tcp
+
+-- | Opens several subflows on each interface
+ndiffports :: PathManager
+ndiffports = PathManager {
+  name = "ndiffports"
+  , onMasterEstablishement = nportsOnMasterEstablishement
+}
+
+
+{-
+  Generate requests
+TODO it iterates over local interfaces but not
+-}
+nportsOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> AvailablePaths -> [MptcpPacket]
+nportsOnMasterEstablishement mptcpSock con paths = do
+  foldr (meshGenPkt mptcpSock con) [] paths
+  -- TODO create #X subflows
+  -- iterate
 
 -- | Creates a subflow between each pair of (client, server) interfaces
 meshPathManager :: PathManager

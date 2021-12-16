@@ -17,11 +17,12 @@ module Net.Mptcp.V0.Commands (
 import Net.Mptcp.V0.Constants
 import Net.Mptcp.Netlink
 import Net.Mptcp.Types
-import Net.Tcp.Definitions (TcpConnection)
+import Net.Mptcp.Utils
+import Net.Tcp.Definitions
 
 
 import Control.Exception (assert)
-import Data.Word (Word16, Word8)
+import Data.Word (Word16, Word8, Word32)
 import Data.Serialize.Get
 import Data.Serialize.Put
 import Data.ByteString
@@ -34,6 +35,8 @@ import System.Linux.Netlink
 import System.Linux.Netlink.Constants
 import Data.Bits ((.|.))
 import System.Linux.Netlink.GeNetlink
+import Data.Maybe
+import Debug.Trace
 
 genV4SubflowAddress :: MptcpAttr -> IPv4 -> (Int, ByteString)
 genV4SubflowAddress attr ip = (fromEnum attr, runPut $ putWord32be w32)
@@ -137,6 +140,34 @@ makeAttributeFromMaybe attrType attrs =
     Just bytestring -> makeAttribute (fromEnum attrType) bytestring
 
 
+remoteIdFromAttributes :: Attributes -> RemoteId
+remoteIdFromAttributes attrs = let
+    (SubflowDestPort dport) = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_DPORT attrs
+    -- (SubflowFamily _) = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_FAMILY attrs
+    SubflowDestAddress destIp = ipFromAttributes False attrs
+    -- (SubflowDestPort dport) = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_DPORT attrs
+  in
+    RemoteId destIp dport
+
+
+-- |Retreive IP
+-- TODO could check/use addressfamily as well
+ipFromAttributes :: Bool  -- ^True if source
+                    -> Attributes -> MptcpAttribute
+ipFromAttributes True attrs =
+    case makeAttributeFromMaybe MPTCP_ATTR_SADDR4 attrs of
+      Just ip -> ip
+      Nothing -> case makeAttributeFromMaybe MPTCP_ATTR_SADDR6 attrs of
+        Just ip -> ip
+        Nothing -> error "could not get the src IP"
+
+ipFromAttributes False attrs =
+    case makeAttributeFromMaybe MPTCP_ATTR_DADDR4 attrs of
+      Just ip -> ip
+      Nothing -> case makeAttributeFromMaybe MPTCP_ATTR_DADDR6 attrs of
+        Just ip -> ip
+        Nothing -> error "could not get dest IP"
+
 
 dumpAttribute :: Int -> ByteString -> String
 dumpAttribute attrId value =
@@ -162,6 +193,41 @@ resetConnectionPkt (MptcpSocket _sock fid) attrs = let
     _cmd = MPTCP_CMD_REMOVE
   in
     assert (hasLocAddr attrs) $ genMptcpRequest fid MPTCP_CMD_REMOVE False attrs
+
+connectionAttrs :: MptcpConnection -> [MptcpAttribute]
+connectionAttrs con = [ MptcpAttrToken $ connectionToken con ]
+
+-- pass token ?
+subflowAttrs :: TcpConnection -> [MptcpAttribute]
+subflowAttrs con = [
+    LocalLocatorId $ localId con
+    , RemoteLocatorId $ remoteId con
+    , SubflowFamily $ getAddressFamily (dstIp con)
+    , SubflowDestAddress $ dstIp con
+    , SubflowDestPort $ dstPort con
+    -- should fail if doesn't exist
+    , SubflowInterface $ fromJust $ subflowInterface con
+    -- https://github.com/multipath-tcp/mptcp/issues/338
+    , SubflowSourceAddress $ srcIp con
+    , SubflowSourcePort $ srcPort con
+  ]
+
+-- |Generate a request to create a new subflow
+capCwndPkt :: MptcpSocket -> MptcpConnection
+              -> Word32  -- ^Limit to apply to congestion window
+              -> TcpConnection -> Either String MptcpPacket
+capCwndPkt (MptcpSocket _ fid) mptcpCon limit sf =
+#ifdef EXPERIMENTAL_CWND
+    assert (hasFamily attrs) (Right pkt)
+    where
+        oldPkt = genMptcpRequest fid MPTCP_CMD_SND_CLAMP_WINDOW False attrs
+        pkt = oldPkt { packetHeader = (packetHeader oldPkt) { messagePID = 42 } }
+        attrs = connectionAttrs mptcpCon
+              ++ [ SubflowMaxCwnd limit ]
+              ++ subflowAttrs sf
+#else
+    error "support for capping Cwnds not compiled"
+#endif
 
 -- sport/backup/intf are optional
 newSubflowPkt :: MptcpSocket -> MptcpConnection -> TcpConnection -> MptcpPacket
@@ -214,3 +280,28 @@ makeAttribute i val =
 #endif
     MPTCP_ATTR_FLAGS -> trace "makeAttribute ATTR_FLAGS" Nothing
     MPTCP_ATTR_UNSPEC -> undefined
+-- mptcpAttributesToMap :: [MptcpAttribute] -> Attributes
+-- mptcpAttributesToMap attrs =
+--   Map.fromList $map mptcpAttributeToTuple attrs
+
+-- |Converts / should be a maybe ?
+-- TODO simplify
+subflowFromAttributes :: Attributes -> TcpConnection
+subflowFromAttributes attrs =
+  let
+    -- expects a ByteString
+    SubflowSourcePort sport = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_SPORT attrs
+    SubflowDestPort dport = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_DPORT attrs
+    SubflowSourceAddress _srcIp =  ipFromAttributes True attrs
+    SubflowDestAddress _dstIp = ipFromAttributes False attrs
+    LocalLocatorId lid = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_LOC_ID attrs
+    RemoteLocatorId rid = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_REM_ID attrs
+    SubflowInterface intfId = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_IF_IDX attrs
+    -- sfFamily = getPort $ fromJust (Map.lookup (fromEnum MPTCP_ATTR_FAMILY) attrs)
+    prio = Nothing   -- (SubflowPriority N)
+  in
+    -- TODO fix sfFamily
+    TcpConnection _srcIp _dstIp sport dport prio lid rid (Just intfId)
+
+
+
