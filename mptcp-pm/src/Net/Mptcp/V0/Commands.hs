@@ -11,6 +11,7 @@ module Net.Mptcp.V0.Commands (
   , newSubflowPkt
   , makeAttribute
   , resetConnectionPkt
+  , subflowFromAttributes
   ) where
 
 -- mptcp-pm
@@ -18,6 +19,7 @@ import Net.Mptcp.V0.Constants
 import Net.Mptcp.Netlink
 import Net.Mptcp.Types
 import Net.Mptcp.Utils
+-- import Net.Mptcp.PathManager
 import Net.Tcp.Definitions
 
 
@@ -304,4 +306,10 @@ subflowFromAttributes attrs =
     TcpConnection _srcIp _dstIp sport dport prio lid rid (Just intfId)
 
 
+dumpCommand :: MptcpGenlEvent -> String
+dumpCommand x = show x ++ " = " ++ show (fromEnum x)
+
+dumpMptcpCommands :: MptcpGenlEvent -> String
+dumpMptcpCommands MPTCP_CMD_EXIST = dumpCommand MPTCP_CMD_EXIST
+dumpMptcpCommands x               = dumpCommand x ++ "\n" ++ dumpMptcpCommands (succ x)
 

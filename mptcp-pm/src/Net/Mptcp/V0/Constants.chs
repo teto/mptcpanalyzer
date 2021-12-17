@@ -48,3 +48,6 @@ mptcpGenlCmdGrpName = {#const MPTCP_GENL_CMD_GRP_NAME #}
 mptcpGenlEvGrpName :: String
 mptcpGenlEvGrpName  = {#const MPTCP_GENL_EV_GRP_NAME #}
 
+
+-- toEvent :: MptcpGenlEvent -> MptcpEvent
+-- toEvent

@@ -160,7 +160,7 @@ library
 
 -- monitor new mptcp connections
 -- and delegate the behavior to a monitor
-executable mptcp-manager
+executable mptcp-pm
     import: shared-properties
     default-language: Haskell2010
     build-depends:
@@ -182,6 +182,7 @@ executable mptcp-manager
       , process
       , temporary
       , filepath
+      , pretty-simple
       -- to use Simple module. Try to do without
       , netlink >= 1.1.1.0
     default-extensions: DeriveGeneric

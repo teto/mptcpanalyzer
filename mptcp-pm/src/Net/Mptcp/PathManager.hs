@@ -60,7 +60,7 @@ defaultPathManagerConfig = PathManagerConfig {
 
 interfacesToIgnore :: [String]
 interfacesToIgnore = [
-  "virbr0"
+    "virbr0"
   , "virbr1"
   , "nlmon0"
   , "ppp0"

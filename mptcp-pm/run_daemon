@@ -1,4 +1,11 @@
 #!/bin/sh
+
+# result=$(cabal list-bin exe:mptcpanalyzer)
+# if [ $? -eq 0 ]; then
+#   export PATH="$(dirname $result):$PATH"
+# fi
+
+MPTCP_PM_EXE=$(cabal list-bin exe:mptcp-pm)
 function buildNrun() {
 	cabal build -v mptcp-pm
 	if [ $? -eq 0 ]; then
@@ -8,8 +15,8 @@ function buildNrun() {
 	fi
 }
 
-# function rundaemon() {
-# 	cabal new-build
-# 	sudo setcap cap_net_admin+ep ./dist-newstyle/build/x86_64-linux/ghc-8.6.3/netlink-pm-1.0.0/x/daemon/build/daemon/daemon
-# 	cabal new-run
-# }
+function rundaemon() {
+	cabal build
+	sudo setcap cap_net_admin+ep "$MPTCP_PM_EXE"
+	cabal run mptcp-pm -- $@
+}

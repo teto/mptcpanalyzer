@@ -34,19 +34,22 @@ module Main where
 import Net.IP
 import Net.Mptcp
 
-import Net.Mptcp.V0.Constants as CONST
+-- import Net.Mptcp.V0.Constants as CONST
+import qualified Net.Mptcp.V1.Constants as C
+import qualified Net.Mptcp.V1.Commands as CMD
 -- import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
 import Net.Mptcp.PathManager.V1.NdiffPorts
 import Net.SockDiag
 import Net.SockDiag.Constants
 import Net.Tcp
+import Net.Mptcp.Utils
 
 import Control.Monad (foldM)
 import Control.Monad.Trans (liftIO)
 -- import           Control.Monad.Trans                    (liftIO)
 import Control.Monad.Trans.State (State, StateT, execStateT, get, put)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 -- import           Data.Text                              (Text)
 import Foreign.C.Types (CInt)
 import Options.Applicative hiding (ErrorMsg, empty, value)
@@ -66,6 +69,7 @@ import System.Linux.Netlink.GeNetlink.Control
 import qualified System.Linux.Netlink.Route as NLR
 import qualified System.Linux.Netlink.Simple as NLS
 
+import Text.Pretty.Simple
 import Data.Word (Word32)
 import System.Exit
 import System.Process
@@ -143,12 +147,6 @@ type GState a = State MyState a
 -- addJsonKey _ _ xs = xs
 
 
-dumpCommand :: MptcpGenlEvent -> String
-dumpCommand x = show x ++ " = " ++ show (fromEnum x)
-
-dumpMptcpCommands :: MptcpGenlEvent -> String
-dumpMptcpCommands MPTCP_CMD_EXIST = dumpCommand MPTCP_CMD_EXIST
-dumpMptcpCommands x               = dumpCommand x ++ "\n" ++ dumpMptcpCommands (succ x)
 
 
 -- | Arguments expected on startup
@@ -184,7 +182,7 @@ dumpSystemInterfaces = do
   res <- tryReadMVar globalInterfaces
   case res of
     Nothing         -> putStrLn "No interfaces"
-    Just interfaces -> Prelude.print interfaces
+    Just interfaces -> pPrint interfaces
 
   putStrLn "End of dump"
 
@@ -244,16 +242,15 @@ makeMptcpSocket :: IO MptcpSocket
 makeMptcpSocket = do
     -- for legacy reasons this opens a route socket
   sock <- GENL.makeSocket
-  res <- getFamilyIdS sock mptcpGenlName
+  res <- getFamilyIdS sock C.mptcpGenlName
   case res of
-    Nothing  -> error $ "Could not find family " ++ mptcpGenlName
-    Just fid -> return  (MptcpSocket sock fid)
+    Nothing  -> error $ "Could not find family " ++ C.mptcpGenlName
+    Just fid -> pure (MptcpSocket sock fid)
 
 
 
 makeMetricsSocket :: IO NetlinkSocket
 makeMetricsSocket = makeSocketGeneric eNETLINK_SOCK_DIAG
-
 
 -- A utility function - threadDelay takes microseconds, which is slightly annoying.
 sleepMs :: Natural -> IO()
@@ -432,8 +429,7 @@ inspectAnswer (Packet _ (GenlData hdr NoData) attributes) = let
     cmd = genlCmd hdr
   in
     putStrLn $ show ("Inspecting answer custom:\n" ++ showHeaderCustom hdr
-            ++ "Supposing it's a mptcp command: " ++ dumpCommand ( toEnum $ fromIntegral cmd))
-
+              ++ "Supposing it's a mptcp command: ")
 inspectAnswer pkt = putStrLn $ "Inspecting answer:\n" ++ showPacket pkt
 
 
@@ -448,59 +444,6 @@ queryAddrs = NL.Packet
 -- |Deal with events for already registered connections
 -- Warn: MPTCP_EVENT_ESTABLISHED registers a "null" interface
 -- or a list of packets to send
-
-
--- TODO maybe the path manager should be part of the MptcpConnection
-dispatchPacketForKnownConnection :: MptcpSocket
-                                    -> MptcpConnection
-                                    -> MptcpGenlEvent
-                                    -> Attributes
-                                    -> AvailablePaths
-                                    -> (Maybe MptcpConnection, [MptcpPacket])
-dispatchPacketForKnownConnection mptcpSock con event attributes availablePaths = let
-        token = connectionToken con
-        subflow = subflowFromAttributes attributes
-    in
-    case event of
-
-      -- let the Path manager kick in
-      MPTCP_EVENT_ESTABLISHED -> let
-              -- onMasterEstablishement mptcpSock
-              -- Needs IO because of NetworkInterface
-              newPkts = (onMasterEstablishement pathManager) mptcpSock con availablePaths
-          in
-              (Just con, newPkts)
-
-      -- TODO trigger the pathManager again, fix the remote interpretation
-      MPTCP_EVENT_ANNOUNCED -> let
-          -- what if it's local
-            remId = remoteIdFromAttributes attributes
-            -- newConn = mptcpConnAddRemoteId con remId
-            newConn = con
-          in
-            (Just newConn, [])
-
-      MPTCP_EVENT_CLOSED -> (Nothing, [])
-
-      MPTCP_EVENT_SUB_ESTABLISHED -> let
-                newCon = mptcpConnAddSubflow con subflow
-            in
-                (Just newCon,[])
-        -- let newState = oldState
-        -- putMVar con newCon
-        -- let newState = oldState { connections = Map.insert token newCon (connections oldState) }
-        -- TODO we should insert the
-        -- newConn <-
-        -- return newState
-
-      -- TODO remove
-      MPTCP_EVENT_SUB_CLOSED -> let
-              newCon = mptcpConnRemoveSubflow con subflow
-            in
-              (Just newCon, [])
-
-      -- MPTCP_CMD_EXIST -> con
-      _ -> error $ "should not happen " ++ show event
 
 
 -- |Filter connections
@@ -560,6 +503,59 @@ registerMptcpConnection token subflow = (do
             })
             ))
 
+-- TODO maybe the path manager should be part of the MptcpConnection
+dispatchPacketForKnownConnection :: MptcpSocket
+                                    -> MptcpConnection
+                                    -> C.MptcpGenlEvent
+                                    -> Attributes
+                                    -> AvailablePaths
+                                    -> (Maybe MptcpConnection, [MptcpPacket])
+dispatchPacketForKnownConnection mptcpSock con event attributes availablePaths = let
+        token = connectionToken con
+        subflow = CMD.subflowFromAttributes attributes
+    in
+    case event of
+
+      -- let the Path manager kick in
+      C.MPTCP_EVENT_ESTABLISHED -> let
+              -- onMasterEstablishement mptcpSock
+              -- Needs IO because of NetworkInterface
+              newPkts = (onMasterEstablishement pathManager) mptcpSock con availablePaths
+          in
+              (Just con, newPkts)
+
+      -- TODO trigger the pathManager again, fix the remote interpretation
+      C.MPTCP_EVENT_ANNOUNCED -> let
+          -- what if it's local
+            -- remId = remoteIdFromAttributes attributes
+            -- newConn = mptcpConnAddRemoteId con remId
+            newConn = con
+          in
+            (Just newConn, [])
+
+      C.MPTCP_EVENT_CLOSED -> (Nothing, [])
+
+      C.MPTCP_EVENT_SUB_ESTABLISHED -> let
+                newCon = mptcpConnAddSubflow con subflow
+            in
+                (Just newCon,[])
+        -- let newState = oldState
+        -- putMVar con newCon
+        -- let newState = oldState { connections = Map.insert token newCon (connections oldState) }
+        -- TODO we should insert the
+        -- newConn <-
+        -- return newState
+
+      -- TODO remove
+      C.MPTCP_EVENT_SUB_CLOSED -> let
+              newCon = mptcpConnRemoveSubflow con subflow
+            in
+              (Just newCon, [])
+
+      -- MPTCP_CMD_EXIST -> con
+      _ -> error $ "should not happen " ++ show event
+
+
 -- |Treat MPTCP events depending on if the connection is known or not
 dispatchPacket :: MyState -> MptcpPacket -> IO MyState
 dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = let
@@ -569,7 +565,7 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
 
         -- i suppose token is always available right ?
         token :: MptcpToken
-        token = case Map.lookup (fromEnum MPTCP_ATTR_TOKEN) attributes of
+        token = case Map.lookup (fromEnum C.MPTCP_ATTR_TOKEN) attributes of
           Nothing   -> error "Could not retreive token "
           Just bstr -> fromRight (error "could not retreive token") (readToken bstr)
         maybeMatch = Map.lookup token (connections oldState)
@@ -586,14 +582,15 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
                 putStrLn $ "Unknown token/connection " ++ show token
                 case cmd of
 
-                  MPTCP_EVENT_ESTABLISHED -> do
-                      -- putStrLn "Ignoring Creating EVENT"
+                  C.MPTCP_EVENT_ESTABLISHED -> do
+                      putStrLn "Ignoring EVENT established"
                                   -- let newMptcpConn = (MptcpConnection token [] Set.empty Set.empty)
                       return oldState
 
-                  MPTCP_EVENT_CREATED -> let
-                      subflow = subflowFromAttributes attributes
-                    in
+                  C.MPTCP_EVENT_CREATED -> let
+                      subflow = CMD.subflowFromAttributes attributes
+                    in do
+                      putStrLn "New EVENT_CREATED"
                       execStateT (registerMptcpConnection token subflow) oldState
                   _ -> return oldState
 
@@ -665,7 +662,10 @@ dispatchPacket s (ErrorMsg hdr errCode errPacket) = do
   if errCode == 0 then
     putStrLn $ "Received acknowledgement for " ++ show hdr
   else
-    putStrLn $ "Error msg of type " ++ showErrCode errCode ++ " Packet content:\n" ++ show errPacket
+    putStrLn $ unlines [
+      "Error msg of type " ++ showErrCode errCode
+      , "Packet content:\n" ++ show errPacket
+      ]
 
   return s
 
@@ -711,18 +711,17 @@ doDumpLoop myState = do
 
 
 -- TODO use polysemy State / log / trace
-
 listenToEvents :: Members '[
   Log, P.Trace, P.State MyState, P.Embed IO
   ] r
-  => CtrlAttrMcastGroup
+  => Word32
   -> Sem r ()
-listenToEvents my_group = do
+listenToEvents eventGrpId = do
   myState <- P.get
-  let     (MptcpSocket sock fid) = socket myState
+  let (MptcpSocket sock fid) = socket myState
 
-  embed $ joinMulticastGroup sock (grpId my_group)
-  trace $ "Joined grp " ++ grpName my_group
+  embed $ joinMulticastGroup sock eventGrpId
+  trace $ "Joined grp " ++ show eventGrpId
   _ <- P.embed $ doDumpLoop myState
   trace "end of listenToEvents"
 
@@ -900,9 +899,11 @@ program options = do
 
   mptcpSocket <- embed makeMptcpSocket
   let (MptcpSocket sock fid) = mptcpSocket
+
   mcastMptcpGroups <- embed $ getMulticastGroups sock fid
   -- TODO Log.debug
-  embed $ mapM_ Prelude.print mcastMptcpGroups
+  embed $ pPrint mcastMptcpGroups
+  let mcEventGroupId = fromMaybe (error "Could not find the mptcp event multicast group") (getMulticast C.mptcpGenlEvGrpName mcastMptcpGroups)
 
 
   -- use fmap instead
@@ -920,5 +921,6 @@ program options = do
   -- TODO update the state
   let globalState = MyState mptcpSocket Map.empty options filteredConns
 
-  mapM_ (\x -> P.evalState globalState (listenToEvents x)) mcastMptcpGroups
+  P.evalState globalState (listenToEvents mcEventGroupId)
+  -- return ()
   -- putStrLn $ " Groups: " ++ unwords ( map grpName mcastMptcpGroups )

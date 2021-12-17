@@ -25,30 +25,28 @@ where
 -- mptcp-pm
 import Net.Mptcp.Netlink
 import Net.Mptcp.Types
-import Net.Mptcp.Constants
-import Net.Mptcp.V0.Commands
 import Net.Tcp
 import Net.SockDiag ()
-import Net.IPAddress
 
 -- hackage
 -- import Control.Exception (assert)
 
-import qualified Data.Map as Map
-import Data.Word (Word16, Word32, Word8)
-import System.Linux.Netlink hiding (makeSocket)
+-- import qualified Data.Map as Map
+-- import Data.Word (Word16, Word32, Word8)
+-- import System.Linux.Netlink hiding (makeSocket)
 -- import System.Linux.Netlink (query, Packet(..))
 -- import System.Linux.Netlink.GeNetlink.Control
-import Data.ByteString (ByteString)
-import Data.Maybe (fromJust)
+-- import Data.ByteString (ByteString)
+-- import Data.Maybe (fromJust)
 
-import Data.Serialize.Get
+-- import Data.Serialize.Get
 -- import 
 
 import Control.Concurrent ()
 import Control.Monad.Trans.State ()
 import Data.List ()
 import qualified Data.Set as Set
+import Data.Word (Word8)
 -- import Debug.Trace
 -- import System.Linux.Netlink.Constants
 
