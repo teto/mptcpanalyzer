@@ -32,7 +32,7 @@ import Net.IPv4
 import Net.IPv6
 import Net.IPAddress
 import System.Linux.Netlink
-import System.Linux.Netlink.Constants (fNLM_F_ACK, fNLM_F_REQUEST, fNLM_F_MATCH, fNLM_F_ROOT, eAF_INET, eAF_INET6)
+import System.Linux.Netlink.Constants (fNLM_F_ACK, fNLM_F_REQUEST, fNLM_F_MATCH, fNLM_F_ROOT, eAF_INET)
 import Data.Bits ((.|.))
 import System.Linux.Netlink.GeNetlink
 import Data.Maybe

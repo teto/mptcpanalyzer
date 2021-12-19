@@ -16,8 +16,12 @@ import qualified Data.Set as Set
 import Debug.Trace
 import Net.Mptcp
 import Net.Mptcp.PathManager
+import Net.Mptcp.Types
 import Net.Tcp
 import Net.Mptcp.V0.Commands
+
+
+-- These should be plugins
 
 ndiffports :: PathManager
 ndiffports = PathManager {
@@ -30,8 +34,13 @@ ndiffports = PathManager {
 TODO it iterates over local interfaces but not
 -}
 nportsOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> ExistingInterfaces -> [MptcpPacket]
-nportsOnMasterEstablishement mptcpSock con paths = do
-  foldr (meshGenPkt mptcpSock con) [] paths
+nportsOnMasterEstablishement mptcpSock mptcpCon paths = do
+  map (newSublowPacketFromPort ) [3456]
+    
+  where
+    generatedCon port = (getMasterSubflow mptcpCon) { srcPort = port }
+    newSublowPacketFromPort port = newSubflowPkt mptcpSock mptcpCon (generatedCon port)
+
   -- TODO create #X subflows
   -- iterate
 

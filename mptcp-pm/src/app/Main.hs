@@ -111,6 +111,16 @@ import qualified Polysemy.Trace as P
 -- we could pass it as an argument
 -- import System.Environment.Blank(getEnvDefault)
 
+interfacesToIgnore :: [String]
+interfacesToIgnore = [
+    "virbr0"
+  , "virbr1"
+  , "docker0"
+  , "nlmon0"
+  -- , "ppp0"
+  -- , "lo"
+  ]
+
 tshow :: Show a => a -> TS.Text
 tshow = TS.pack . Prelude.show
 
@@ -548,9 +558,11 @@ dispatchPacketForKnownConnection mptcpSock con event attributes existingInterfac
       -- MPTCP_CMD_EXIST -> con
       _ -> error $ "should not happen " ++ show event
 
--- availableInterfaces :: ExistingInterfaces
--- availableInterfaces = 
+-- allowedInterfaces :: ExistingInterfaces
+-- allowedInterfaces = 
 
+filterInterfaces :: ExistingInterfaces -> ExistingInterfaces
+filterInterfaces existingInterfaces = flip Map.filter existingInterfaces (\x -> interfaceName x `elem` interfacesToIgnore)
 
 -- |Treat MPTCP events depending on if the connection is known or not
 dispatchPacket :: MyState -> MptcpPacket -> IO MyState
@@ -569,9 +581,9 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
         putStrLn "Fetching available paths"
         existingInterfaces <- readMVar globalInterfaces
         -- TODO filter the map based on values
-        let availableInterfaces = flip filter existingInterfaces (\x -> interfaceName)
 
         putStrLn $ "dispatch cmd " ++ show cmd ++ " for token " ++ show token
+        let allowedInterfaces = filterInterfaces existingInterfaces
 
         case maybeMatch of
             -- Unknown token
@@ -597,7 +609,7 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
                 mptcpConn <- takeMVar mvarConn
 
                 putStrLn "Forwarding to dispatchPacketForKnownConnection "
-                case dispatchPacketForKnownConnection mptcpSock mptcpConn cmd attributes existingInterfaces of
+                case dispatchPacketForKnownConnection mptcpSock mptcpConn cmd attributes allowedInterfaces of
                   (Nothing, _) -> do
                         putStrLn $ "Killing thread " ++ show threadId
                         killThread threadId
@@ -679,6 +691,7 @@ showErrCode :: CInt -> String
 showErrCode err
   | Errno err == ePERM = "EPERM"
   | Errno err == eOK = "EOK"
+  | Errno err == eOPNOTSUPP = "Operation not supported"
   | otherwise = show err
 
 -- showErrCode err = case err of
@@ -855,10 +868,10 @@ instance ToJSON SockDiagMetrics where
 -- |Updates the list of interfaces
 -- should run in background
 trackSystemInterfaces :: [String] -> IO ()
-trackSystemInterfaces interfacesToIgnore = do
+trackSystemInterfaces interfacesToIgnore' = do
   -- check routing information
   routingSock <- NLS.makeNLHandle (const $ pure ()) =<< NL.makeSocket
-  let cb = NLS.NLCallback (pure ()) (handleAddr interfacesToIgnore . runGet getGenPacket)
+  let cb = NLS.NLCallback (pure ()) (handleAddr interfacesToIgnore' . runGet getGenPacket)
   NLS.nlPostMessage routingSock queryAddrs cb
   NLS.nlWaitCurrent routingSock
   dumpSystemInterfaces

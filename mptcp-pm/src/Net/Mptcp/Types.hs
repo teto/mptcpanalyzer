@@ -9,7 +9,7 @@ import Data.Word
 import Data.Aeson
 import qualified Data.Set as Set
 import Net.IP
-import Net.Tcp.Definitions (TcpConnection)
+import Net.Tcp.Definitions (TcpConnection(..))
 -- import Data.ByteString
 
 type MptcpToken = Word32
@@ -37,21 +37,15 @@ data MptcpConnection = MptcpConnection {
 } deriving (Show, Generic, FromJSON)
 
 
+-- add a maybe ?
+getMasterSubflow :: MptcpConnection -> TcpConnection
+getMasterSubflow mptcpCon = head $ filter (\sf -> localId sf == 0) (Set.toList $ subflows mptcpCon)
+
 -- | Remote port
 data RemoteId = RemoteId {
     remoteAddress :: IP
   , remotePort  :: Word16
 }
-
--- TODO revisit where to put it ?
--- data PMCommand = Unspec | AddAddr | DelAddr | GetAddr | FlushAddrs | SetLimits | GetLimits | SetFlags
---  | MPTCP_PM_CMD_ADD_ADDR
---  | MPTCP_PM_CMD_DEL_ADDR
---  | MPTCP_PM_CMD_GET_ADDR
---  | MPTCP_PM_CMD_FLUSH_ADDRS
---  | MPTCP_PM_CMD_SET_LIMITS
---  | MPTCP_PM_CMD_GET_LIMITS
---  | MPTCP_PM_CMD_SET_FLAGS
 
 --  export to the format expected by mptcpnumerics
 -- could be automatically generated ?
