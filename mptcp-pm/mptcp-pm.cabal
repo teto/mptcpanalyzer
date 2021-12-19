@@ -153,6 +153,7 @@ library
       , Net.Mptcp.PathManager
       , Net.IPAddress
       , Net.SockDiag.Constants
+      , Netlink.Route
       -- TODO let it high level
     if flag(CwndCapping)
       ghc-options: -DEXPERIMENTAL_CWND=1

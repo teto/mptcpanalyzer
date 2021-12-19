@@ -30,7 +30,7 @@ ndiffports = PathManager {
   Generate requests
 TODO it iterates over local interfaces but not
 -}
-nportsOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> AvailablePaths -> [MptcpPacket]
+nportsOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> ExistingInterfaces -> [MptcpPacket]
 nportsOnMasterEstablishement mptcpSock con paths = do
   foldr (meshGenPkt mptcpSock con) [] paths
   -- TODO create #X subflows
@@ -74,7 +74,7 @@ meshGenPkt mptcpSock mptcpCon intf pkts =
   Generate requests
 it iterates over local interfaces and try to connect
 -}
-meshOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> AvailablePaths -> [MptcpPacket]
+meshOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> ExistingInterfaces -> [MptcpPacket]
 meshOnMasterEstablishement mptcpSock con paths = do
   foldr (meshGenPkt mptcpSock con) [] paths
 

@@ -53,7 +53,7 @@ data MptcpConnection = MptcpConnection {
 -- master subflow has implicit addrid 0
 -- TODO add start/end dates ?
 data MptcpSubflow = MptcpSubflow {
-      sfConn :: TcpConnection
+        sfConn :: TcpConnection
       -- shall keep token instead ? or as a boolean ?
       -- Todo token
       -- , sfMptcpDest :: ConnectionRole -- ^ Destination

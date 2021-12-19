@@ -44,6 +44,7 @@ import Net.SockDiag
 import Net.SockDiag.Constants
 import Net.Tcp
 import Net.Mptcp.Utils
+import Netlink.Route
 
 import Control.Monad (foldM)
 import Control.Monad.Trans (liftIO)
@@ -66,7 +67,7 @@ import System.Linux.Netlink.GeNetlink as GENL
 -- import System.Linux.Netlink.Helpers
 -- import System.Log.FastLogger
 import System.Linux.Netlink.GeNetlink.Control
-import qualified System.Linux.Netlink.Route as NLR
+-- import qualified System.Linux.Netlink.Route as NLR
 import qualified System.Linux.Netlink.Simple as NLS
 
 import Text.Pretty.Simple
@@ -124,7 +125,7 @@ onFailureSleepingDelay = 100
 
 -- |the default path manager
 pathManager :: PathManager
-pathManager = meshPathManager
+pathManager = ndiffports
 
 -- |Helper to pass information across functions
 data MyState = MyState {
@@ -433,14 +434,6 @@ inspectAnswer (Packet _ (GenlData hdr NoData) attributes) = let
 inspectAnswer pkt = putStrLn $ "Inspecting answer:\n" ++ showPacket pkt
 
 
--- should have this running in parallel
-queryAddrs :: NLR.RoutePacket
-queryAddrs = NL.Packet
-    (NL.Header NLC.eRTM_GETADDR (NLC.fNLM_F_ROOT .|. NLC.fNLM_F_MATCH .|. NLC.fNLM_F_REQUEST) 0 0)
-    (NLR.NAddrMsg 0 0 0 0 0)
-    mempty
-
-
 -- |Deal with events for already registered connections
 -- Warn: MPTCP_EVENT_ESTABLISHED registers a "null" interface
 -- or a list of packets to send
@@ -508,9 +501,9 @@ dispatchPacketForKnownConnection :: MptcpSocket
                                     -> MptcpConnection
                                     -> C.MptcpGenlEvent
                                     -> Attributes
-                                    -> AvailablePaths
+                                    -> ExistingInterfaces
                                     -> (Maybe MptcpConnection, [MptcpPacket])
-dispatchPacketForKnownConnection mptcpSock con event attributes availablePaths = let
+dispatchPacketForKnownConnection mptcpSock con event attributes existingInterfaces = let
         token = connectionToken con
         subflow = CMD.subflowFromAttributes attributes
     in
@@ -518,11 +511,11 @@ dispatchPacketForKnownConnection mptcpSock con event attributes availablePaths =
 
       -- let the Path manager kick in
       C.MPTCP_EVENT_ESTABLISHED -> let
-              -- onMasterEstablishement mptcpSock
-              -- Needs IO because of NetworkInterface
-              newPkts = (onMasterEstablishement pathManager) mptcpSock con availablePaths
-          in
-              (Just con, newPkts)
+          -- onMasterEstablishement mptcpSock
+          -- Needs IO because of NetworkInterface
+          newPkts = (onMasterEstablishement pathManager) mptcpSock con existingInterfaces
+        in
+          (Just con, newPkts)
 
       -- TODO trigger the pathManager again, fix the remote interpretation
       C.MPTCP_EVENT_ANNOUNCED -> let
@@ -555,6 +548,9 @@ dispatchPacketForKnownConnection mptcpSock con event attributes availablePaths =
       -- MPTCP_CMD_EXIST -> con
       _ -> error $ "should not happen " ++ show event
 
+-- availableInterfaces :: ExistingInterfaces
+-- availableInterfaces = 
+
 
 -- |Treat MPTCP events depending on if the connection is known or not
 dispatchPacket :: MyState -> MptcpPacket -> IO MyState
@@ -571,7 +567,9 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
         maybeMatch = Map.lookup token (connections oldState)
     in do
         putStrLn "Fetching available paths"
-        availablePaths <- readMVar globalInterfaces
+        existingInterfaces <- readMVar globalInterfaces
+        -- TODO filter the map based on values
+        let availableInterfaces = flip filter existingInterfaces (\x -> interfaceName)
 
         putStrLn $ "dispatch cmd " ++ show cmd ++ " for token " ++ show token
 
@@ -592,14 +590,14 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
                     in do
                       putStrLn "New EVENT_CREATED"
                       execStateT (registerMptcpConnection token subflow) oldState
-                  _ -> return oldState
+                  _ -> putStrLn "Ignoring event" >> return oldState
 
             Just (threadId, mvarConn) -> do
                 putStrLn "MATT: Received request for a known connection "
                 mptcpConn <- takeMVar mvarConn
 
                 putStrLn "Forwarding to dispatchPacketForKnownConnection "
-                case dispatchPacketForKnownConnection mptcpSock mptcpConn cmd attributes availablePaths of
+                case dispatchPacketForKnownConnection mptcpSock mptcpConn cmd attributes existingInterfaces of
                   (Nothing, _) -> do
                         putStrLn $ "Killing thread " ++ show threadId
                         killThread threadId
@@ -611,7 +609,7 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
                         -- TODO update state
 
                         putStrLn "List of requests made on new master:"
-                        mapM_ (\pkt -> sendPacket mptcpSockRaw pkt) pkts
+                        mapM_ (sendPacket mptcpSockRaw) pkts
                         let newState = oldState {
                             connections = Map.insert token (threadId, mvarConn) (connections oldState)
                         }
@@ -856,11 +854,11 @@ instance ToJSON SockDiagMetrics where
 
 -- |Updates the list of interfaces
 -- should run in background
-trackSystemInterfaces :: IO ()
-trackSystemInterfaces = do
+trackSystemInterfaces :: [String] -> IO ()
+trackSystemInterfaces interfacesToIgnore = do
   -- check routing information
   routingSock <- NLS.makeNLHandle (const $ pure ()) =<< NL.makeSocket
-  let cb = NLS.NLCallback (pure ()) (handleAddr defaultPathManagerConfig . runGet getGenPacket)
+  let cb = NLS.NLCallback (pure ()) (handleAddr interfacesToIgnore . runGet getGenPacket)
   NLS.nlPostMessage routingSock queryAddrs cb
   NLS.nlWaitCurrent routingSock
   dumpSystemInterfaces
@@ -893,7 +891,7 @@ program options = do
 
   Log.info "Now Tracking system interfaces..."
   embed $ putMVar globalInterfaces Map.empty
-  routeNl <- embed $ forkIO trackSystemInterfaces
+  routeNl <- embed $ forkIO (trackSystemInterfaces [])
 
   Log.debug "socket created. MPTCP Family id "
 

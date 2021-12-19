@@ -7,7 +7,6 @@ Portability : Linux
 {-# LANGUAGE CPP #-}
 module Net.Mptcp.V1.Commands (
     attrToPair
-  , checkIfSocketExistsPkt
   , newSubflowPkt
   , makeAttribute
   , resetConnectionPkt
@@ -15,7 +14,7 @@ module Net.Mptcp.V1.Commands (
   ) where
 
 -- mptcp-pm
-import Net.Mptcp.V0.Constants
+import Net.Mptcp.V1.Constants
 import Net.Mptcp.Netlink
 import Net.Mptcp.Types
 import Net.Mptcp.Utils
@@ -33,7 +32,7 @@ import Net.IPv4
 import Net.IPv6
 import Net.IPAddress
 import System.Linux.Netlink
-import System.Linux.Netlink.Constants
+import System.Linux.Netlink.Constants (fNLM_F_ACK, fNLM_F_REQUEST, fNLM_F_MATCH, fNLM_F_ROOT, eAF_INET, eAF_INET6)
 import Data.Bits ((.|.))
 import System.Linux.Netlink.GeNetlink
 import Data.Maybe
@@ -190,10 +189,12 @@ hasLocAddr attrs = Prelude.any (isAttribute (LocalLocatorId 0)) attrs
 -- REQUIRES: LOC_ID / TOKEN
 -- TODO pass TcpConnection
 resetConnectionPkt :: MptcpSocket -> [MptcpAttribute] -> MptcpPacket
-resetConnectionPkt (MptcpSocket _sock fid) attrs = let
-    _cmd = MPTCP_CMD_REMOVE
-  in
-    assert (hasLocAddr attrs) $ genMptcpRequest fid MPTCP_CMD_REMOVE False attrs
+resetConnectionPkt (MptcpSocket _sock fid) attrs =
+    error "reset not implemented yet"
+    -- let
+    -- _cmd = MPTCP_CMD_REMOVE
+  -- in
+    -- assert (hasLocAddr attrs) $ genMptcpRequest fid MPTCP_CMD_REMOVE False attrs
 
 connectionAttrs :: MptcpConnection -> [MptcpAttribute]
 connectionAttrs con = [ MptcpAttrToken $ connectionToken con ]
@@ -232,16 +233,13 @@ capCwndPkt (MptcpSocket _ fid) mptcpCon limit sf =
 
 -- sport/backup/intf are optional
 newSubflowPkt :: MptcpSocket -> MptcpConnection -> TcpConnection -> MptcpPacket
-newSubflowPkt (MptcpSocket _ fid) mptcpCon sf = let
-    _cmd = MPTCP_CMD_SUB_CREATE
-    attrs = connectionAttrs mptcpCon ++ subflowAttrs sf
-    pkt = genMptcpRequest fid MPTCP_CMD_SUB_CREATE False attrs
-  in
-    assert (hasFamily attrs) pkt
-
-checkIfSocketExistsPkt :: Word16 -> [MptcpAttribute]  -> MptcpPacket
-checkIfSocketExistsPkt fid attributes =
-    genMptcpRequest fid MPTCP_CMD_EXIST True attributes
+newSubflowPkt (MptcpSocket _ fid) mptcpCon sf = 
+    error "undefined"
+    -- assert (hasFamily attrs) pkt
+    -- where 
+    --   _cmd = MPTCP_CMD_SUB_CREATE
+    --   attrs = connectionAttrs mptcpCon ++ subflowAttrs sf
+    --   pkt = genMptcpRequest fid MPTCP_CMD_SUB_CREATE False attrs
 
 -- | Builds an MptcpAttribute from
 makeAttribute :: Int -- ^ MPTCP_ATTR_TOKEN value
@@ -281,6 +279,9 @@ makeAttribute i val =
 #endif
     MPTCP_ATTR_FLAGS -> trace "makeAttribute ATTR_FLAGS" Nothing
     MPTCP_ATTR_UNSPEC -> undefined
+    MPTCP_ATTR_RESET_REASON -> undefined
+    MPTCP_ATTR_RESET_FLAGS -> undefined
+
 -- mptcpAttributesToMap :: [MptcpAttribute] -> Attributes
 -- mptcpAttributesToMap attrs =
 --   Map.fromList $map mptcpAttributeToTuple attrs
@@ -293,14 +294,26 @@ subflowFromAttributes attrs =
     -- expects a ByteString
     SubflowSourcePort sport = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_SPORT attrs
     SubflowDestPort dport = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_DPORT attrs
-    SubflowSourceAddress _srcIp =  ipFromAttributes True attrs
-    SubflowDestAddress _dstIp = ipFromAttributes False attrs
+    SubflowSourceAddress srcIp' = fromJust $ makeAttributeFromMaybe srcAttr attrs
+        -- eAF_INET6 -> fromJust $ makeAttributeFromMaybe MPTCP_ATTR_SADDR6 attrs
+        -- ipFromAttributes True attrs
+    srcAttr = case family of
+        2 -> MPTCP_ATTR_SADDR4
+        10 -> MPTCP_ATTR_SADDR6
+        _ -> error "Unsupported address family"
+    SubflowDestAddress dstIp' = fromJust $ makeAttributeFromMaybe dstAttr attrs
+    dstAttr = case family of
+        2 -> MPTCP_ATTR_DADDR4
+        10 -> MPTCP_ATTR_DADDR6
+        _ -> error "Unsupported address family"
     LocalLocatorId lid = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_LOC_ID attrs
     RemoteLocatorId rid = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_REM_ID attrs
     SubflowInterface intfId = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_IF_IDX attrs
+    SubflowFamily family = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_FAMILY attrs
+
     -- sfFamily = getPort $ fromJust (Map.lookup (fromEnum MPTCP_ATTR_FAMILY) attrs)
     prio = Nothing   -- (SubflowPriority N)
   in
     -- TODO fix sfFamily
-    TcpConnection _srcIp _dstIp sport dport prio lid rid (Just intfId)
+    TcpConnection srcIp' dstIp' sport dport prio lid rid (Just intfId)
 
