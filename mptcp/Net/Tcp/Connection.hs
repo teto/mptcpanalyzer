@@ -11,7 +11,7 @@ module Net.Tcp.Connection (
 where
 import Data.Text as TS
 import Data.Word (Word16, Word32, Word64, Word8)
-import MptcpAnalyzer.Stream
+import Net.Stream
 import Net.IP
 
 -- | Identifies a TCP connection

@@ -1,0 +1,101 @@
+cabal-version: 3.0
+name: mptcp
+version: 0.0.4
+license: GPL-3.0-only
+license-file: LICENSE
+build-type: Simple
+Maintainer:  teto
+Category:   Network, Mptcp
+Synopsis: Datastructures to describe TCP and MPTCP connections
+Homepage:   https://github.com/teto/quantum2
+Description:
+  Multipath TCP (www.multipath-tcp.org) starting from version 0.95 provides a
+  netlink path manager module. This package implements the userspace component
+
+data-files:
+extra-source-files:
+  -- headers/*.h
+  -- headers/linux/*.h
+  README.md
+  -- CHANGELOG
+
+
+
+tested-with:         GHC == 8.10.7
+
+-- Source-repository head
+--   type:       git
+--   location:   https://github.com/teto/quantum2/mptcp
+
+
+library
+    -- import: shared-properties
+    default-language: Haskell2010
+    -- for the .chs => c2hs
+    -- apparently this just helps getting a better error messages
+    -- Includes:
+    --     tcp_states.h
+      -- , linux/sock_diag.h
+      -- , linux/inet_diag.h
+      -- , linux/mptcp.h
+      -- , linux/mptcp_v0.h
+      -- , linux/mptcp_v1.h
+      -- linux_latest.dev
+      -- pass it via --extra-include-dirs=/nix/store/0l32krcbak7jw4lkwysmsg52k3m0dlm9-linux-5.15.7-dev/lib/modules/5.15.7/source/include/uapi
+      -- , linux/mptcp.h
+    -- TODO try to pass it from CLI instead , Net.TcpInfo
+    -- include-dirs:
+    --   headers
+    default-extensions:
+      DeriveGeneric
+    -- autogen-modules:
+    --     Net.Tcp.Constants
+    --   , Net.Mptcp.Constants
+    --   , Net.SockDiag.Constants
+    build-depends:
+        base >= 4.12
+      , lens
+      , Frames
+      , containers
+      -- , readable
+      -- , bytestring
+      -- , process
+      -- , cereal
+      , enumset
+      , ip >= 1.7.3
+      , bytestring-conversion
+      , text
+      -- todo get rid of it
+      -- for liftIO
+      -- , mtl
+      -- for merge
+      , aeson
+      , aeson-pretty
+      , aeson-extra
+      -- to help with merging json content
+      , unordered-containers
+      -- to create temp folder/files
+      -- , transformers
+    hs-source-dirs:
+      .
+    build-tool-depends:
+      c2hs:c2hs
+    -- other-modules:
+    Exposed-Modules:
+        -- Net.SockDiag
+        Net.Tcp
+      , Net.Mptcp
+      -- , Net.Bitset
+      -- , Net.Tcp.Constants
+      -- , Net.Tcp.Definitions
+      -- , Net.Mptcp.Types
+      -- , Net.Mptcp.Utils
+      -- , Net.Mptcp.Constants
+      -- , Net.Mptcp.Netlink
+      -- , Net.Mptcp.Constants_v0
+      -- , Net.Mptcp.PathManager.Default
+      -- , Net.IPAddress
+      -- , Net.SockDiag.Constants
+      -- , Netlink.Route
+      -- TODO let it high level
+

@@ -19,8 +19,8 @@ import Net.Tcp
 import qualified Data.Set as Set
 import Data.Text as TS
 import Data.Word (Word16, Word32, Word64, Word8)
-import MptcpAnalyzer.ArtificialFields
-import MptcpAnalyzer.Stream
+-- import MptcpAnalyzer.ArtificialFields
+import Net.Stream
 
 data MptcpEndpointConfiguration = MptcpEndpointConfiguration {
   -- |key exchanged during the handshake

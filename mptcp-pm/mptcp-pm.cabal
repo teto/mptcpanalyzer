@@ -107,6 +107,7 @@ library
     build-depends:
         base >= 4.12
       , containers
+      , mptcp
       , readable
       , bytestring
       , process
@@ -133,10 +134,10 @@ library
     -- other-modules:
     Exposed-Modules:
         Net.SockDiag
-      , Net.Tcp
+      -- , Net.Tcp
       , Net.Bitset
       , Net.Tcp.Constants
-      , Net.Tcp.Definitions
+      -- , Net.Tcp.Definitions
       , Net.Mptcp
       , Net.Mptcp.Types
       , Net.Mptcp.Utils

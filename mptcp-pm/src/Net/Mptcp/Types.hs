@@ -9,7 +9,8 @@ import Data.Word
 import Data.Aeson
 import qualified Data.Set as Set
 import Net.IP
-import Net.Tcp.Definitions (TcpConnection(..))
+import Net.Tcp
+-- import Net.Tcp.Definitions (TcpConnection(..))
 -- import Data.ByteString
 
 type MptcpToken = Word32

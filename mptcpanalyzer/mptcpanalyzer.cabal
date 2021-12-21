@@ -80,6 +80,7 @@ common shared-properties
       -- , time-units
       , cereal
       , containers
+      , mptcp
       , directory
       , filepath
       , foldl

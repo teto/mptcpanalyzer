@@ -57,6 +57,7 @@
             sha256 = "sha256-qopa1ED4Bqk185b1AXZ32BG2s80SHDSkCODyoZfnft0=";
           };
         });
+        mptcp = self.packages."${system}".mptcp;
 
       };
 
@@ -106,6 +107,7 @@
     in {
       packages = {
 
+        mptcp = mkPackage "mptcp";
         mptcp-pm = mkPackage "mptcp-pm";
 
         mptcpanalyzer = hsPkgs.developPackage {
@@ -123,6 +125,7 @@
       defaultPackage = self.packages.${system}.mptcpanalyzer;
 
       devShells = {
+        mptcp = self.packages.${system}.mptcp.envFunc {};
         mptcp-pm = self.packages.${system}.mptcp-pm.envFunc {};
 
         mptcpanalyzer = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
