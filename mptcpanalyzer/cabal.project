@@ -21,6 +21,7 @@ benchmarks: True
 -- -- Frames for colDecExplicit
 packages:
   ../mptcp-pm/
+  ../mptcp/
    ./*.cabal
   ../../optparse-applicative
 

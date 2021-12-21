@@ -46,6 +46,7 @@ import Net.IPAddress
 -- import Net.IPv4
 import Net.SockDiag.Constants
 import Net.Tcp
+import Net.Mptcp
 
 --
 -- import Data.BitSet.Word
@@ -194,11 +195,11 @@ putSockDiagRequestHeader request = do
 
 -- |Converts a generic SockDiagMsg into a TCP connection
 connectionFromDiag :: SockDiagMsg
-              -> TcpConnection
+              -> MptcpSubflow
 connectionFromDiag msg =
   let sockid = idiag_sockid msg in
-  TcpConnection {
-    srcIp = fromRight (error "no default for srcIp") (getIPFromByteString (idiag_family msg) (idiag_src sockid))
+  MptcpSubflow {
+      srcIp = fromRight (error "no default for srcIp") (getIPFromByteString (idiag_family msg) (idiag_src sockid))
     , dstIp = fromRight (error "no default for destIp") (getIPFromByteString (idiag_family msg) (idiag_dst sockid))
     , srcPort = idiag_sport sockid
     , dstPort = idiag_dport sockid

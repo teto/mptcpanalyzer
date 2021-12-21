@@ -3,11 +3,10 @@ where
 
 import Data.Word
 import Data.ByteString
-import Net.Mptcp.Types
 import Data.Serialize.Get
 
 -- | TODO change / return Either
-readToken :: ByteString -> Either String MptcpToken
+readToken :: ByteString -> Either String Word32
 readToken val = runGet getWord32host val
 
 getPort :: ByteString -> Word16
@@ -22,7 +21,7 @@ getPort val =
 
 
 -- LocId => Word8
-readLocId :: Maybe ByteString -> LocId
+readLocId :: Maybe ByteString -> Word8
 readLocId maybeVal = case maybeVal of
   Nothing -> error "Missing locator id"
   Just val -> case runGet getWord8 val of

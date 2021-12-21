@@ -18,7 +18,8 @@ import Net.Mptcp.V1.Constants
 import Net.Mptcp.Netlink
 import Net.Mptcp.Types
 import Net.Mptcp.Utils
-import Net.Tcp.Definitions
+import Net.Mptcp.Connection
+import Net.Tcp
 
 
 import Control.Exception (assert)

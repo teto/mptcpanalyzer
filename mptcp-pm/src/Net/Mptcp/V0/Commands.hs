@@ -20,7 +20,7 @@ import Net.Mptcp.Netlink
 import Net.Mptcp.Types
 import Net.Mptcp.Utils
 -- import Net.Mptcp.PathManager
-import Net.Tcp.Definitions
+-- import Net.Tcp.Definitions
 
 
 import Control.Exception (assert)

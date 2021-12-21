@@ -8,7 +8,7 @@ import Data.Word (Word8, Word16, Word32)
 import System.Linux.Netlink
 -- import System.Linux.Netlink.Constants
 import Net.IP
-import Net.Mptcp.Types
+-- import Net.Mptcp.Types
 -- import Net.Mptcp.Constants
 import Data.Bits ((.|.))
 -- import qualified Data.Map as Map
@@ -17,7 +17,7 @@ data MptcpSocket = MptcpSocket NetlinkSocket Word16
 
 -- |Represents every possible setting sent/received on the netlink channel
 data MptcpAttribute =
-    MptcpAttrToken MptcpToken |
+    MptcpAttrToken Word32 |
     -- v4 or v6, AddressFamily is a netlink def
     SubflowFamily AddressFamily | -- ^ should be Word16 too
     -- remote/local ?

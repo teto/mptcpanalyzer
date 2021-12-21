@@ -14,7 +14,7 @@ module Net.Mptcp (
   MptcpConnection (..)
   , MptcpPacket
   , MptcpSocket (..)
-  , MptcpToken
+  -- , MptcpToken
   , mptcpConnAddSubflow
   , mptcpConnRemoveSubflow
   , showMptcpSocket
