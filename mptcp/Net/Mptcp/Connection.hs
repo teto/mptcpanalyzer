@@ -102,3 +102,12 @@ mptcpConnAddSubflow :: MptcpConnection -> MptcpSubflow -> MptcpConnection
 mptcpConnAddSubflow mptcpConn sf =
     -- TODO check that there are no duplicates / only one master etc
     (mptcpConn { mpconSubflows = Set.insert sf (mpconSubflows mptcpConn) })
+
+
+-- |Remove subflow from an MPTCP connection
+mptcpConnRemoveSubflow :: MptcpConnection -> MptcpSubflow -> MptcpConnection
+mptcpConnRemoveSubflow con sf = con {
+  mpconSubflows = Set.delete sf (mpconSubflows con)
+  -- TODO remove associated local/remote Id ?
+}
+

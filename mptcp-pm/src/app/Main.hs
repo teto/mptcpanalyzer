@@ -106,6 +106,8 @@ import Polysemy.Log.Colog (interpretLogStdout)
 import qualified Polysemy.State as P
 import Polysemy.Trace (Trace, trace)
 import qualified Polysemy.Trace as P
+import Net.Mptcp.Netlink
+import Net.Tcp.Constants
 
 -- for getEnvDefault, to get TMPDIR value.
 -- we could pass it as an argument
@@ -137,6 +139,8 @@ onFailureSleepingDelay = 100
 pathManager :: PathManager
 pathManager = ndiffports
 
+
+type MptcpToken = Word32
 -- |Helper to pass information across functions
 data MyState = MyState {
   -- |Socket
@@ -269,7 +273,7 @@ sleepMs n = threadDelay $ (fromIntegral n :: Int) * 1000
 
 
 -- | here we may want to run mptcpnumerics to get some results
-updateSubflowMetrics :: NetlinkSocket -> TcpConnection -> IO SockDiagMetrics
+updateSubflowMetrics :: NetlinkSocket -> MptcpSubflow -> IO SockDiagMetrics
 updateSubflowMetrics sockMetrics subflow = do
     putStrLn "Updating subflow metrics"
     let queryPkt = genQueryPacket (Right subflow) [TcpListen, TcpEstablished]
@@ -328,16 +332,16 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
     mptcpConn <- embed $ readMVar mConn
     Log.trace "Showing MPTCP connection"
     Log.trace $ tshow mptcpConn <> "..."
-    let _token = connectionToken mptcpConn
+    -- let _token = connectionToken mptcpConn
     let tmpdir = out cliArgs
 
     -- TODO this is the issue
     -- not sure it's the master with a set
-    let _masterSf = Set.elemAt 0 (subflows mptcpConn)
+    -- let _masterSf = Set.elemAt 0 (subflows mptcpConn)
 
     -- Get updated metrics
-    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ subflows mptcpConn)
-    let filename = tmpdir ++ "/" ++ "mptcp_" ++ show (connectionToken mptcpConn) ++ "_" ++ show elapsed ++ ".json"
+    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ mpconSubflows mptcpConn)
+    let filename = tmpdir ++ "/" ++ "mptcp_" ++ show ((mecToken . mptcpClientConfig) mptcpConn) ++ "_" ++ show elapsed ++ ".json"
     -- logStatistics filename elapsed mptcpConn lastMetrics
 
     duration <- case cliOptimizer cliArgs of
@@ -384,7 +388,7 @@ getCapsForConnection :: FilePath     -- ^Statistics file
                         -> IO (Maybe [Word32])
 getCapsForConnection filename prog mptcpConn metrics = do
 
-    let subflowCount = length $ subflows mptcpConn
+    let subflowCount = length $ mpconSubflows mptcpConn
 
     -- Data.ByteString.Lazy.writeFile filename jsonBs
 
@@ -469,42 +473,42 @@ mapSubflowToInterfaceIdx ip = do
 
 
 
-registerMptcpConnection :: MptcpToken -> TcpConnection -> StateT MyState IO ()
+registerMptcpConnection :: MptcpToken -> MptcpSubflow -> StateT MyState IO ()
 registerMptcpConnection token subflow = (do
     oldState <- get
     let (MyState mptcpSock conns cliArgs filtered) = oldState
-    if acceptConnection subflow filtered == False
+    if acceptConnection (sfConn subflow) filtered == False
     then do
         -- infoM "main" $ "filtered out connection:" ++ show subflow
         return ()
     else (do
-            -- putStrLn $ "accepted connection :" ++ show subflow
-            -- should we add the subflow yet ? it doesn't have the correct interface idx
-            mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (srcIp subflow)
-            let fixedSubflow = subflow { subflowInterface = mappedInterface }
-            -- let newMptcpConn = (MptcpConnection token [] Set.empty Set.empty)
-            let newMptcpConn = mptcpConnAddSubflow (
-                    MptcpConnection token Set.empty Set.empty Set.empty (cliOptimizer cliArgs)
-                    ) fixedSubflow
+        -- putStrLn $ "accepted connection :" ++ show subflow
+        -- should we add the subflow yet ? it doesn't have the correct interface idx
+        mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (conTcpClientIp $ sfConn subflow)
+        let fixedSubflow = subflow { sfInterface = mappedInterface }
+        -- let newMptcpConn = (MptcpConnection token [] Set.empty Set.empty)
+        let newMptcpConn = mptcpConnAddSubflow (
+                MptcpConnection token Set.empty Set.empty Set.empty (cliOptimizer cliArgs)
+                ) fixedSubflow
 
-            newConn <- liftIO $ newMVar newMptcpConn
-            -- putStrLn $ "Connection established !!\n"
+        newConn <- liftIO $ newMVar newMptcpConn
+        -- putStrLn $ "Connection established !!\n"
 
-            -- create a new
-            sockMetrics <- liftIO $ makeMetricsSocket
-            -- start monitoring connection
-            -- let threadId = undefined
-            threadId <- liftIO $ forkOS (
-            --   -- runLogAction @IO (contramap message logTextStdout) $ interpretDataLogColog @Message $ progData
-              runM $ P.traceToStdout $ interpretLogStdout$
-                startMonitorConnection cliArgs 0 mptcpSock sockMetrics newConn
-              )
+        -- create a new
+        sockMetrics <- liftIO $ makeMetricsSocket
+        -- start monitoring connection
+        -- let threadId = undefined
+        threadId <- liftIO $ forkOS (
+        --   -- runLogAction @IO (contramap message logTextStdout) $ interpretDataLogColog @Message $ progData
+          runM $ P.traceToStdout $ interpretLogStdout$
+            startMonitorConnection cliArgs 0 mptcpSock sockMetrics newConn
+          )
 
-            -- putStrLn $ "Inserting new MVar "
-            put (oldState {
-                connections = Map.insert token (threadId, newConn) (connections oldState)
-            })
-            ))
+        -- putStrLn $ "Inserting new MVar "
+        put (oldState {
+            connections = Map.insert token (threadId, newConn) (connections oldState)
+        })
+        ))
 
 -- TODO maybe the path manager should be part of the MptcpConnection
 dispatchPacketForKnownConnection :: MptcpSocket
@@ -514,7 +518,7 @@ dispatchPacketForKnownConnection :: MptcpSocket
                                     -> ExistingInterfaces
                                     -> (Maybe MptcpConnection, [MptcpPacket])
 dispatchPacketForKnownConnection mptcpSock con event attributes existingInterfaces = let
-        token = connectionToken con
+        token = (mecToken . mptcpClientConfig) con
         subflow = CMD.subflowFromAttributes attributes
     in
     case event of
@@ -795,7 +799,7 @@ data SockDiagMetrics = SockDiagMetrics {
 instance ToJSON SockDiagExtension where
   toJSON (tcpInfo@DiagTcpInfo {} )  = let
       -- rtt = tcpi_rtt tcpInfo
-      tcpState = toEnum $ fromIntegral ( tcpi_state tcpInfo) :: TcpState
+      tcpState = toEnum $ fromIntegral ( tcpi_state tcpInfo) :: TcpStateLinux
       -- TODO could log ca_state ?
 
     in
@@ -847,10 +851,11 @@ instance ToJSON SockDiagMetrics where
   toJSON (SockDiagMetrics msg metrics) = let
 
       sf = connectionFromDiag msg
-      tcpState = toEnum $ fromIntegral ( idiag_state msg) :: TcpState
+      con = sfConn sf
+      tcpState = toEnum $ fromIntegral ( idiag_state msg) :: TcpStateLinux
       initialValue = object [
-          "srcIp" .= toJSON (srcIp sf)
-          , "dstIp" .= toJSON (dstIp sf)
+            "srcIp" .= toJSON (conTcpClientIp con)
+          , "dstIp" .= toJSON (conTcpServerIp con)
           , "srcPort" .= toJSON (srcPort sf)
           , "dstPort" .= toJSON (dstPort sf)
           -- doesnt work as subflow id

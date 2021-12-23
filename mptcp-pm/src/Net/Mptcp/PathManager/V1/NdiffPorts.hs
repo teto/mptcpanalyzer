@@ -12,7 +12,7 @@ module Net.Mptcp.PathManager.V1.NdiffPorts (
 ) where
 
 import Data.Maybe (fromJust)
-import qualified Data.Set as Set
+-- import qualified Data.Set as Set
 import Debug.Trace
 import Net.Mptcp
 import Net.Stream
