@@ -4,7 +4,7 @@ Description :
 Maintainer  : matt
 Portability : Linux
 
-Trying to come up with a userspace abstraction for MPTCP path management
+Userspace abstractions for MPTCP path management
 
 -}
 
@@ -14,7 +14,7 @@ module Net.Mptcp.PathManager (
     , NetworkInterface(..)
     , ExistingInterfaces
     , PathManagerConfig
-    , loadConnectionsFromFile
+    -- , loadConnectionsFromFile
     , mapIPtoInterfaceIdx
     , defaultPathManagerConfig
     -- TODO don't export / move to its own file
@@ -25,13 +25,16 @@ module Net.Mptcp.PathManager (
 import Prelude hiding (concat, init)
 
 import Control.Concurrent
-import Data.Aeson
 import qualified Data.Map as Map
 import Data.Word (Word32)
 import Debug.Trace
 import Net.IP
 import Net.Mptcp
-import Net.Tcp
+-- import Net.Tcp
+import Net.Mptcp.Netlink
+import Net.IPAddress
+
+-- hackage
 import System.Linux.Netlink as NL
 import qualified System.Linux.Netlink.Route as NLR
 -- import System.Linux.Netlink.Constants (eRTM_NEWADDR)
@@ -39,10 +42,9 @@ import System.Linux.Netlink.Constants as NLC
 -- import qualified System.Linux.Netlink.Simple as NLS
 import Data.ByteString (ByteString, empty)
 import Data.ByteString.Char8 (init, unpack)
-import qualified Data.ByteString.Lazy as BL
 import Data.Maybe (fromMaybe)
-import Net.IPAddress
 import System.IO.Unsafe
+-- import Data.Aeson
 
 {-# NOINLINE globalInterfaces #-}
 globalInterfaces :: MVar ExistingInterfaces
@@ -89,13 +91,13 @@ mapIPtoInterfaceIdx paths ip =
 -- class AvailableIPsContainer a where
 
 -- | Load a list of connections from a json file
-loadConnectionsFromFile :: FilePath -> IO [TcpConnection]
-loadConnectionsFromFile filename = do
-  -- Log.info ("Loading connections whitelist from " <> tshow filename <> "...")
-  filteredConnectionsStr <- BL.readFile filename
-  case Data.Aeson.eitherDecode filteredConnectionsStr of
-    Left errMsg -> error ("Failed loading " ++ filename ++ ":\n" ++ errMsg)
-    Right list  -> return list
+-- loadConnectionsFromFile :: FilePath -> IO [TcpConnection]
+-- loadConnectionsFromFile filename = do
+--   -- Log.info ("Loading connections whitelist from " <> tshow filename <> "...")
+--   filteredConnectionsStr <- BL.readFile filename
+--   case Data.Aeson.eitherDecode filteredConnectionsStr of
+--     Left errMsg -> error ("Failed loading " ++ filename ++ ":\n" ++ errMsg)
+--     Right list  -> return list
 
 
 -- |Reimplements

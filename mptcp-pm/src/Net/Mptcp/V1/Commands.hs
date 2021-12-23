@@ -19,7 +19,8 @@ import Net.Mptcp.Netlink
 import Net.Mptcp.Types
 import Net.Mptcp.Utils
 import Net.Mptcp.Connection
-import Net.Tcp
+import Net.Stream
+-- import Net.Tcp
 
 
 import Control.Exception (assert)
@@ -38,6 +39,7 @@ import Data.Bits ((.|.))
 import System.Linux.Netlink.GeNetlink
 import Data.Maybe
 import Debug.Trace
+import Net.Tcp.Connection
 
 genV4SubflowAddress :: MptcpAttr -> IPv4 -> (Int, ByteString)
 genV4SubflowAddress attr ip = (fromEnum attr, runPut $ putWord32be w32)
@@ -188,7 +190,7 @@ hasLocAddr attrs = Prelude.any (isAttribute (LocalLocatorId 0)) attrs
 -- need to prepare a request
 -- type GenlPacket a = Packet (GenlData a)
 -- REQUIRES: LOC_ID / TOKEN
--- TODO pass TcpConnection
+-- TODO pass MptcpSubflow
 resetConnectionPkt :: MptcpSocket -> [MptcpAttribute] -> MptcpPacket
 resetConnectionPkt (MptcpSocket _sock fid) attrs =
     error "reset not implemented yet"
@@ -197,28 +199,29 @@ resetConnectionPkt (MptcpSocket _sock fid) attrs =
   -- in
     -- assert (hasLocAddr attrs) $ genMptcpRequest fid MPTCP_CMD_REMOVE False attrs
 
+-- connectionToken
 connectionAttrs :: MptcpConnection -> [MptcpAttribute]
-connectionAttrs con = [ MptcpAttrToken $ connectionToken con ]
+connectionAttrs con = [ MptcpAttrToken $ (mecToken . mptcpServerConfig) con ]
 
 -- pass token ?
-subflowAttrs :: TcpConnection -> [MptcpAttribute]
-subflowAttrs con = [
-    LocalLocatorId $ localId con
-    , RemoteLocatorId $ remoteId con
-    , SubflowFamily $ getAddressFamily (dstIp con)
-    , SubflowDestAddress $ dstIp con
-    , SubflowDestPort $ dstPort con
+subflowAttrs :: MptcpSubflow -> [MptcpAttribute]
+subflowAttrs (MptcpSubflow con _ prio localId remoteId mbIf) = [
+    LocalLocatorId $ localId
+    , RemoteLocatorId $ remoteId
+    , SubflowFamily $ getAddressFamily (conTcpServerIp con)
+    , SubflowDestAddress $ conTcpServerIp con
+    , SubflowDestPort $ conTcpServerPort con
     -- should fail if doesn't exist
-    , SubflowInterface $ fromJust $ subflowInterface con
+    , SubflowInterface $ fromJust $ mbIf
     -- https://github.com/multipath-tcp/mptcp/issues/338
-    , SubflowSourceAddress $ srcIp con
-    , SubflowSourcePort $ srcPort con
+    , SubflowSourceAddress $ conTcpClientIp con
+    , SubflowSourcePort $ conTcpClientPort con
   ]
 
 -- |Generate a request to create a new subflow
 capCwndPkt :: MptcpSocket -> MptcpConnection
               -> Word32  -- ^Limit to apply to congestion window
-              -> TcpConnection -> Either String MptcpPacket
+              -> MptcpSubflow -> Either String MptcpPacket
 capCwndPkt (MptcpSocket _ fid) mptcpCon limit sf =
 #ifdef EXPERIMENTAL_CWND
     assert (hasFamily attrs) (Right pkt)
@@ -233,7 +236,7 @@ capCwndPkt (MptcpSocket _ fid) mptcpCon limit sf =
 #endif
 
 -- sport/backup/intf are optional
-newSubflowPkt :: MptcpSocket -> MptcpConnection -> TcpConnection -> MptcpPacket
+newSubflowPkt :: MptcpSocket -> MptcpConnection -> MptcpSubflow -> MptcpPacket
 newSubflowPkt (MptcpSocket _ fid) mptcpCon sf = 
     error "undefined"
     -- assert (hasFamily attrs) pkt
@@ -289,7 +292,7 @@ makeAttribute i val =
 
 -- |Converts / should be a maybe ?
 -- TODO simplify
-subflowFromAttributes :: Attributes -> TcpConnection
+subflowFromAttributes :: Attributes -> MptcpSubflow
 subflowFromAttributes attrs =
   let
     -- expects a ByteString
@@ -314,7 +317,13 @@ subflowFromAttributes attrs =
 
     -- sfFamily = getPort $ fromJust (Map.lookup (fromEnum MPTCP_ATTR_FAMILY) attrs)
     prio = Nothing   -- (SubflowPriority N)
+    -- using fake streamId
+    con = TcpConnection srcIp' dstIp' sport dport (StreamId 0)
   in
     -- TODO fix sfFamily
-    TcpConnection srcIp' dstIp' sport dport prio lid rid (Just intfId)
+
+    -- using fake token
+    -- (Just intfId)
+    -- TODO set joinToken
+    MptcpSubflow con Nothing prio lid rid (Just intfId)
 

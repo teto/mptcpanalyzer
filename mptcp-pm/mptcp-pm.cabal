@@ -55,9 +55,9 @@ common shared-properties
         netlink >= 1.1.1.0
       , formatting
       , readable
-      , polysemy
+      , polysemy >= 1.7.1
       , polysemy-log
-      , polysemy-log-co
+      -- , polysemy-log-co
 
     default-extensions:
           FlexibleContexts
@@ -138,7 +138,7 @@ library
       , Net.Bitset
       , Net.Tcp.Constants
       -- , Net.Tcp.Definitions
-      , Net.Mptcp
+      -- , Net.Mptcp
       , Net.Mptcp.Types
       , Net.Mptcp.Utils
       , Net.Mptcp.Constants
@@ -148,7 +148,7 @@ library
       -- , Net.Mptcp.V0.Commands
       , Net.Mptcp.V1.Constants
       , Net.Mptcp.V1.Commands
-      , Net.Mptcp.PathManager.V0.NdiffPorts
+      -- , Net.Mptcp.PathManager.V0.NdiffPorts
       , Net.Mptcp.PathManager.V1.NdiffPorts
       -- , Net.Mptcp.PathManager.Default
       , Net.Mptcp.PathManager
@@ -159,6 +159,8 @@ library
     if flag(CwndCapping)
       ghc-options: -DEXPERIMENTAL_CWND=1
 
+    ghc-options:
+      -Werror=missing-home-modules
 
 -- monitor new mptcp connections
 -- and delegate the behavior to a monitor

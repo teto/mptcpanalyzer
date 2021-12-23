@@ -530,8 +530,6 @@ dispatchPacketForKnownConnection mptcpSock con event attributes existingInterfac
       -- TODO trigger the pathManager again, fix the remote interpretation
       C.MPTCP_EVENT_ANNOUNCED -> let
           -- what if it's local
-            -- remId = remoteIdFromAttributes attributes
-            -- newConn = mptcpConnAddRemoteId con remId
             newConn = con
           in
             (Just newConn, [])
@@ -809,7 +807,7 @@ instance ToJSON SockDiagExtension where
       , "snd_cwnd_clamp" .= tcpi_snd_cwnd_clamp tcpInfo
       , "snd_ssthresh" .= tcpi_snd_ssthresh tcpInfo
       , "reordering"  .= tcpi_reordering tcpInfo
-      , "tcp_state" .= show tcpState
+      , "tcp_state" .= show TcpStateLinux
       , "pacing" .= tcpi_pacing_rate tcpInfo
       , "delivery_rate" .= tcpi_delivery_rate tcpInfo
       , "app_limited" .= tcpi_delivery_rate_app_limited tcpInfo

@@ -90,7 +90,7 @@ class Enum2Bits a where
   -- toBits :: [a] -> Word32
   shiftL :: a -> Word32
 
-instance Enum2Bits TcpState where
+instance Enum2Bits TcpStateLinux where
   shiftL state = B.shiftL 1 (fromEnum state)
 
 instance Enum2Bits SockDiagExtensionId where
@@ -123,12 +123,12 @@ data SockDiagMsg = SockDiagMsg {
 
 {-# LANGUAGE FlexibleInstances #-}
 
--- TODO this generates the  error "Orphan instance: instance Convertable [TcpState]"
--- instance Convertable [TcpState] where
+-- TODO this generates the  error "Orphan instance: instance Convertable [TcpStateLinux]"
+-- instance Convertable [TcpStateLinux] where
 --   getPut = putStates
 --   getGet _ = return []
 
-putStates :: [TcpState] -> Put
+putStates :: [TcpStateLinux] -> Put
 putStates states = putWord32host $ enumsToWord states
 
 
@@ -146,8 +146,8 @@ data SockDiagRequest = SockDiagRequest {
   , idiag_ext      :: [SockDiagExtensionId] -- ^query extended info (word8 size)
   -- , req_pad :: Word8        -- ^ padding for backwards compatibility with v1
 
-  -- in principle, any kind of state, but for now we only deal with TcpStates
-  , idiag_states   :: [TcpState] -- ^States to dump (based on TcpDump) Word32
+  -- in principle, any kind of state, but for now we only deal with TcpStateLinuxs
+  , idiag_states   :: [TcpStateLinux] -- ^States to dump (based on TcpDump) Word32
   , diag_sockid    :: InetDiagSockId -- ^inet_diag_sockid
 } deriving (Eq, Show)
 
@@ -177,7 +177,7 @@ getSockDiagRequestHeader = do
     _sockid <- getInetDiagSockid
     -- TODO reestablish states
     return $ SockDiagRequest addressFamily protocol
-      (wordToEnums extended :: [SockDiagExtensionId]) (wordToEnums states :: [TcpState])  _sockid
+      (wordToEnums extended :: [SockDiagExtensionId]) (wordToEnums states :: [TcpStateLinux])  _sockid
 
 -- |'Put' function for 'GenlHeader'
 putSockDiagRequestHeader :: SockDiagRequest -> Put
@@ -464,7 +464,7 @@ showExtension rest = show rest
   Check man sock_diag
 -}
 genQueryPacket :: (Either Word64 TcpConnection)
-        -> [TcpState] -- ^Ignored when querying a single connection
+        -> [TcpStateLinux] -- ^Ignored when querying a single connection
         -> [SockDiagExtensionId] -- ^Queried values
         -> Packet SockDiagRequest
 genQueryPacket selector tcpStatesFilter requestedInfo = let

@@ -40,10 +40,6 @@ import Net.Mptcp.Connection
 --} deriving (Show, Generic, FromJSON)
 
 
----- add a maybe ?
---getMasterSubflow :: MptcpConnection -> TcpConnection
---getMasterSubflow mptcpCon = head $ filter (\sf -> localId sf == 0) (Set.toList $ subflows mptcpCon)
-
 -- | Remote port
 data RemoteId = RemoteId {
     remoteAddress :: IP

@@ -15,10 +15,12 @@ import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import Debug.Trace
 import Net.Mptcp
+import Net.Stream
 import Net.Mptcp.PathManager
-import Net.Mptcp.Types
-import Net.Tcp
-import Net.Mptcp.V0.Commands
+-- import Net.Mptcp.Types
+import Net.Tcp.Connection
+import Net.Mptcp.V1.Commands
+import Net.Mptcp.Netlink
 
 
 -- These should be plugins
@@ -36,9 +38,11 @@ TODO it iterates over local interfaces but not
 nportsOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> ExistingInterfaces -> [MptcpPacket]
 nportsOnMasterEstablishement mptcpSock mptcpCon paths = do
   map (newSublowPacketFromPort ) [3456]
-    
   where
-    generatedCon port = (getMasterSubflow mptcpCon) { srcPort = port }
+    generatedCon port = let
+        master = fromJust (getMasterSubflow mptcpCon)
+      in
+        master { sfConn = (sfConn master) { conTcpClientPort = port } }
     newSublowPacketFromPort port = newSubflowPkt mptcpSock mptcpCon (generatedCon port)
 
   -- TODO create #X subflows
@@ -58,24 +62,29 @@ meshPathManager = PathManager {
 meshGenPkt :: MptcpSocket -> MptcpConnection -> NetworkInterface -> [MptcpPacket] -> [MptcpPacket]
 meshGenPkt mptcpSock mptcpCon intf pkts =
 
-    if traceShow (intf) (interfaceId intf == (fromJust $ subflowInterface masterSf)) then
+    if traceShow (intf) (interfaceId intf == (fromJust $ sfInterface masterSf)) then
         pkts
     else
-        pkts ++ [newSubflowPkt mptcpSock mptcpCon generatedCon]
+        pkts ++ [newSubflowPkt mptcpSock mptcpCon generatedSf]
     where
-        generatedCon = TcpConnection {
-          srcPort = 0  -- let the kernel handle it
-          , dstPort = dstPort masterSf
-          , srcIp = ipAddress intf
-          , dstIp =  dstIp masterSf  -- same as master
-          , priority = Nothing
+        generatedSf = MptcpSubflow {
+            sfConn = generatedCon
+          , sfJoinToken = Nothing
+          , sfPriority = Nothing
           -- TODO fix this
-          , localId = fromIntegral $ interfaceId intf    -- how to get it ? or do I generate it ?
-          , remoteId = remoteId masterSf
-          , subflowInterface = Just $ interfaceId intf
+          , sfLocalId = fromIntegral $ interfaceId intf    -- how to get it ? or do I generate it ?
+          , sfRemoteId = sfRemoteId masterSf
+          , sfInterface = Just $ interfaceId intf
         }
+        generatedCon = (sfConn masterSf) {
+            conTcpClientPort = 0  -- let the kernel handle it
+          -- , conTcpServerPort = (conTcpServerPort . sfConn) masterSf
+          , conTcpClientIp = ipAddress intf
+          -- , conTcpServerIp =  (conTcpServerIp . sfConn) masterSf  -- same as master
+          , conTcpStreamId = StreamId 0
+          }
 
-        masterSf = Set.elemAt 0 (subflows mptcpCon)
+        masterSf = (fromJust . getMasterSubflow) mptcpCon
 
 
 {-

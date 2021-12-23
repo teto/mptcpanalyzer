@@ -11,6 +11,9 @@ module Net.Mptcp.Connection (
   , MptcpSubflow(..)
   , MptcpEndpointConfiguration(..)
   , showMptcpConnectionText
+
+  , mptcpConnAddSubflow
+  , getMasterSubflow
 )
 where
 import Net.IP
@@ -62,7 +65,9 @@ data MptcpSubflow = MptcpSubflow {
       , sfLocalId :: Word8  -- ^ Convert to AddressFamily
       , sfRemoteId :: Word8
       --conTcp TODO remove could be deduced from srcIp / dstIp ?
-      , sfInterface :: Text -- ^Interface of Maybe ? why a maybe ?
+      -- allow 
+      , sfInterface :: Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
+      -- Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
     } deriving (Show, Eq, Ord)
 
 tshow :: Show a => a -> TS.Text
@@ -80,3 +85,20 @@ showMptcpConnectionText con =
       "Server key/token: " <> tshow ((mecKey . mptcpServerConfig) con) <> "/" <> ((tshow . mecToken . mptcpServerConfig) con)
       , "Client key/token: " <> tshow ((mecKey . mptcpClientConfig) con) <> "/" <> ((tshow . mecToken . mptcpClientConfig) con)
       ]
+
+---- add a maybe ?
+getMasterSubflow :: MptcpConnection -> Maybe MptcpSubflow
+getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.toList $ mpconSubflows mptcpCon) of 
+  [] -> Nothing
+  [x] -> Just x
+  (_:_) -> error "There can be only one master subflow"
+
+
+
+-- |Adds a subflow to the connection
+-- Runs some extra checks
+-- TODO compose with mptcpConnAddLocalId
+mptcpConnAddSubflow :: MptcpConnection -> MptcpSubflow -> MptcpConnection
+mptcpConnAddSubflow mptcpConn sf =
+    -- TODO check that there are no duplicates / only one master etc
+    (mptcpConn { mpconSubflows = Set.insert sf (mpconSubflows mptcpConn) })

@@ -19,6 +19,7 @@ import Net.Mptcp.V0.Constants
 import Net.Mptcp.Netlink
 import Net.Mptcp.Types
 import Net.Mptcp.Utils
+import Net.Mptcp.Connection
 -- import Net.Mptcp.PathManager
 -- import Net.Tcp.Definitions
 
@@ -189,7 +190,7 @@ hasLocAddr attrs = Prelude.any (isAttribute (LocalLocatorId 0)) attrs
 -- need to prepare a request
 -- type GenlPacket a = Packet (GenlData a)
 -- REQUIRES: LOC_ID / TOKEN
--- TODO pass TcpConnection
+-- TODO pass MptcpSubflow
 resetConnectionPkt :: MptcpSocket -> [MptcpAttribute] -> MptcpPacket
 resetConnectionPkt (MptcpSocket _sock fid) attrs = let
     _cmd = MPTCP_CMD_REMOVE
@@ -200,7 +201,7 @@ connectionAttrs :: MptcpConnection -> [MptcpAttribute]
 connectionAttrs con = [ MptcpAttrToken $ connectionToken con ]
 
 -- pass token ?
-subflowAttrs :: TcpConnection -> [MptcpAttribute]
+subflowAttrs :: MptcpSubflow -> [MptcpAttribute]
 subflowAttrs con = [
     LocalLocatorId $ localId con
     , RemoteLocatorId $ remoteId con
@@ -217,7 +218,7 @@ subflowAttrs con = [
 -- |Generate a request to create a new subflow
 capCwndPkt :: MptcpSocket -> MptcpConnection
               -> Word32  -- ^Limit to apply to congestion window
-              -> TcpConnection -> Either String MptcpPacket
+              -> MptcpSubflow -> Either String MptcpPacket
 capCwndPkt (MptcpSocket _ fid) mptcpCon limit sf =
 #ifdef EXPERIMENTAL_CWND
     assert (hasFamily attrs) (Right pkt)
@@ -232,7 +233,7 @@ capCwndPkt (MptcpSocket _ fid) mptcpCon limit sf =
 #endif
 
 -- sport/backup/intf are optional
-newSubflowPkt :: MptcpSocket -> MptcpConnection -> TcpConnection -> MptcpPacket
+newSubflowPkt :: MptcpSocket -> MptcpConnection -> MptcpSubflow -> MptcpPacket
 newSubflowPkt (MptcpSocket _ fid) mptcpCon sf = let
     _cmd = MPTCP_CMD_SUB_CREATE
     attrs = connectionAttrs mptcpCon ++ subflowAttrs sf
@@ -288,7 +289,7 @@ makeAttribute i val =
 
 -- |Converts / should be a maybe ?
 -- TODO simplify
-subflowFromAttributes :: Attributes -> TcpConnection
+subflowFromAttributes :: Attributes -> MptcpSubflow
 subflowFromAttributes attrs =
   let
     -- expects a ByteString
@@ -303,7 +304,7 @@ subflowFromAttributes attrs =
     prio = Nothing   -- (SubflowPriority N)
   in
     -- TODO fix sfFamily
-    TcpConnection _srcIp _dstIp sport dport prio lid rid (Just intfId)
+    MptcpSubflow _srcIp _dstIp sport dport prio lid rid (Just intfId)
 
 
 dumpCommand :: MptcpGenlEvent -> String

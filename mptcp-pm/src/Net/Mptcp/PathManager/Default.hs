@@ -15,8 +15,7 @@ import qualified Data.Set as Set
 import Debug.Trace
 import Net.Mptcp
 import Net.Mptcp.PathManager
-import Net.Mptcp.V0.Commands
-import Net.Tcp
+-- import Net.Tcp
 
 -- | Opens several subflows on each interface
 ndiffports :: PathManager

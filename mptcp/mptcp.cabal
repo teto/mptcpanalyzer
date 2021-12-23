@@ -48,34 +48,16 @@ library
     --   headers
     default-extensions:
       DeriveGeneric
-    -- autogen-modules:
-    --     Net.Tcp.Constants
-    --   , Net.Mptcp.Constants
-    --   , Net.SockDiag.Constants
     build-depends:
         base >= 4.12
       , lens
       , Frames
       , containers
-      -- , readable
-      -- , bytestring
-      -- , process
-      -- , cereal
       , enumset
       , ip >= 1.7.3
       , bytestring-conversion
       , text
-      -- todo get rid of it
-      -- for liftIO
-      -- , mtl
-      -- for merge
-      -- , aeson
-      -- , aeson-pretty
-      -- , aeson-extra
-      -- to help with merging json content
       , unordered-containers
-      -- to create temp folder/files
-      -- , transformers
     hs-source-dirs:
       .
     build-tool-depends:
@@ -102,4 +84,6 @@ library
       -- , Net.SockDiag.Constants
       -- , Netlink.Route
       -- TODO let it high level
+    ghc-options:
+      -Werror=missing-home-modules
 
