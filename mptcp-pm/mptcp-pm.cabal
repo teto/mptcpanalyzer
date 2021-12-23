@@ -55,9 +55,9 @@ common shared-properties
         netlink >= 1.1.1.0
       , formatting
       , readable
-      , polysemy >= 1.7.1
+      , polysemy
       , polysemy-log
-      -- , polysemy-log-co
+      , polysemy-log-co >= 0.3.0.2
 
     default-extensions:
           FlexibleContexts
@@ -66,7 +66,6 @@ common shared-properties
         , FlexibleContexts
         , GADTs
         , LambdaCase
-        -- , OverloadedStrings
         , PolyKinds
         , RankNTypes
         , ScopedTypeVariables
@@ -150,6 +149,7 @@ library
       , Net.Mptcp.V1.Commands
       -- , Net.Mptcp.PathManager.V0.NdiffPorts
       , Net.Mptcp.PathManager.V1.NdiffPorts
+      -- Now implemented in Net.Mptcp.PathManager.V1.NdiffPorts, remerge later ?
       -- , Net.Mptcp.PathManager.Default
       , Net.Mptcp.PathManager
       , Net.IPAddress
@@ -174,11 +174,10 @@ executable mptcp-pm
       , base >= 4.12 && < 4.17
       , bytestring
       , containers
+      , mptcp
       , mptcp-pm
       , optparse-applicative
       , transformers
-      -- , fast-logger
-      -- , hslogger
       , ip
       , text
       , mtl

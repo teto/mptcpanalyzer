@@ -20,10 +20,9 @@ import Net.Mptcp.Types
 import Net.Mptcp.Utils
 import Net.Mptcp.Connection
 import Net.Stream
--- import Net.Tcp
 
-
-import Control.Exception (assert)
+-- hackage
+-- import Control.Exception (assert)
 import Data.Word (Word16, Word8, Word32)
 import Data.Serialize.Get
 import Data.Serialize.Put

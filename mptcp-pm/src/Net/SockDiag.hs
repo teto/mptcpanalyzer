@@ -46,6 +46,8 @@ import Net.IPAddress
 -- import Net.IPv4
 import Net.SockDiag.Constants
 import Net.Tcp
+import Net.Stream
+import Net.Tcp.Constants
 import Net.Mptcp
 
 --
@@ -197,16 +199,23 @@ putSockDiagRequestHeader request = do
 connectionFromDiag :: SockDiagMsg
               -> MptcpSubflow
 connectionFromDiag msg =
-  let sockid = idiag_sockid msg in
+  let 
+    sockid = idiag_sockid msg
+    con = TcpConnection {
+        conTcpClientIp = fromRight (error "no default for srcIp") (getIPFromByteString (idiag_family msg) (idiag_src sockid))
+      , conTcpServerIp = fromRight (error "no default for destIp") (getIPFromByteString (idiag_family msg) (idiag_dst sockid))
+      , conTcpClientPort = idiag_sport sockid
+      , conTcpServerPort = idiag_dport sockid
+      , conTcpStreamId = StreamId 0
+    }
+  in
   MptcpSubflow {
-      srcIp = fromRight (error "no default for srcIp") (getIPFromByteString (idiag_family msg) (idiag_src sockid))
-    , dstIp = fromRight (error "no default for destIp") (getIPFromByteString (idiag_family msg) (idiag_dst sockid))
-    , srcPort = idiag_sport sockid
-    , dstPort = idiag_dport sockid
-    , priority = Nothing
-    , localId = 0
-    , remoteId = 0
-    , subflowInterface = Nothing
+      sfConn = con
+    , sfJoinToken = Nothing
+    , sfPriority = Nothing
+    , sfLocalId = 0
+    , sfRemoteId = 0
+    , sfInterface = Nothing
   }
 
 -- | Serialize SockDiagMsg
@@ -463,7 +472,7 @@ showExtension rest = show rest
 {- Generate
   Check man sock_diag
 -}
-genQueryPacket :: (Either Word64 TcpConnection)
+genQueryPacket :: (Either Word64 MptcpSubflow)
         -> [TcpStateLinux] -- ^Ignored when querying a single connection
         -> [SockDiagExtensionId] -- ^Queried values
         -> Packet SockDiagRequest
@@ -481,13 +490,14 @@ genQueryPacket selector tcpStatesFilter requestedInfo = let
       in
         InetDiagSockId 0 0 bstr bstr 0 cookie
 
-    Right con -> let
-        ipSrc = runPut $ putIPAddress (srcIp con)
-        ipDst = runPut $ putIPAddress (dstIp con)
-        ifIndex = subflowInterface con
+    Right sf -> let
+        con = sfConn sf
+        ipSrc = runPut $ putIPAddress $ conTcpClientIp con
+        ipDst = runPut $ putIPAddress $ conTcpServerIp con
+        ifIndex = sfInterface sf
         _cookie = 0 :: Word64
       in
-        InetDiagSockId (srcPort con) (dstPort con) ipSrc ipDst (fromJust ifIndex) _cookie
+        InetDiagSockId (conTcpClientPort con) (conTcpServerPort con) ipSrc ipDst (fromJust ifIndex) _cookie
 
   custom = SockDiagRequest eAF_INET eIPPROTO_TCP requestedInfo tcpStatesFilter diag_req
   in
