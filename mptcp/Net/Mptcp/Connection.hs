@@ -13,6 +13,7 @@ module Net.Mptcp.Connection (
   , showMptcpConnectionText
 
   , mptcpConnAddSubflow
+  , mptcpConnRemoveSubflow
   , getMasterSubflow
 )
 where
@@ -82,7 +83,7 @@ showMptcpConnectionText con =
     -- todo show version
     tpl :: Text
     tpl = TS.unlines [
-      "Server key/token: " <> tshow ((mecKey . mptcpServerConfig) con) <> "/" <> ((tshow . mecToken . mptcpServerConfig) con)
+        "Server key/token: " <> tshow ((mecKey . mptcpServerConfig) con) <> "/" <> ((tshow . mecToken . mptcpServerConfig) con)
       , "Client key/token: " <> tshow ((mecKey . mptcpClientConfig) con) <> "/" <> ((tshow . mecToken . mptcpClientConfig) con)
       ]
 

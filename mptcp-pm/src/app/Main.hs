@@ -82,7 +82,6 @@ import Data.Serialize.Put
 import Control.Concurrent
 import Data.Bits (Bits(..))
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as TS
@@ -108,6 +107,7 @@ import Polysemy.Trace (Trace, trace)
 import qualified Polysemy.Trace as P
 import Net.Mptcp.Netlink
 import Net.Tcp.Constants
+import Net.Stream
 
 -- for getEnvDefault, to get TMPDIR value.
 -- we could pass it as an argument
@@ -486,10 +486,8 @@ registerMptcpConnection token subflow = (do
         -- should we add the subflow yet ? it doesn't have the correct interface idx
         mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (conTcpClientIp $ sfConn subflow)
         let fixedSubflow = subflow { sfInterface = mappedInterface }
-        -- let newMptcpConn = (MptcpConnection token [] Set.empty Set.empty)
-        let newMptcpConn = mptcpConnAddSubflow (
-                MptcpConnection token Set.empty Set.empty Set.empty (cliOptimizer cliArgs)
-                ) fixedSubflow
+        let mptcpCon = MptcpConnection (StreamId 0) (MptcpEndpointConfiguration 0 token 0) (MptcpEndpointConfiguration 0 0 0) Set.empty
+        let newMptcpConn = mptcpConnAddSubflow (mptcpCon) fixedSubflow
 
         newConn <- liftIO $ newMVar newMptcpConn
         -- putStrLn $ "Connection established !!\n"
@@ -811,7 +809,7 @@ instance ToJSON SockDiagExtension where
       , "snd_cwnd_clamp" .= tcpi_snd_cwnd_clamp tcpInfo
       , "snd_ssthresh" .= tcpi_snd_ssthresh tcpInfo
       , "reordering"  .= tcpi_reordering tcpInfo
-      , "tcp_state" .= show TcpStateLinux
+      , "tcp_state" .= show tcpState
       , "pacing" .= tcpi_pacing_rate tcpInfo
       , "delivery_rate" .= tcpi_delivery_rate tcpInfo
       , "app_limited" .= tcpi_delivery_rate_app_limited tcpInfo
@@ -856,8 +854,8 @@ instance ToJSON SockDiagMetrics where
       initialValue = object [
             "srcIp" .= toJSON (conTcpClientIp con)
           , "dstIp" .= toJSON (conTcpServerIp con)
-          , "srcPort" .= toJSON (srcPort sf)
-          , "dstPort" .= toJSON (dstPort sf)
+          , "srcPort" .= toJSON (conTcpClientPort con)
+          , "dstPort" .= toJSON (conTcpServerPort con)
           -- doesnt work as subflow id
           -- , "subflow_id" .= idiag_uid msg
           ]
@@ -921,16 +919,18 @@ program options = do
 
 
   -- use fmap instead
-  filteredConns <- case Main.cliFilter options of
-      Nothing -> return Nothing
-      Just filename -> do
-          Log.info ("Loading connections whitelist from " <> tshow filename <> "...")
-          filteredConnectionsStr <- embed $ BL.readFile filename
-          case Data.Aeson.eitherDecode filteredConnectionsStr of
-            Left errMsg -> error ("Failed loading " ++ filename ++ ":\n" ++ errMsg)
-            Right list  -> return list
+  -- filteredConns <- case Main.cliFilter options of
+  --     Nothing -> return Nothing
+  --     Just filename -> do
+  --         Log.info ("Loading connections whitelist from " <> tshow filename <> "...")
+  --         filteredConnectionsStr <- embed $ BL.readFile filename
+  --         case Data.Aeson.eitherDecode filteredConnectionsStr of
+  --           Left errMsg -> error ("Failed loading " ++ filename ++ ":\n" ++ errMsg)
+  --           Right list  -> return list
+  -- Log.info ("Loading connections whitelisted connections..." <> (tshow filteredConns))
 
-  Log.info ("Loading connections whitelisted connections..." <> (tshow filteredConns))
+  let filteredConns = Nothing
+
 
   -- TODO update the state
   let globalState = MyState mptcpSocket Map.empty options filteredConns

@@ -219,5 +219,6 @@ Test-Suite test-tcp
   build-depends:
       base >=4.12
     , HUnit
+    , mptcp
     , mptcp-pm
     , ip, text
