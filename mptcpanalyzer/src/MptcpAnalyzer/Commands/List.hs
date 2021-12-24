@@ -28,7 +28,8 @@ import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
 import Net.Mptcp.Stats
 import Net.Tcp
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import Net.Tcp.Stats
+import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
 
 import Control.Lens hiding (argument)
 import Data.Either (fromRight)

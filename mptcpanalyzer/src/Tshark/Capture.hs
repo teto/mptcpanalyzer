@@ -20,7 +20,7 @@ import MptcpAnalyzer.Types
 import Tshark.Main (csvDelimiter, defaultTsharkPrefs)
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.ArtificialFields
-import Net.Tcp (getTcpStats)
+import Net.Tcp.Stats (getTcpStats)
 
 import Control.Monad.State (MonadState(get), StateT, gets, modify')
 import qualified Data.Map.Strict as Map
@@ -163,9 +163,10 @@ tsharkLoopMptcp config hout = do
     -- case where the master subflow was already identified
     updateStats lstats@(LiveStatsMptcp (Just master) _ _ subflows stats) row = 
       if row ^. mptcpRecvToken /= Nothing then
-        
-
-      trace "Master established" lstats
+        trace "Master established" lstats
+      else
+        -- TODO
+        lstats
 
     updateStats lstats@(LiveStatsMptcp Nothing (Just clientCfg) (Just serverCfg)  _subflows stats) row = error "should not happen"
       -- newStats = lstats {
@@ -208,7 +209,7 @@ tsharkLoopMptcp config hout = do
                   && lsConnection config == tcpConnectionfromOriented (reverseTcpConnectionTuple tuple)
         mptcpConfig = genMptcpEndpointConfigFromRow row
         subflow :: MptcpSubflow
-        subflow = (MptcpSubflow  (buildTcpConnectionFromRecord row) Nothing Nothing 0 0 "unknown")
+        subflow = (MptcpSubflow  (buildTcpConnectionFromRecord row) Nothing Nothing 0 0 Nothing)
         myMptcpStreamId :: Maybe StreamIdMptcp
         myMptcpStreamId =  row ^. mptcpStream
         finalizeLiveStatsMptcp :: Maybe MptcpEndpointConfiguration -> Maybe MptcpEndpointConfiguration -> Maybe MptcpConnection

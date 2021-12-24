@@ -63,7 +63,7 @@ import MptcpAnalyzer (FrameFiltered(ffFrame))
 import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 import MptcpAnalyzer.Types (FrameFiltered(FrameTcp))
-import Net.Mptcp (MptcpUnidirectionalStats)
+import Net.Mptcp.Stats (MptcpUnidirectionalStats)
 import Net.Mptcp.Connection (MptcpConnection(MptcpConnection))
 import Net.Mptcp.Stats (MptcpUnidirectionalStats, showMptcpUnidirectionalStats, TcpSubflowUnidirectionalStats)
 import Net.Tcp (TcpConnection)

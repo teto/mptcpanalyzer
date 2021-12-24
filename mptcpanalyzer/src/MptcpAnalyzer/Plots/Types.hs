@@ -20,6 +20,7 @@ import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
 import Net.IP
 import Net.Tcp
+import Net.Stream
 
 -- | Settings shared by all plots
 data PlotSettings = PlotSettings {

@@ -7,7 +7,7 @@ License     : GPL-3
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Net.Mptcp.Stats (
-  TcpSubflowUnidirectionalStats(..)
+    TcpSubflowUnidirectionalStats(..)
   , MptcpUnidirectionalStats(..)
   , getMptcpStats
   , getMptcpGoodput

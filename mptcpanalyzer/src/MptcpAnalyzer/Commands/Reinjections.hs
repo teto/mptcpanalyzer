@@ -26,7 +26,7 @@ import MptcpAnalyzer.Merge
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
-import "this" Net.Mptcp
+import Net.Mptcp
 
 import Control.Lens ((^.))
 import Control.Lens hiding (argument)

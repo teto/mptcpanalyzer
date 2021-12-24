@@ -36,8 +36,8 @@ import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Utils.Text
 import Net.IP
-import "this" Net.Mptcp
-import "this" Net.Tcp
+import Net.Mptcp
+import Net.Tcp
 import Tshark.Fields (TsharkFieldDesc(tfieldLabel), baseFields)
 -- import Net.IPv4
 import Frames

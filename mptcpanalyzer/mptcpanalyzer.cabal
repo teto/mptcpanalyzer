@@ -170,14 +170,11 @@ library
         , Tshark.Interfaces
         , Tshark.Live
         , Tshark.Main
-        , Net.Mptcp.Types
+        -- , Net.Mptcp.Types
         , Net.Tcp.Stats
-        , Net.Tcp.Connection
-        , Net.Tcp
-        , Net.Mptcp
         , Net.Mptcp.Stats
-        , Net.Mptcp.Flags
-        , Net.Mptcp.Connection
+        -- , Net.Mptcp.Flags
+        -- , Net.Mptcp.Connection
         -- reexport the rest
         , MptcpAnalyzer
         , MptcpAnalyzer.Prelude
@@ -244,8 +241,6 @@ executable mptcpanalyzer
         , MptcpAnalyzer.Stats
         , MptcpAnalyzer.Stream
         , MptcpAnalyzer.Merge
-        , Net.Tcp
-        , Net.Mptcp
         , MptcpAnalyzer.ArtificialFields
         , MptcpAnalyzer.Commands
         , MptcpAnalyzer.Commands.Definitions
@@ -256,7 +251,7 @@ executable mptcpanalyzer
         , MptcpAnalyzer.Commands.PlotOWD
         , MptcpAnalyzer.Commands.Map
         , MptcpAnalyzer.Commands.List
-        , MptcpAnalyzer.Types
+        -- , MptcpAnalyzer.Types
         -- , Connection
         , MptcpAnalyzer.Commands.ListMptcp
         , MptcpAnalyzer.Commands.Plot
@@ -311,6 +306,7 @@ Test-Suite test
     , HUnit
     , hspec
     , QuickCheck
+    , mptcp
     , mptcpanalyzer
     , ip
     , Frames

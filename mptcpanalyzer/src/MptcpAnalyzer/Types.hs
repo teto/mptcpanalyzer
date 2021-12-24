@@ -22,10 +22,11 @@ where
 
 -- Inspired by Frames/demo/missingData
 import MptcpAnalyzer.Stream
-import Net.Bitset (fromBitMask, toBitMask)
+import Net.Stream
+import Net.Bitset (fromBitMask, toBitMask, ToBitMask)
 import Net.IP
 import Net.IPv6 (IPv6(..))
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
 import Tshark.Fields
 import Tshark.TH
 
@@ -65,6 +66,9 @@ import GHC.Generics
 import GHC.TypeLits (KnownSymbol)
 import MptcpAnalyzer.ArtificialFields
 import Options.Applicative
+
+
+instance ToBitMask TcpFlag
 
 {- Describe a TCP connection, possibly an Mptcp subflow
   The equality implementation ignores several fields

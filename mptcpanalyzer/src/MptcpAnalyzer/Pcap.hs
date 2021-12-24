@@ -64,7 +64,8 @@ import MptcpAnalyzer.Types
 import MptcpAnalyzer.Utils.Text
 import Net.Mptcp.Connection
 import Net.Tcp
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import Net.Stream
+import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
 import Tshark.Fields
 import Tshark.TH
 
@@ -311,11 +312,12 @@ buildSubflowFromRecord row =
   MptcpSubflow {
         sfConn = sfCon
         -- TODO ignore if it's master token
-        , sfJoinToken = syn0 ^. mptcpRecvToken
+        , sfJoinToken = row ^. mptcpRecvToken
         , sfPriority = Nothing
         , sfLocalId = 0
         , sfRemoteId = 0
-        , sfInterface = "unknown"
+        -- todo load it from row
+        , sfInterface = Nothing
       }
   where
       sfCon = buildTcpConnectionFromRecord row
@@ -350,7 +352,7 @@ buildSubflowFromTcpStreamId frame streamId =
         , sfPriority = Nothing
         , sfLocalId = 0
         , sfRemoteId = 0
-        , sfInterface = "unknown"
+        , sfInterface = Nothing
       }
 
 -- | Sets mptcp role column

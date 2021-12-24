@@ -23,6 +23,7 @@ import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
 import Net.Tcp
+import Net.Tcp.Stats
 import Polysemy (Final, Members, Sem, runFinal)
 import qualified Polysemy as P
 import qualified Polysemy.Embed as P
