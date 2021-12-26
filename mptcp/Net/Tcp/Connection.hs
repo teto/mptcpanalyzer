@@ -6,7 +6,7 @@ module Net.Tcp.Connection (
   , tcpConnectionToOriented
   , showTcpConnectionText
   , reverseTcpConnectionTuple
-  , tcpConnectionfromOriented
+  , tcpConnectionFromOriented
 )
 where
 import Data.Text as TS
@@ -46,11 +46,11 @@ reverseTcpConnectionTuple con = TcpConnectionOriented {
 
 
 -- | Uses the source as client. Use 'reverseTcpConnectionTuple' to assign the server as source
-tcpConnectionfromOriented ::
+tcpConnectionFromOriented ::
      TcpConnectionOriented
   -- ^ Source is the client
   -> TcpConnection
-tcpConnectionfromOriented tup = TcpConnection {
+tcpConnectionFromOriented tup = TcpConnection {
 
     conTcpClientIp = conTcpSourceIp tup
   , conTcpServerIp = conTcpDestinationIp tup

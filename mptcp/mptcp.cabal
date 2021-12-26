@@ -19,7 +19,8 @@ extra-source-files:
   README.md
   -- CHANGELOG
 
-tested-with:         GHC == 8.10.7
+tested-with:
+    GHC == 8.10.7
 
 -- Source-repository head
 --   type:       git
@@ -77,12 +78,10 @@ Test-Suite test
   default-language:   Haskell2010
   main-is:
     Main.hs
-  -- main-is:
-  --   Spec.hs
-  -- hs-source-dirs:     tests
+  hs-source-dirs:     tests
   other-modules:
       Net.Mptcp.ConnectionSpec
-  ghc-options:        -threaded -rtsopts
+    , Net.Tcp.ConnectionSpec
   build-depends:
       base >=4.12
     , hspec

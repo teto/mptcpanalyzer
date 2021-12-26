@@ -169,7 +169,7 @@ tsharkLoopMptcp config hout = do
           Nothing -> trace "No rcv token" lstats
           Just rcvToken -> trace "Rcv token received" (
             -- if token of client then subflow initiated by server
-            if rcvToken == master ^. mpconClientConfig ^. mecToken then
+            if tokenBelongToConnection rcvToken master then
               lstats {
                 _lsmMaster = trace "Adding new subflow" (Just (mptcpConnAddSubflow master subflow))
               }
@@ -224,9 +224,9 @@ tsharkLoopMptcp config hout = do
       where
         tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
         -- TcpFlagSyn `elem` (row ^. tcpFlags) &&
-        hasClientKey = (row ^. mptcpSendKey ) /= Nothing && lsConnection config == tcpConnectionfromOriented tuple
+        hasClientKey = (row ^. mptcpSendKey ) /= Nothing && lsConnection config == tcpConnectionFromOriented tuple
         isSynAck = TcpFlagSyn `elem` (row ^. tcpFlags) &&  TcpFlagAck `elem` (row ^. tcpFlags)
-                  && lsConnection config == tcpConnectionfromOriented (reverseTcpConnectionTuple tuple)
+                  && lsConnection config == tcpConnectionFromOriented (reverseTcpConnectionTuple tuple)
         mptcpConfig = genMptcpEndpointConfigFromRow row
         subflow :: MptcpSubflow
         subflow = (MptcpSubflow  (buildTcpConnectionFromRecord row) Nothing Nothing 0 0 Nothing)

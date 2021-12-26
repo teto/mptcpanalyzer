@@ -18,6 +18,8 @@ module Net.Mptcp.Connection (
   , mptcpConnAddSubflow
   , mptcpConnRemoveSubflow
   , getMasterSubflow
+
+  , tokenBelongToConnection
 )
 where
 
@@ -108,14 +110,14 @@ getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.
 
 
 -- TODO test
-tokenToConnection :: Word32 -> MptcpConnection -> Bool
-tokenToConnection rcvToken con = 
-      if rcvToken == con ^. mpconClientConfig ^. mecToken then
-        True
-      else if rcvToken == con ^. mpconServerConfig ^. mecToken then
-        True
-      else
-        False
+tokenBelongToConnection :: Word32 -> MptcpConnection -> Bool
+tokenBelongToConnection rcvToken con = 
+  if rcvToken == con ^. mpconClientConfig ^. mecToken then
+    True
+  else if rcvToken == con ^. mpconServerConfig ^. mecToken then
+    True
+  else
+    False
 
 -- |Adds a subflow to the connection
 -- Runs some extra checks
