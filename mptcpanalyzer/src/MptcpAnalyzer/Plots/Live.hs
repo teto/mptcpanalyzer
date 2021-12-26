@@ -45,7 +45,6 @@ import Tshark.Capture
 import Net.Mptcp.Connection
 import Control.Lens ((^.))
 
--- (ArgsPlotLiveTcp connectionFilter mbFake mbConnectionRole ifname)
 configureLivePlotTcp :: Members '[Log, P.Trace, P.Embed IO] r
   => LivePlotTcpSettings
   -> Sem r LiveStatsTcp
@@ -56,7 +55,7 @@ configureLivePlotTcp (LivePlotTcpSettings connectionFilter mbFake mbConnectionRo
       -- stats/packetCount/Frame
       -- keeping it light for now
       destination = fromMaybe RoleServer mbConnectionRole
-      lsConfig = LiveStatsConfig connectionFilter destination 
+      lsConfig = LiveStatsConfig connectionFilter destination
 
       -- initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
       toLoad = case mbFake of
@@ -92,7 +91,9 @@ startLivePlot lsConfig createProc = do
   let initialLiveStats :: LiveStatsTcp = LiveStats mempty mempty 0 mempty False
 
   (_, Just hout, Just herr, ph) <-  createProcess_ "error when creating process" createProc
-  hSetBuffering stdout NoBuffering
+  -- hSetBuffering stdout NoBuffering
+  hSetBuffering stdout LineBuffering
+
   -- non blocking
   exitCode <- getProcessExitCode ph
   case exitCode of
@@ -102,9 +103,11 @@ startLivePlot lsConfig createProc = do
       -- hSetBuffering herr NoBuffering
       putStrLn $ "Starting live TCP plot with initial stats: (before): " ++ show (lsPackets initialLiveStats)
       liveStats <- execStateT (runEffect (tsharkLoopTcp lsConfig hout)) initialLiveStats
-      putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsTcp) liveStats
       putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
+      -- putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsTcp) liveStats
       -- blocking
+      putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsTcp) liveStats
+      putStrLn $ "Waiting for process"
       exitCode2 <- waitForProcess ph
       case exitCode2 of
         ExitSuccess -> putStrLn "Success" >> pure liveStats
@@ -124,7 +127,8 @@ startMptcpCapture ::
 startMptcpCapture lsConfig initialLiveStats createProc = do
   (_, Just hout, Just herr, ph) <- createProcess_ "error when creating process" createProc
   -- or LineBuffering
-  hSetBuffering stdout NoBuffering
+  hSetBuffering stdout LineBuffering
+  -- hSetBuffering stdout NoBuffering
   -- non blocking
   exitCode <- getProcessExitCode ph
   case exitCode of

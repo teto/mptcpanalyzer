@@ -61,24 +61,21 @@ pipeTableEitherOpt' opts = do
 tsharkLoopTcp :: LiveStatsConfig -> Handle -> Effect (StateT (LiveStatsTcp) IO) ()
 tsharkLoopTcp lsConfig hout = do
   ls <- for (P.fromHandle hout) $ \x -> do
+      _ <- liftIO $ putStrLn "newLine"
 
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
       (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
       liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
-      stFrame <- gets lsFrame
-      modify' (updateState frame)
+      -- stFrame <- gets lsFrame
+      modify' (updateStats frame)
       -- liftIO $ cursorUp 1
       liveStats <- get
-      -- showLiveStatsTcp liveStats
       let output = showLiveStatsTcp liveStats
-
-      -- liftIO $ cursorUpLine $ (+) 1 (Prelude.length $ T.lines output)
+      liftIO $ cursorUpLine $ (+) 1 (Prelude.length $ T.lines output)
       liftIO clearFromCursorToScreenEnd
       liftIO $ (putStrLn . T.unpack) output
-      -- liftIO $ putStrLn $ "length " ++ show (frameLength stFrame)
-      -- lift $ hPutStrLn stdout "test"
 
   -- liftIO $ (putStrLn . T.unpack . showLiveStatsTcp) ls
   pure ls
@@ -92,19 +89,22 @@ tsharkLoopTcp lsConfig hout = do
       Left _txt -> error ( "eitherProcessed failure : " ++ T.unpack _txt)
       Right pkt -> pkt
 
+    -- updateStatsFrame :: FrameRec HostCols -> LiveStatsTcp -> LiveStatsTcp
+    -- updateStatsFrame frame lstats = foldl updateStats lstats frame
+
     recEither = rtraverse getCompose
-    updateState :: FrameRec HostCols -> LiveStatsTcp -> LiveStatsTcp
-    updateState frame stats = let
+    updateStats :: FrameRec HostCols -> LiveStatsTcp -> LiveStatsTcp
+    updateStats frame stats = let
             frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection lsConfig) frame)
             forwardFrameWithDest = getTcpStats frameWithDest RoleServer
             backwardFrameWithDest = getTcpStats frameWithDest RoleClient
         in (stats {
-        lsPackets = lsPackets stats + 1
-        , lsFrame = (lsFrame stats)  <> frame
-        , lsForwardStats = let
-            merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
-            in traceShowId merged
-        , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
+          lsPackets = lsPackets stats + 1
+        -- , lsFrame = (lsFrame stats)  <> frame
+        -- , lsForwardStats = let
+        --     merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
+        --     in traceShowId merged
+        -- , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
         })
 
 -- Tricky function:
@@ -163,9 +163,13 @@ tsharkLoopMptcp config hout = do
     -- case where the master subflow was already identified
     updateStats lstats@(LiveStatsMptcp (Just master) _ _ subflows stats) row = 
       if (row ^. tcpStream) `Map.member` (_lsmSubflows lstats) then
+        -- TODO update tcp stats for th
+        -- TODO change connection staths when seeing dataFin
+        -- TODO update subflow stats and mptcp stats
+        -- if row ^. mptcpDataFin
         trace "todo: known subflow: update stats" lstats
       else
-        case row ^. mptcpRecvToken of 
+        case row ^. mptcpRecvToken of
           Nothing -> trace "No rcv token" lstats
           Just rcvToken -> trace "Rcv token received" (
             -- if token of client then subflow initiated by server

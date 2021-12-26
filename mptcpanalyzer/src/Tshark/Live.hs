@@ -77,6 +77,7 @@ import System.IO (stdout)
 import Net.Mptcp.Connection
 import qualified Data.Set as Set
 import GHC.Word (Word64, Word32)
+import MptcpAnalyzer.Utils.Text
 
 
 -- --         +--------+-- A 'Producer' that yields 'String's
@@ -130,7 +131,8 @@ data SomeStats where
 
 showLiveStatsTcp :: LiveStatsTcp -> Text
 showLiveStatsTcp  liveStats =
-      T.unlines ([ showLiveStatsTcp liveStats ]
+      T.unlines (
+           [ "Completed ?: " <> tshow (lsHasFinished liveStats) ]
         -- ++ if lsDestination liveStats == RoleServer then else []
         ++ ["Showing towards server: ", showTcpUnidirectionalStats (lsForwardStats liveStats)]
         -- ++ if lsDestination liveStats == RoleClient then else []
@@ -174,7 +176,7 @@ data LiveStats stats packet = LiveStats {
 
 instance Semigroup stats => Semigroup (LiveStats stats packets) where
   (<>) a b = LiveStats {
-      lsForwardStats = lsForwardStats a <> lsForwardStats b
+        lsForwardStats = lsForwardStats a <> lsForwardStats b
       , lsBackwardStats = lsBackwardStats a <> lsBackwardStats b
       , lsPackets = lsPackets a + lsPackets b
       , lsFrame = lsFrame a <> lsFrame b
@@ -184,7 +186,7 @@ instance Semigroup stats => Semigroup (LiveStats stats packets) where
 
 instance Monoid stats => Monoid (LiveStats stats packets) where
   mempty = LiveStats {
-    lsForwardStats = mempty
+      lsForwardStats = mempty
     , lsBackwardStats = mempty
     -- keep to check everything worked fine? else we can retreive the count from lsFrame
     , lsPackets = 0
@@ -195,6 +197,11 @@ instance Monoid stats => Monoid (LiveStats stats packets) where
     }
 
 type LiveStatsTcp = LiveStats TcpUnidirectionalStats Packet
+
+-- data LiveStatsTcp = LiveStatsTcp {
+--     _lstConn :: Maybe TcpConnection
+--   , _lstStats :: LiveStats TcpUnidirectionalStats Packet
+--   }
 -- type LiveStatsMptcp = LiveStats MptcpUnidirectionalStats MptcpConnection Packet
 
 -- should be richer
@@ -230,10 +237,6 @@ mkLiveStatsMptcp = LiveStatsMptcp {
         , _lsmStats = mempty
         }
 -- type CaptureSettingsMptcp = LiveStatsMptcp
-
-tshow :: Show a => a -> T.Text
-tshow = T.pack . Prelude.show
-
 
 showLiveStatsMptcp :: LiveStatsMptcp -> Text
 showLiveStatsMptcp stats = T.unlines [
