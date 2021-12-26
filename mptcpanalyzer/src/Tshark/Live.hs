@@ -20,9 +20,11 @@ where
 
 
 import Tshark.Main (csvDelimiter, defaultTsharkPrefs)
+import Net.Stream
 
 import Data.Text as T
 import qualified Data.Map.Strict as Map
+import Control.Lens
 
 import GHC.IO.Handle
 import Pipes ((>->))
@@ -121,16 +123,18 @@ pipeLines pgetLine h =
 --   , showTcpUnidirectionalStats (lsStats stats)
 --   ]
 
+data SomeStats where
+  SomeStats :: LiveStats a b -> SomeStats
+
+
 showLiveStatsTcp :: LiveStatsTcp -> Text
 showLiveStatsTcp  liveStats =
-      T.unlines ([
-            showLiveStats (SomeStats liveStats)
-            ]
-            -- ++ if lsDestination liveStats == RoleServer then else []
-            ++ ["Showing towards server:", showTcpUnidirectionalStats (lsForwardStats liveStats)]
-            -- ++ if lsDestination liveStats == RoleClient then else []
-            ++ ["Showing towards client:", showTcpUnidirectionalStats (lsBackwardStats liveStats)]
-            )
+      T.unlines ([ showLiveStatsTcp liveStats ]
+        -- ++ if lsDestination liveStats == RoleServer then else []
+        ++ ["Showing towards server: ", showTcpUnidirectionalStats (lsForwardStats liveStats)]
+        -- ++ if lsDestination liveStats == RoleClient then else []
+        ++ ["Showing towards client: ", showTcpUnidirectionalStats (lsBackwardStats liveStats)]
+        )
 
 
 
@@ -155,7 +159,7 @@ data LiveStatsConfig = LiveStatsConfig {
 -- | for now unidirectional ?
 data LiveStats stats packet = LiveStats {
   -- lsCon :: MptcpConnection,
-  lsForwardStats :: stats
+    lsForwardStats :: stats
   , lsBackwardStats :: stats
   -- keep to check everything worked fine? else we can retreive the count from lsFrame
   , lsPackets :: Int
@@ -195,16 +199,18 @@ type LiveStatsTcp = LiveStats TcpUnidirectionalStats Packet
 -- should be richer
 data LiveStatsMptcp = LiveStatsMptcp {
     -- tcpStreamId
-    lsmMaster :: Maybe MptcpConnection
+    _lsmMaster :: Maybe MptcpConnection
 
-  , lsmClient :: Maybe MptcpEndpointConfiguration
+  , _lsmClient :: Maybe MptcpEndpointConfiguration
   -- ^ Key / Token
-  , lsmServer :: Maybe MptcpEndpointConfiguration
+  , _lsmServer :: Maybe MptcpEndpointConfiguration
   -- ^ (Key, Token)
-  , lsmSubflows :: Map.Map MptcpSubflow (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
-  , lsmStats :: LiveStats MptcpUnidirectionalStats Packet
+  , _lsmSubflows :: Map.Map StreamIdTcp (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
+  -- ^ Map over tcp.stream Id ?
+  , _lsmStats :: LiveStats MptcpUnidirectionalStats Packet
   }
 
+makeLenses ''LiveStatsMptcp
 
 -- |Search for the master subflow
 -- TODO could
@@ -216,16 +222,13 @@ getMasterSubflow l = case Prelude.filter (isNothing . sfJoinToken) l of
 -- helper to create LiveStatsMptcp
 mkLiveStatsMptcp :: LiveStatsMptcp
 mkLiveStatsMptcp = LiveStatsMptcp {
-          lsmMaster = Nothing
-        , lsmClient = Nothing
-        , lsmServer = Nothing
-        , lsmSubflows = mempty
-        , lsmStats = mempty
+          _lsmMaster = Nothing
+        , _lsmClient = Nothing
+        , _lsmServer = Nothing
+        , _lsmSubflows = mempty
+        , _lsmStats = mempty
         }
 -- type CaptureSettingsMptcp = LiveStatsMptcp
-
-data SomeStats where
-  SomeStats :: LiveStats a b -> SomeStats
 
 tshow :: Show a => a -> T.Text
 tshow = T.pack . Prelude.show
@@ -233,8 +236,8 @@ tshow = T.pack . Prelude.show
 
 showLiveStatsMptcp :: LiveStatsMptcp -> Text
 showLiveStatsMptcp stats = T.unlines [
-    "Forward: "  <> showMptcpUnidirectionalStats ((lsForwardStats . lsmStats) stats)
-    , "Backward: " <> showMptcpUnidirectionalStats ((lsForwardStats . lsmStats) stats)
+      "Forward: "  <> showMptcpUnidirectionalStats (lsForwardStats $ stats ^. lsmStats)
+    , "Backward: " <> showMptcpUnidirectionalStats (lsForwardStats $ stats ^. lsmStats)
     ]
 
 showLiveStats :: SomeStats -> Text

@@ -187,9 +187,9 @@ aframeLength = frameLength . ffFrame
 
 -- Helper to pass information across functions
 data MyState = MyState {
-  _stateCacheFolder :: FilePath
+    _stateCacheFolder :: FilePath
   , _loadedFile   :: Maybe (FrameRec HostCols)  -- ^ cached loaded pcap
-  , _prompt   :: String  -- ^ cached loaded pcap
+  , _prompt   :: String  -- ^ Prompt entry
 }
 
 makeLenses ''MyState

@@ -5,19 +5,14 @@
 module Net.Mptcp.Types
 where
 
---import GHC.Generics
 import Data.Word
 import Data.Aeson
---import qualified Data.Set as Set
 import Net.IP
---import Net.Tcp
 import Net.Mptcp.Connection
----- import Net.Tcp.Definitions (TcpConnection(..))
----- import Data.ByteString
+import Control.Lens ((^.))
 
 --type MptcpToken = Word32
 --type LocId    = Word8
-
 ----
 ---- |Same as SockDiagMetrics
 ---- data SubflowWithMetrics = SubflowWithMetrics {
@@ -25,20 +20,6 @@ import Net.Mptcp.Connection
 ----     -- for now let's retain DiagTcpInfo  only
 ----   , metrics :: [SockDiagExtension]
 ---- }
-
----- |Holds MPTCP level information
---data MptcpConnection = MptcpConnection {
---    connectionToken :: MptcpToken
---  -- use SubflowWithMetrics instead ?!
---  -- , subflows :: Set.Set [TcpConnection]
---  , subflows      :: Set.Set TcpConnection
---  , localIds      :: Set.Set Word8  -- ^ Announced addresses
---  , remoteIds     :: Set.Set Word8   -- ^ Announced addresses
-
---  -- Might be reworked/moved in an Enriched/Tracker structure afterwards
---  , get_caps_prog :: Maybe FilePath
---} deriving (Show, Generic, FromJSON)
-
 
 -- | Remote port
 data RemoteId = RemoteId {
@@ -51,7 +32,7 @@ data RemoteId = RemoteId {
 -- toJSON :: MptcpConnection -> Value
 instance ToJSON MptcpConnection where
   toJSON mptcpConn = object
-    [ "name" .= toJSON (show $ (mecToken . mptcpClientConfig) mptcpConn)
+    [ "name" .= toJSON (show $ mptcpConn ^. mpconClientConfig ^. mecToken)
     , "sender" .= object [
           -- TODO here we could read from sysctl ? or use another SockDiagExtension
           "snd_buffer" .= toJSON (40 :: Int)

@@ -62,7 +62,7 @@ piListMptcpSubflowOpts = info (
 
 type SomeFrame = Frame Packet
 
--- TODO return MptcpStreamId instead
+-- TODO return mpconStreamId instead
 getMpTcpStreams :: SomeFrame -> [StreamIdMptcp]
 getMpTcpStreams ps =
     catMaybes $

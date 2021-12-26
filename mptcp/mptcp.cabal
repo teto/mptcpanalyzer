@@ -19,8 +19,6 @@ extra-source-files:
   README.md
   -- CHANGELOG
 
-
-
 tested-with:         GHC == 8.10.7
 
 -- Source-repository head
@@ -64,26 +62,12 @@ library
       c2hs:c2hs
     -- other-modules:
     Exposed-Modules:
-        -- Net.SockDiag
         Net.Tcp
       , Net.Tcp.Connection
       , Net.Stream
       , Net.Mptcp
       , Net.Mptcp.Flags
       , Net.Mptcp.Connection
-      -- , Net.Bitset
-      -- , Net.Tcp.Constants
-      -- , Net.Tcp.Definitions
-      -- , Net.Mptcp.Types
-      -- , Net.Mptcp.Utils
-      -- , Net.Mptcp.Constants
-      -- , Net.Mptcp.Netlink
-      -- , Net.Mptcp.Constants_v0
-      -- , Net.Mptcp.PathManager.Default
-      -- , Net.IPAddress
-      -- , Net.SockDiag.Constants
-      -- , Netlink.Route
-      -- TODO let it high level
     ghc-options:
       -Werror=missing-home-modules
 

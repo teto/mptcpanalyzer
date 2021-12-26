@@ -166,6 +166,8 @@ import Tshark.Main
        )
 
 
+-- hackage
+import Control.Lens ((^.))
 import qualified Data.Text as T
 import Options.Applicative
 import Options.Applicative.Common
@@ -213,8 +215,6 @@ import System.Console.ANSI
 import System.Console.Haskeline
 import System.Exit
 import System.Process hiding (runCommand)
--- withOpenFile
--- withOpenFile
 import Data.List (isPrefixOf)
 import Debug.Trace (traceShowId)
 import GHC.Conc (forkIO)

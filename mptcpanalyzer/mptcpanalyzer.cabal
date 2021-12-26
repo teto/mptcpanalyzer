@@ -219,9 +219,10 @@ library
 executable mptcpanalyzer
     import: shared-properties
     build-depends:
-        mptcpanalyzer
+          mptcpanalyzer
         , ansi-terminal
         , transformers
+        , lens
     Other-modules:
           Tshark.Live
         , Tshark.Interfaces
@@ -251,8 +252,6 @@ executable mptcpanalyzer
         , MptcpAnalyzer.Commands.PlotOWD
         , MptcpAnalyzer.Commands.Map
         , MptcpAnalyzer.Commands.List
-        -- , MptcpAnalyzer.Types
-        -- , Connection
         , MptcpAnalyzer.Commands.ListMptcp
         , MptcpAnalyzer.Commands.Plot
         , MptcpAnalyzer.Plots.Stream

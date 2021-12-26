@@ -122,6 +122,7 @@ library
         base >= 4.12
       , containers
       , mptcp
+      , lens
       , readable
       , bytestring
       , process
@@ -189,6 +190,7 @@ executable mptcp-pm
       , base >= 4.12 && < 4.17
       , bytestring
       , containers
+      , lens
       , mptcp
       , mptcp-pm
       , optparse-applicative

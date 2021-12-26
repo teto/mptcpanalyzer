@@ -42,6 +42,7 @@ module MptcpAnalyzer.Pcap (
     , loadRows
     , getTcpStreams
     , getMptcpStreams
+    , buildSubflowFromRecord
     , buildSubflowFromTcpStreamId
     , buildTcpConnectionFromRecord
     , buildTcpConnectionTupleFromRecord
@@ -65,10 +66,12 @@ import MptcpAnalyzer.Utils.Text
 import Net.Mptcp.Connection
 import Net.Tcp
 import Net.Stream
-import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
+import Net.Tcp.Constants (TcpFlag(..))
 import Tshark.Fields
 import Tshark.TH
 
+-- hackage
+import Control.Lens ((^.))
 import Data.Kind (Type)
 import Data.Monoid (First(..))
 import qualified Data.Text as T
@@ -310,10 +313,11 @@ buildTcpConnectionFromStreamId frame streamId =
 buildSubflowFromRecord :: Packet -> MptcpSubflow
 buildSubflowFromRecord row =
   MptcpSubflow {
-        sfConn = sfCon
+          sfConn = sfCon
         -- TODO ignore if it's master token
         , sfJoinToken = row ^. mptcpRecvToken
         , sfPriority = Nothing
+        -- TODO
         , sfLocalId = 0
         , sfRemoteId = 0
         -- todo load it from row
@@ -373,8 +377,8 @@ addMptcpDest frame con =
     -- foldl' (\tframe sf -> addDestToFrame tframe sf) startingFrame subflows
     mconcat subflowFrames
     where
-      -- filteredFrame = filterFrame  (\x -> x ^. mptcpStream == Just (mptcpStreamId con)) frame
-      -- filteredFrame = filterFrame  (\x -> (rgetField @MptcpStream x) == Just (mptcpStreamId con)) frame
+      -- filteredFrame = filterFrame  (\x -> x ^. mptcpStream == Just (mpconStreamId con)) frame
+      -- filteredFrame = filterFrame  (\x -> (rgetField @MptcpStream x) == Just (mpconStreamId con)) frame
 
       subflowFrames = map addDestsToSubflowFrames subflows
 
@@ -400,7 +404,7 @@ getMptcpDest :: MptcpConnection -> MptcpSubflow -> ConnectionRole
 getMptcpDest mptcpCon sf = case sfJoinToken sf of
   -- master subflow, dest is by definition the server
   Nothing -> RoleServer
-  Just token -> if token == (mecToken . mptcpServerConfig) mptcpCon then
+  Just token -> if token == (_mecToken . _mptcpServerConfig) mptcpCon then
     RoleServer
   else
     RoleClient
@@ -548,13 +552,13 @@ buildMptcpConnectionFromStreamId frame streamId = do
       --
       -- |Just for the time
       tempMptcpConn clientConfig = MptcpConnection {
-          mptcpStreamId = streamId
+            mpconStreamId = streamId
           -- kinda risky, assumes we have the server key always
-          , mptcpServerConfig = fromJust mbServerConfig
-          , mptcpClientConfig = fromJust clientConfig
+          , _mpconServerConfig = fromJust mbServerConfig
+          , _mpconClientConfig = fromJust clientConfig
           -- , mptcpNegotiatedVersion = fromIntegral $ fromJust clientMptcpVersion :: Word8
 
-          , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
+          , _mpconSubflows = Set.fromList $ map ffCon (rights subflows)
         }
       -- suppose tcpflags is a list of flags, check if it is in the list
       -- of type FrameRec [(Symbol, *)]
@@ -624,8 +628,8 @@ instance StreamConnection TcpConnection Tcp where
 -- | Computes a score
 scoreMptcpCon :: MptcpConnection -> MptcpConnection -> Int
 scoreMptcpCon con1 con2 =
-  let keyScore = if (mecKey . mptcpServerConfig) con1 == (mecKey . mptcpServerConfig) con2
-                    && (mecKey . mptcpClientConfig) con1 == (mecKey . mptcpClientConfig) con2
+  let keyScore = if con1 ^. mptcpServerConfig ^. mecKey == con2 ^. mptcpServerConfig ^. mecKey
+                    && con1 ^. mptcpClientConfig ^. mecKey == con2 ^. mptcpClientConfig ^. mecKey
       then 200
       else 0
   in

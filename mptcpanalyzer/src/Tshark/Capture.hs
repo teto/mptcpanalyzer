@@ -162,17 +162,35 @@ tsharkLoopMptcp config hout = do
     updateStats :: LiveStatsMptcp -> Record HostCols -> LiveStatsMptcp
     -- case where the master subflow was already identified
     updateStats lstats@(LiveStatsMptcp (Just master) _ _ subflows stats) row = 
-      if row ^. mptcpRecvToken /= Nothing then
-        trace "Master established" lstats
+      if row ^. tcpStream `elem` lsmSubflows then
+        trace "todo: known subflow: update stats" lstats
       else
-        -- TODO
-        lstats
+        case row ^. mptcpRecvToken of 
+          Nothing -> trace "No rcv token" lstats
+          Just rcvToken ->
+            -- if token of client then subflow initiated by server
+            if rcvToken == (mptcpClientConfig . mecToken) master then
+
+              lstats mptcpConnAddSubflow master 
+            else
+
+            lstats
+      -- if row ^. mptcpRecvToken /= Nothing then
+      --   trace "Connection established" lstats
+      -- else
+      --   -- TODO
+      --   lstats
+      where
+        tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
+        subflow = buildSubflowFromRecord row
+        -- hasRcvToken = row ^. mptcpRecvToken 
+
 
     updateStats lstats@(LiveStatsMptcp Nothing (Just clientCfg) (Just serverCfg)  _subflows stats) row = error "should not happen"
       -- newStats = lstats {
       --   lsmMaster = trace "FINALIZING MPTCP connection" Just $ MptcpConnection {
       --           -- get it from map.singleton
-      --           mptcpStreamId = fromJust $ myMptcpStreamId
+      --           mpconStreamId = fromJust $ mympconStreamId
       --         -- fromJust $ synAckPacket ^. mptcpSendKey
       --         , mptcpServerConfig = serverCfg
       --         , mptcpClientConfig = clientCfg
@@ -186,18 +204,19 @@ tsharkLoopMptcp config hout = do
     updateStats lstats@(LiveStatsMptcp Nothing _ _ _ stats) row =
       -- synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
         if hasClientKey then
-            -- streamPackets = filterFrame (\x -> x ^. mptcpStream == myMptcpStreamId) frame
+            -- streamPackets = filterFrame (\x -> x ^. mptcpStream == mympconStreamId) frame
             -- subflows = map (buildSubflowFromTcpStreamId frame) (getTcpStreams streamPackets)
             trace "SYN FOUND! retreiving client key" lstats {
-                lsmClient = traceShowId mptcpConfig
-              , lsmMaster = finalizeLiveStatsMptcp mptcpConfig (lsmServer lstats)
-              , lsmSubflows = Map.singleton subflow (mempty, mempty)
+                _lsmClient = traceShowId mptcpConfig
+              , _lsmMaster = finalizeLiveStatsMptcp mptcpConfig (lsmServer lstats)
+              , _lsmSubflows = Map.singleton (row ^. tcpStream) (mempty, mempty)
               -- Set.fromList $ map ffCon (rights subflows)
               }
         else if isSynAck then
+          lstats & set traceShowId mptcpConfig
               trace "SYNACK FOUND! retreiving server key" lstats {
-                lsmServer = traceShowId mptcpConfig
-              , lsmMaster = finalizeLiveStatsMptcp (lsmClient lstats) mptcpConfig
+                _lsmServer = traceShowId mptcpConfig
+              , _lsmMaster = finalizeLiveStatsMptcp (lsmClient lstats) mptcpConfig
               }
         else
           trace "No syn\n" lstats
@@ -210,14 +229,14 @@ tsharkLoopMptcp config hout = do
         mptcpConfig = genMptcpEndpointConfigFromRow row
         subflow :: MptcpSubflow
         subflow = (MptcpSubflow  (buildTcpConnectionFromRecord row) Nothing Nothing 0 0 Nothing)
-        myMptcpStreamId :: Maybe StreamIdMptcp
-        myMptcpStreamId =  row ^. mptcpStream
+        mympconStreamId :: Maybe StreamIdMptcp
+        mympconStreamId =  row ^. mptcpStream
         finalizeLiveStatsMptcp :: Maybe MptcpEndpointConfiguration -> Maybe MptcpEndpointConfiguration -> Maybe MptcpConnection
         finalizeLiveStatsMptcp mclientCfg mserverCfg = case (mclientCfg, mserverCfg) of
           (Just clientCfg, Just serverCfg) ->
             trace "FINALIZING MPTCP connection" (Just $ MptcpConnection {
                 -- get it from map.singleton
-                mptcpStreamId = fromJust $ myMptcpStreamId
+                mpconStreamId = fromJust $ mympconStreamId
               -- fromJust $ synAckPacket ^. mptcpSendKey
               , mptcpServerConfig = serverCfg
               , mptcpClientConfig = clientCfg
@@ -232,15 +251,15 @@ tsharkLoopMptcp config hout = do
     -- updateStats frame lstats@(LiveStatsMptcp Nothing _clientCfg Nothing _subflows stats) =
     --   let
     --     synPacket = (frameRow synPackets 0)
-    --     myMptcpStreamId :: Maybe StreamIdMptcp
-    --     myMptcpStreamId =  synPacket ^. mptcpStream
+    --     mympconStreamId :: Maybe StreamIdMptcp
+    --     mympconStreamId =  synPacket ^. mptcpStream
     --     mptcpServerCfg = fromJust $ genMptcpEndpointConfigFromRow synPacket 
     --     matchConnection row = let
     --         tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
     --       in
     --         TcpFlagSyn `elem` (row ^. tcpFlags) && lsConnection config == tcpConnectionfromOriented (reverseTcpConnectionTuple tuple)
     --     synPackets = filterFrame (matchConnection) frame
-    --     streamPackets = filterFrame (\x -> x ^. mptcpStream == myMptcpStreamId) frame
+    --     streamPackets = filterFrame (\x -> x ^. mptcpStream == mympconStreamId) frame
 
     --     -- subflows shall be discovered along the way
     --     subflows = map (buildSubflowFromTcpStreamId frame) (getTcpStreams streamPackets)
@@ -250,7 +269,7 @@ tsharkLoopMptcp config hout = do
     --       Just clientConfig -> trace "FINALIZING MPTCP connection" lstats {
     --           lsmServer = Just mptcpServerCfg
     --         , lsmMaster = Just $ MptcpConnection {
-    --             mptcpStreamId = fromJust $ myMptcpStreamId
+    --             mpconStreamId = fromJust $ mympconStreamId
     --           -- fromJust $ synAckPacket ^. mptcpSendKey
     --           , mptcpServerConfig = mptcpServerCfg
     --           , mptcpClientConfig = clientConfig

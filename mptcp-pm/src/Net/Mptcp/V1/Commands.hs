@@ -23,6 +23,7 @@ import Net.Stream
 
 -- hackage
 -- import Control.Exception (assert)
+import Control.Lens ((^.))
 import Data.Word (Word16, Word8, Word32)
 import Data.Serialize.Get
 import Data.Serialize.Put
@@ -200,7 +201,7 @@ resetConnectionPkt (MptcpSocket _sock fid) attrs =
 
 -- connectionToken
 connectionAttrs :: MptcpConnection -> [MptcpAttribute]
-connectionAttrs con = [ MptcpAttrToken $ (mecToken . mptcpServerConfig) con ]
+connectionAttrs con = [ MptcpAttrToken $ (con ^. mpconServerConfig ^. mecToken) ]
 
 -- pass token ?
 subflowAttrs :: MptcpSubflow -> [MptcpAttribute]

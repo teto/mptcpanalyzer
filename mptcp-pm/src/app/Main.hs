@@ -46,6 +46,9 @@ import Net.Tcp
 import Net.Mptcp.Utils
 import Netlink.Route
 
+
+-- hackage
+import Control.Lens
 import Control.Monad (foldM)
 import Control.Monad.Trans (liftIO)
 -- import           Control.Monad.Trans                    (liftIO)
@@ -516,7 +519,7 @@ dispatchPacketForKnownConnection :: MptcpSocket
                                     -> ExistingInterfaces
                                     -> (Maybe MptcpConnection, [MptcpPacket])
 dispatchPacketForKnownConnection mptcpSock con event attributes existingInterfaces = let
-        token = (mecToken . mptcpClientConfig) con
+        token =  con ^. mpconClientConfig ^. mecToken
         subflow = CMD.subflowFromAttributes attributes
     in
     case event of

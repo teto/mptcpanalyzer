@@ -4,12 +4,15 @@ Description : Basic MPTCP connection description
 Maintainer  : matt
 License     : GPL-3
 -}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Net.Mptcp.Connection (
   -- * Types
     MptcpConnection(..)
+  , mpconSubflows, mpconServerConfig, mpconClientConfig
   , MptcpSubflow(..)
   , MptcpEndpointConfiguration(..)
+  , mecKey, mecToken, mecVersion
   , showMptcpConnectionText
 
   , mptcpConnAddSubflow
@@ -17,41 +20,48 @@ module Net.Mptcp.Connection (
   , getMasterSubflow
 )
 where
+
 import Net.IP
 import Net.Tcp
+import Net.Stream
+
 -- import MptcpAnalyzer.Arti
+import Control.Lens
 import qualified Data.Set as Set
 import Data.Text as TS
 import Data.Word (Word16, Word32, Word64, Word8)
 -- import MptcpAnalyzer.ArtificialFields
-import Net.Stream
 
 data MptcpEndpointConfiguration = MptcpEndpointConfiguration {
   -- |key exchanged during the handshake
-    mecKey :: Word64
-  , mecToken :: Word32
+    _mecKey :: Word64
+  , _mecToken :: Word32
   -- ^Hash of the server key
-  , mecVersion :: Int -- ^ 0 or 1 at least for now
+  , _mecVersion :: Int -- ^ 0 or 1 at least for now
   -- , mecIdsn :: Word64
   -- ^ Initial data sequence number
   } deriving (Show, Eq)
+
+makeLenses ''MptcpEndpointConfiguration
+
 
 -- | Holds all necessary information about a multipath TCP connection
 -- TODO add an imcomplete constructor ?
 data MptcpConnection = MptcpConnection {
   -- todo prefix as mpcon
   -- |The wireshark mptcp.stream identifier (a number)
-    mptcpStreamId :: StreamIdMptcp
+    mpconStreamId :: StreamIdMptcp
   -- |Server key exchanged during the handshake
-  , mptcpServerConfig :: MptcpEndpointConfiguration
-  , mptcpClientConfig :: MptcpEndpointConfiguration
+  , _mpconServerConfig :: MptcpEndpointConfiguration
+  , _mpconClientConfig :: MptcpEndpointConfiguration
   -- | Mptcp version negotiated during the handshake Not implemented yet ?
   -- , mptcpNegotiatedVersion :: Word8  -- ^ 0 or 1 at least for now
   -- ^ List of past/present/future subflows seen during communication
-  , mpconSubflows :: Set.Set MptcpSubflow
+  , _mpconSubflows :: Set.Set MptcpSubflow
 
 -- Ord to be able to use fromList
 } deriving (Show, Eq)
+
 
 -- | Extension of @TcpConnection@
 -- master subflow has implicit addrid 0
@@ -71,6 +81,8 @@ data MptcpSubflow = MptcpSubflow {
       -- Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
     } deriving (Show, Eq, Ord)
 
+makeLenses ''MptcpConnection
+
 tshow :: Show a => a -> TS.Text
 tshow = TS.pack . Prelude.show
 
@@ -78,18 +90,18 @@ tshow = TS.pack . Prelude.show
 showMptcpConnectionText :: MptcpConnection -> Text
 showMptcpConnectionText con =
   -- showIp (srcIp con) <> ":" <> tshow (srcPort con) <> " -> " <> showIp (dstIp con) <> ":" <> tshow (dstPort con)
-  tpl <> "\n" <> TS.unlines (Prelude.map (showTcpConnectionText . sfConn) (Set.toList $ mpconSubflows con))
+  tpl <> "\n" <> TS.unlines (Prelude.map (showTcpConnectionText . sfConn) (Set.toList $ _mpconSubflows con))
   where
     -- todo show version
     tpl :: Text
     tpl = TS.unlines [
-        "Server key/token: " <> tshow ((mecKey . mptcpServerConfig) con) <> "/" <> ((tshow . mecToken . mptcpServerConfig) con)
-      , "Client key/token: " <> tshow ((mecKey . mptcpClientConfig) con) <> "/" <> ((tshow . mecToken . mptcpClientConfig) con)
+        "Server key/token: " <> tshow (con ^. mpconServerConfig ^. mecKey) <> "/" <> tshow (con ^. mpconServerConfig ^. mecToken)
+      , "Client key/token: " <> tshow (con ^. mpconClientConfig ^. mecKey) <> "/" <> tshow (con ^. mpconClientConfig ^. mecToken)
       ]
 
 ---- add a maybe ?
 getMasterSubflow :: MptcpConnection -> Maybe MptcpSubflow
-getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.toList $ mpconSubflows mptcpCon) of 
+getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.toList $ _mpconSubflows mptcpCon) of
   [] -> Nothing
   [x] -> Just x
   (_:_) -> error "There can be only one master subflow"
@@ -101,14 +113,14 @@ getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.
 -- TODO compose with mptcpConnAddLocalId
 mptcpConnAddSubflow :: MptcpConnection -> MptcpSubflow -> MptcpConnection
 mptcpConnAddSubflow mptcpConn sf =
-    -- TODO check that there are no duplicates / only one master etc
-    (mptcpConn { mpconSubflows = Set.insert sf (mpconSubflows mptcpConn) })
+  -- TODO check that there are no duplicates / only one master etc
+  (mptcpConn { _mpconSubflows = Set.insert sf (_mpconSubflows mptcpConn) })
 
 
 -- |Remove subflow from an MPTCP connection
 mptcpConnRemoveSubflow :: MptcpConnection -> MptcpSubflow -> MptcpConnection
 mptcpConnRemoveSubflow con sf = con {
-  mpconSubflows = Set.delete sf (mpconSubflows con)
+  _mpconSubflows = Set.delete sf (_mpconSubflows con)
   -- TODO remove associated local/remote Id ?
 }
 
