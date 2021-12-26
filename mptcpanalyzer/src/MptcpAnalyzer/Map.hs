@@ -56,11 +56,11 @@ type MptcpSubflowMapping = [(MptcpSubflow, [(MptcpSubflow, Int)])]
 mapSubflows :: MptcpConnection -> MptcpConnection -> MptcpSubflowMapping
 mapSubflows con1 con2 =
   -- map selectBest (mpconSubflows con1)
-  [ (sf1, scoreSubflows sf1) | sf1 <- Set.toList (mpconSubflows con1) ]
+  [ (sf1, scoreSubflows sf1) | sf1 <- Set.toList (_mpconSubflows con1) ]
   where
     -- select best / sortOn
     scoreSubflows sf1 = sortOn (Data.Ord.Down . snd) $
-        map (\sf -> (sf, similarityScore sf1 sf)) (Set.toList $ mpconSubflows con2)
+        map (\sf -> (sf, similarityScore sf1 sf)) (Set.toList $ _mpconSubflows con2)
 
 
 -- | show a mapping

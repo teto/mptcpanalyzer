@@ -391,8 +391,8 @@ addMptcpDest frame con =
       startingFrame = fmap setTempDests frame
       setTempDests :: Record rs -> Record ( MptcpDest ': TcpDest ': rs)
       setTempDests x = Col RoleClient :& Col RoleClient :& x
-      addMptcpDestToRec x role = (Col $ role) :& x
-      subflows = Set.toList $ mpconSubflows con
+      addMptcpDestToRec x role = Col role :& x
+      subflows = Set.toList $ _mpconSubflows con
 
 addMptcpDestToFrame :: MptcpConnection -> FrameFiltered MptcpSubflow Packet -> FrameRec '[MptcpDest]
 addMptcpDestToFrame mpcon (FrameTcp sf frame) = fmap (addMptcpDest' (getMptcpDest mpcon sf)) frame
@@ -404,7 +404,7 @@ getMptcpDest :: MptcpConnection -> MptcpSubflow -> ConnectionRole
 getMptcpDest mptcpCon sf = case sfJoinToken sf of
   -- master subflow, dest is by definition the server
   Nothing -> RoleServer
-  Just token -> if token == (_mecToken . _mptcpServerConfig) mptcpCon then
+  Just token -> if token == (_mecToken . _mpconServerConfig) mptcpCon then
     RoleServer
   else
     RoleClient
@@ -628,8 +628,8 @@ instance StreamConnection TcpConnection Tcp where
 -- | Computes a score
 scoreMptcpCon :: MptcpConnection -> MptcpConnection -> Int
 scoreMptcpCon con1 con2 =
-  let keyScore = if con1 ^. mptcpServerConfig ^. mecKey == con2 ^. mptcpServerConfig ^. mecKey
-                    && con1 ^. mptcpClientConfig ^. mecKey == con2 ^. mptcpClientConfig ^. mecKey
+  let keyScore = if con1 ^. mpconServerConfig ^. mecKey == con2 ^. mpconServerConfig ^. mecKey
+                    && con1 ^. mpconClientConfig ^. mecKey == con2 ^. mpconClientConfig ^. mecKey
       then 200
       else 0
   in

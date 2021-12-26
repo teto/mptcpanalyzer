@@ -90,7 +90,7 @@ tshow = TS.pack . Prelude.show
 showMptcpConnectionText :: MptcpConnection -> Text
 showMptcpConnectionText con =
   -- showIp (srcIp con) <> ":" <> tshow (srcPort con) <> " -> " <> showIp (dstIp con) <> ":" <> tshow (dstPort con)
-  tpl <> "\n" <> TS.unlines (Prelude.map (showTcpConnectionText . sfConn) (Set.toList $ _mpconSubflows con))
+  tpl <> "\nSubflows:\n" <> TS.unlines (Prelude.map (showTcpConnectionText . sfConn) (Set.toList $ _mpconSubflows con))
   where
     -- todo show version
     tpl :: Text
@@ -107,6 +107,15 @@ getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.
   (_:_) -> error "There can be only one master subflow"
 
 
+-- TODO test
+tokenToConnection :: Word32 -> MptcpConnection -> Bool
+tokenToConnection rcvToken con = 
+      if rcvToken == con ^. mpconClientConfig ^. mecToken then
+        True
+      else if rcvToken == con ^. mpconServerConfig ^. mecToken then
+        True
+      else
+        False
 
 -- |Adds a subflow to the connection
 -- Runs some extra checks

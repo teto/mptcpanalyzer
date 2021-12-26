@@ -40,6 +40,8 @@ import Net.Mptcp
 import Net.Tcp
 import Tshark.Fields (TsharkFieldDesc(tfieldLabel), baseFields)
 -- import Net.IPv4
+
+-- hackage
 import Frames
 import Frames.CSV
 import Options.Applicative
@@ -425,7 +427,7 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
       layout_title .= "MPTCP " ++ field
       -- TODO generate for mptcp plot
       -- for each subflow, plot the MptcpDest
-      mapM_ plotAttr ( [ (dest, con) | dest <- destinations , con <- Set.toList $ mpconSubflows $ ffCon aFrame ])
+      mapM_ plotAttr ( [ (dest, con) | dest <- destinations , con <- Set.toList $ _mpconSubflows $ ffCon aFrame ])
       -- mapM_ plotAttr destinations
 
   return Continue

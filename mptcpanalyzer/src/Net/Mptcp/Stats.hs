@@ -156,7 +156,7 @@ getMptcpStats (FrameTcp mptcpConn frame) dest =
     , musMaxDsn = maxDsn
     , musMinDsn = minDsn
     -- we need the stream id / FrameFiltered MptcpSubflow (Record rs)
-    , musSubflowStats = Map.fromList $ map (\sf -> (sf, getStats dest sf))  (toList $ mpconSubflows mptcpConn)
+    , musSubflowStats = Map.fromList $ map (\sf -> (sf, getStats dest sf))  (toList $ _mpconSubflows mptcpConn)
   }
   where
     -- buildTcpConnectionFromStreamId :: SomeFrame -> StreamId Tcp -> Either String (FrameFiltered TcpConnection Packet)

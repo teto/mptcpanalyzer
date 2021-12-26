@@ -48,7 +48,7 @@ import Netlink.Route
 
 
 -- hackage
-import Control.Lens
+import Control.Lens ((^.))
 import Control.Monad (foldM)
 import Control.Monad.Trans (liftIO)
 -- import           Control.Monad.Trans                    (liftIO)
@@ -343,8 +343,8 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
     -- let _masterSf = Set.elemAt 0 (subflows mptcpConn)
 
     -- Get updated metrics
-    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ mpconSubflows mptcpConn)
-    let filename = tmpdir ++ "/" ++ "mptcp_" ++ show ((mecToken . mptcpClientConfig) mptcpConn) ++ "_" ++ show elapsed ++ ".json"
+    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ _mpconSubflows mptcpConn)
+    let filename = tmpdir ++ "/" ++ "mptcp_" ++ show (mptcpConn ^. mpconClientConfig ^. mecToken) ++ "_" ++ show elapsed ++ ".json"
     -- logStatistics filename elapsed mptcpConn lastMetrics
 
     duration <- case cliOptimizer cliArgs of
@@ -391,7 +391,7 @@ getCapsForConnection :: FilePath     -- ^Statistics file
                         -> IO (Maybe [Word32])
 getCapsForConnection filename prog mptcpConn metrics = do
 
-    let subflowCount = length $ mpconSubflows mptcpConn
+    let subflowCount = length $ _mpconSubflows mptcpConn
 
     -- Data.ByteString.Lazy.writeFile filename jsonBs
 

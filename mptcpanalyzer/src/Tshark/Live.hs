@@ -13,6 +13,7 @@ module Tshark.Live (
   , LiveStatsTcp
   , LiveStatsConfig(..)
   , LiveStatsMptcp(..)
+  , lsmMaster, lsmSubflows, lsmStats
   , mkLiveStatsMptcp
   -- , CaptureSettingsMptcp
 )

@@ -289,9 +289,9 @@ Test-Suite test
   default-language: Haskell2010
   default-extensions:
       -- , OverloadedStrings
-        FlexibleContexts
-        , StrictData
-        , DataKinds
+      FlexibleContexts
+    , StrictData
+    , DataKinds
   other-modules:
       Tshark.MainSpec
     , Net.Tcp.StatsSpec

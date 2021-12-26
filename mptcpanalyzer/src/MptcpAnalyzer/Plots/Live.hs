@@ -35,13 +35,15 @@ import qualified Polysemy.Trace as P
 
 -- import MptcpAnalyzer.Commands.Definitions as CMD
 import Control.Monad.State (execStateT)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 import GHC.IO.Handle
 import Pipes (runEffect)
 import System.Exit
 import System.IO (stdout)
 import Tshark.Fields
 import Tshark.Capture
+import Net.Mptcp.Connection
+import Control.Lens ((^.))
 
 -- (ArgsPlotLiveTcp connectionFilter mbFake mbConnectionRole ifname)
 configureLivePlotTcp :: Members '[Log, P.Trace, P.Embed IO] r
@@ -132,7 +134,8 @@ startMptcpCapture lsConfig initialLiveStats createProc = do
       -- hSetBuffering herr NoBuffering
       putStrLn $ "Starting live mptcp plotting stats (before): "
       liveStats <- execStateT (runEffect (tsharkLoopMptcp lsConfig hout)) initialLiveStats
-      -- putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsTcp) liveStats
+      putStrLn $ "Live stats (after): " ++ (T.unpack $ showMptcpConnectionText (fromJust $ liveStats ^. lsmMaster))
+      -- putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsMptcp) liveStats
       -- putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
       -- blocking
       exitCode2 <- waitForProcess ph

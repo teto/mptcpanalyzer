@@ -71,3 +71,21 @@ library
     ghc-options:
       -Werror=missing-home-modules
 
+Test-Suite test
+  -- 2 types supported, exitcode is based on ... exit codes ....
+  type:               exitcode-stdio-1.0
+  default-language:   Haskell2010
+  main-is:
+    Main.hs
+  -- main-is:
+  --   Spec.hs
+  -- hs-source-dirs:     tests
+  other-modules:
+      Net.Mptcp.ConnectionSpec
+  ghc-options:        -threaded -rtsopts
+  build-depends:
+      base >=4.12
+    , hspec
+    , mptcp
+    , ip
+    , text
