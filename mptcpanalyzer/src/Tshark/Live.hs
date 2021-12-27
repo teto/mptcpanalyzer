@@ -71,7 +71,7 @@ import Net.Mptcp.Connection (MptcpConnection(MptcpConnection))
 import Net.Mptcp.Stats (MptcpUnidirectionalStats, showMptcpUnidirectionalStats, TcpSubflowUnidirectionalStats)
 import Net.Tcp (TcpConnection)
 import Net.Tcp.Stats
-       (TcpUnidirectionalStats, getTcpStats, showTcpUnidirectionalStats)
+       (TcpUnidirectionalStats, getTcpStatsFromAFrame, showTcpUnidirectionalStats)
 import System.Console.ANSI
 import System.IO (stdout)
 import Net.Mptcp.Connection

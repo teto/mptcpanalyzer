@@ -11,31 +11,33 @@ module Net.Tcp.StatsSpec (
   spec
 ) where
 import Frames.Exploration
-import MptcpAnalyzer.Loader
+-- import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Pcap
 import Test.Hspec
-import Test.QuickCheck hiding (Success)
+-- import Test.QuickCheck hiding (Success)
 
-import Data.Either (fromRight)
-import Frames
+-- import Data.Either (fromRight)
+-- import Frames
 import MptcpAnalyzer.ArtificialFields
-import MptcpAnalyzer.Cache
-import MptcpAnalyzer.Stream
+-- import MptcpAnalyzer.Cache
+-- import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
 import Net.Tcp
 import Net.Tcp.Stats
-import Polysemy (Final, Members, Sem, runFinal)
-import qualified Polysemy as P
-import qualified Polysemy.Embed as P
-import qualified Polysemy.IO as P
-import qualified Polysemy.Internal as P
-import Polysemy.Log (Log)
-import qualified Polysemy.Log as Log
-import Polysemy.Log.Colog (interpretLogStdout)
-import qualified Polysemy.State as P
-import qualified Polysemy.Trace as P
-import Tshark.Main (defaultTsharkPrefs)
+-- import Polysemy (Final, Members, Sem, runFinal)
+-- import qualified Polysemy as P
+-- import qualified Polysemy.Embed as P
+-- import qualified Polysemy.IO as P
+-- import qualified Polysemy.Internal as P
+-- import Polysemy.Log (Log)
+-- import qualified Polysemy.Log as Log
+-- import Polysemy.Log.Colog (interpretLogStdout)
+-- import qualified Polysemy.State as P
+-- import qualified Polysemy.Trace as P
+-- import Tshark.Main (defaultTsharkPrefs)
 import Utils
+import Data.Foldable (foldl')
+import Net.Stream
 
 -- cacheConfig :: CacheConfig
 -- cacheConfig = CacheConfig {
@@ -95,6 +97,11 @@ expectedForwardStatsTotal01 = mempty
   -- check stats over the whole file
   -- P.embed $ hspec $
 
+
+expectedStats :: TcpUnidirectionalStats
+-- expectedStats = mempty
+expectedStats = TcpUnidirectionalStats {tusNrPackets = 13, tusStartTime = 0.0, tusEndTime = 45.842675096, tusMinSeq = 0, tusSndUna = 0, tusSndNext = 0, tusReinjectedBytes = 0}
+
 splitAFrame :: FrameFiltered TcpConnection Packet -> Int -> [FrameFiltered TcpConnection Packet]
 splitAFrame aframe chunkSize  =
   -- takeRows / dropRow
@@ -106,15 +113,24 @@ splitAFrame aframe chunkSize  =
         go (FrameTcp (ffCon aframe') (dropRows chunkSize $ ffFrame aframe'))
            acc ++ [(FrameTcp (ffCon aframe') (takeRows chunkSize $ ffFrame aframe'))]
 
+
+
 -- beforeWith (loadAFrame) $
 -- before loadAFrame $ describ
 spec :: Spec
-spec = before (loadAFrame "examples/client_2_cleaned.pcapng") $
+spec = before (loadAFrame "examples/client_2_cleaned.pcapng" (StreamId 0)) $
       describe "Checking stats" $ do
         it "Check generated forward stats" $ \aframe ->
-          getTcpStats (addTcpDestinationsToAFrame aframe) RoleServer `shouldBe` expectedForwardStats0
+          getTcpStatsFromAFrame (addTcpDestinationsToAFrame aframe) RoleServer `shouldBe` expectedForwardStats0
         it "Check generated backwards stats" $ \aframe ->
-          getTcpStats (addTcpDestinationsToAFrame aframe) RoleClient `shouldBe` expectedBackwardStats0
+          getTcpStatsFromAFrame (addTcpDestinationsToAFrame aframe) RoleClient `shouldBe` expectedBackwardStats0
+
+        it "Processing stats in chunks equal processing the full batch" $ \aframe -> let 
+            chunks = splitAFrame aframe 2
+          in
+            foldl' (\origStats newAframe -> origStats <> getTcpStatsFromAFrame (addTcpDestinationsToAFrame newAframe) RoleClient ) mempty chunks `shouldBe` expectedStats
+
+        -- it "Checking two crafted stats" $ \aframe -> let 
 
   -- it "Test append of stats" $
   --     expectedForwardStats0head <> expectedForwardStats0tail `shouldBe` expectedForwardStats0

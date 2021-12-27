@@ -20,7 +20,7 @@ import MptcpAnalyzer.Types
 import Tshark.Main (csvDelimiter, defaultTsharkPrefs)
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.ArtificialFields
-import Net.Tcp.Stats (getTcpStats)
+import Net.Tcp.Stats (getTcpStatsFromAFrame)
 
 import Control.Monad.State (MonadState(get), StateT, gets, modify')
 import qualified Data.Map.Strict as Map
@@ -96,8 +96,8 @@ tsharkLoopTcp lsConfig hout = do
     updateStats :: FrameRec HostCols -> LiveStatsTcp -> LiveStatsTcp
     updateStats frame stats = let
             frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection lsConfig) frame)
-            forwardFrameWithDest = getTcpStats frameWithDest RoleServer
-            backwardFrameWithDest = getTcpStats frameWithDest RoleClient
+            forwardFrameWithDest = getTcpStatsFromAFrame frameWithDest RoleServer
+            backwardFrameWithDest = getTcpStatsFromAFrame frameWithDest RoleClient
         in (stats {
           lsPackets = lsPackets stats + 1
         -- , lsFrame = (lsFrame stats)  <> frame

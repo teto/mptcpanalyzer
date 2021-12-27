@@ -53,14 +53,14 @@ cacheDisabledConfig = CacheConfig {
 --     Right aframe -> return aframe
 
 
-loadAFrame :: FilePath -> IO (FrameFiltered TcpConnection Packet)
+loadAFrame :: FilePath -> StreamId Tcp -> IO (FrameFiltered TcpConnection Packet)
 loadAFrame = loadAFrameWithOpts defaultTsharkPrefs
 
-loadAFrameWithOpts :: TsharkParams -> FilePath -> IO (FrameFiltered TcpConnection Packet)
-loadAFrameWithOpts tsharkParams path = do
+loadAFrameWithOpts :: TsharkParams -> FilePath -> StreamId Tcp -> IO (FrameFiltered TcpConnection Packet)
+loadAFrameWithOpts tsharkParams path streamId = do
   frame1 <- loadPcapIntoFrameNoCache tsharkParams path
 
-  (aframe :: FrameFiltered TcpConnection Packet) <- case buildFrameFromStreamId (fromRight (error "should not happen") frame1) (StreamId 0) of
+  (aframe :: FrameFiltered TcpConnection Packet) <- case buildFrameFromStreamId (fromRight (error "should not happen") frame1) streamId of
     Left err -> error err
     Right aframe -> return aframe
 

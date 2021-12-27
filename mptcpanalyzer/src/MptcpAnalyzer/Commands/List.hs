@@ -168,7 +168,7 @@ showStats :: ( Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] r)
   -> Sem r String
 showStats aframe dest = let
     aframeWithDest = addTcpDestinationsToAFrame aframe
-    tcpStats = getTcpStats aframeWithDest dest
+    tcpStats = getTcpStatsFromAFrame aframeWithDest dest
 
     destFrame = F.filterFrame (\x -> x ^. tcpDest == dest) (ffFrame aframeWithDest)
 

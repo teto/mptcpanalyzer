@@ -6,7 +6,7 @@ License     : GPL-3
 -}
 
 module MptcpAnalyzer.Stats (
-    -- getTcpStats
+    -- getTcpStatsFromAFrame
   -- , getMptcpStats
   -- , getSubflowStats
   )

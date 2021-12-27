@@ -127,7 +127,7 @@ getSubflowStats ::
   )
   => FrameFiltered MptcpSubflow (F.Record rs) -> ConnectionRole -> TcpSubflowUnidirectionalStats
 getSubflowStats aframe role = TcpSubflowUnidirectionalStats {
-      tssStats = getTcpStats (addTcpDestinationsToAFrame aframe') role
+      tssStats = getTcpStatsFromAFrame (addTcpDestinationsToAFrame aframe') role
       , tssMinDsn = 0
       , tssMaxDsn = 0
     }

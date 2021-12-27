@@ -8,17 +8,13 @@ import Net.IP
 import Net.IPv4 (localhost)
 import Net.Tcp.Connection
 import Test.Hspec
--- import Test.QuickCheck hiding (Success)
--- import Tshark.Main
 import Data.Maybe (fromJust)
 import MptcpAnalyzer.ArtificialFields
 import Utils
--- import MptcpAnalyzer.Loader (loadPcapIntoFrame)
 import qualified Data.Foldable as F
-import Distribution.Compat.Lens (view, (^.))
-import Frames (filterFrame)
 import MptcpAnalyzer.Types
-
+import Distribution.Compat.Lens (view)
+-- import Control.Lens
 
 
 exampleTcpConnectionLocalhost :: TcpConnection
@@ -35,15 +31,15 @@ spec :: Spec
 spec = describe "absolute" $ do
   it "Check TcpConnection score" $
     scoreTcpCon exampleTcpConnectionLocalhost exampleTcpConnection0 < scoreTcpCon exampleTcpConnectionLocalhost exampleTcpConnectionLocalhost
-  before (loadAFrame "examples/client_2_cleaned.pcapng") $ it "Check that destinations are set correctly" $ \aframe ->
+  before (loadAFrame "examples/client_2_cleaned.pcapng" (StreamId 0)) $ it "Check that destinations are set correctly" $ \aframe ->
     length (genTcpDestFrameFromAFrame aframe) == (length $ ffFrame aframe)
-  before (loadAFrame "examples/client_2_cleaned.pcapng") $ it "Check that destinations are set correctly" $ \aframe ->
+  before (loadAFrame "examples/client_2_cleaned.pcapng" (StreamId 0)) $ it "Check that destinations are set correctly" $ \aframe ->
     let
       tcpdestFrame = genTcpDestFrameFromAFrame aframe
       tcpDests = F.toList $ view tcpDest <$> tcpdestFrame
       -- clientFrame = filterFrame (\x -> x ^. tcpDest == RoleClient) tcpdestFrame
     in
-      length (filter ((==) RoleServer) tcpDests) `shouldBe` 4
+      length (filter ((==) RoleServer) tcpDests) `shouldBe` 16
       -- length (ffFrame aframe) `shouldBe` (length $ clientFrame)
     -- it "Generate the correct tshark filter" $
 --       genReadFilterFromTcpConnection exampleTcpConnection0 (Just RoleClient)
