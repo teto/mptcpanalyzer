@@ -64,6 +64,7 @@ common shared-properties
     build-depends:
         base >= 4.12
       , ansi-terminal
+      , aeson
       , Cabal
       , Chart >= 1.5
       , Chart-cairo
@@ -84,6 +85,8 @@ common shared-properties
       , lens
       , mptcp-pm >= 0.0.4
       , mtl
+      -- to talk with sharkd
+      , network
       , optparse-applicative
       , pipes
       , pipes-parse
@@ -170,6 +173,7 @@ library
         , Tshark.Interfaces
         , Tshark.Live
         , Tshark.Main
+        , Tshark.Sharkd
         -- , Net.Mptcp.Types
         , Net.Tcp.Stats
         , Net.Mptcp.Stats
