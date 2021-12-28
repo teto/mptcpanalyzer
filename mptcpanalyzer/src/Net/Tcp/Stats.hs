@@ -151,7 +151,7 @@ genTcpStats aframe = TcpUnidirectionalStats {
     , tusEndTime = maxTime
 
     , tusMinSeq = 0 -- not used
-    , tusSndUna = una
+    , tusSndUna = maxUna
     , tusSndNext = 0
     , tusReinjectedBytes = 0
   }
@@ -170,7 +170,7 @@ genTcpStats aframe = TcpUnidirectionalStats {
         _otherwise -> error "Could not find either min or max"
 
     -- TODO
-    una = case L.fold ((,) <$> L.minimum <*> L.maximum) $ F.toList $ view tcpSeq <$> aframe of
+    (minUna, maxUna) = case L.fold ((,) <$> L.minimum <*> L.maximum) $ F.toList $ view tcpAck <$> aframe of
         (Just pmin, Just pmax) -> (pmin, pmax)
         _otherwise -> error "Could not find either min or max"
 

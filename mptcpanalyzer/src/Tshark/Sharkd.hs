@@ -1,9 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- 
 --
 -- Format of request listed at <https://gitlab.com/wireshark/wireshark/-/wikis/sharkd-Request-Syntax#tap>
 module Tshark.Sharkd (
 
-    launchSharkd
+    defaultSocketPath
+  , launchSharkd
   , connectToSharkd
   , loadFile
 
@@ -16,6 +18,12 @@ import Data.Aeson
 import System.Process hiding (runCommand)
 import qualified Control.Exception as E
 import Data.ByteString.Lazy (toStrict)
+
+
+defaultSocketPath :: FilePath
+defaultSocketPath = "/tmp/sharkd"
+
+
 launchSharkd :: FilePath -- ^ Unix socket path
       -> IO ()
 launchSharkd socketPath = let
@@ -28,6 +36,7 @@ launchSharkd socketPath = let
     (_, _, mbHerr, ph) <- createProcess createProc
     pure ()
     -- waitForProcess ph
+
 
 
 connectToSharkd :: FilePath -> IO ()
@@ -47,7 +56,26 @@ sendRequestToSharkd sockPath payload = do
     addr = defaultHints  { addrFamily = AF_UNIX, addrAddress = SockAddrUnix sockPath }
     -- sock = socket Stream 0
 
+-- |
+-- {"req":"load","file":"c:/traces/Contoso_01/web01/web01_00001_20161012151754.pcapng"}
 loadFile :: FilePath -> FilePath -> IO ()
-loadFile pcapPath sockPath = sendRequestToSharkd sockPath payload
+loadFile pcapPath sockPath = sendRequestToSharkd sockPath payload >> return ()
   where
-    payload = 
+    payload = object [
+        "req" .= toJSON ("load" :: String)
+      , "file" .= pcapPath
+      ]
+
+
+-- {"req":"status"}
+
+getStatus :: Socket -> IO ()
+getStatus sock = sendRequestToSharkd defaultSocketPath payload >> return ()
+  where
+    payload = object [
+        "req" .= toJSON ("status" :: String)
+      ]
+
+-- {"req":"frames","filter":"frame.number<=20"}
+-- getFrames
+-- getFrames

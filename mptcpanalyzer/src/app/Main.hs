@@ -457,7 +457,9 @@ cmdListInterfaces = do
 
 runCommand :: (Members '[Log, Cache, P.Trace, P.State MyState, P.Embed IO] r)
   => CommandArgs -> Sem r CMD.RetCode
-runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
+
+-- runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
+runCommand (ArgsLoadPcap fileToLoad) = loadPcapFromSharkd fileToLoad
   -- ret <- CL.loadPcap fileToLoad
   -- TODO modify only on success
   -- P.modify (\s -> s { _prompt = pcapFilename ++ "> ",
@@ -489,6 +491,23 @@ loadPcap :: (Members '[Log, P.State MyState, Cache, P.Embed IO] r)
   => FilePath -- ^ File to load
   -> Sem r RetCode
 loadPcap pcapFilename = do
+    Log.info $ "loading pcap " <> tshow pcapFilename
+    mFrame <- loadPcapIntoFrame defaultTsharkPrefs pcapFilename
+    -- fmap onSuccess mFrame
+    case mFrame of
+      Left _ -> return CMD.Continue
+      Right frame -> do
+        P.modify (\s -> s {
+            _prompt = finalizePrompt pcapFilename,
+            _loadedFile = Just frame
+          })
+        Log.info "Frame loaded" >> return CMD.Continue
+
+-- TODO launch sharkd beforehand and fetch data from it
+loadPcapFromSharkd :: (Members '[Log, P.State MyState, Cache, P.Embed IO] r)
+  => FilePath -- ^ File to load
+  -> Sem r RetCode
+loadPcapFromSharkd pcapFilename = do
     Log.info $ "loading pcap " <> tshow pcapFilename
     mFrame <- loadPcapIntoFrame defaultTsharkPrefs pcapFilename
     -- fmap onSuccess mFrame

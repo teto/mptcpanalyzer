@@ -100,11 +100,11 @@ tsharkLoopTcp lsConfig hout = do
             backwardFrameWithDest = getTcpStatsFromAFrame frameWithDest RoleClient
         in (stats {
           lsPackets = lsPackets stats + 1
-        -- , lsFrame = (lsFrame stats)  <> frame
-        -- , lsForwardStats = let
-        --     merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
-        --     in traceShowId merged
-        -- , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
+        , lsFrame = (lsFrame stats)  <> frame
+        , lsForwardStats = let
+            merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
+            in traceShowId merged
+        , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
         })
 
 -- Tricky function:
