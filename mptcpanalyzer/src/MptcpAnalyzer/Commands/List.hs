@@ -8,11 +8,12 @@ Maintainer  : matt
 {-# LANGUAGE PackageImports #-}
 
 module MptcpAnalyzer.Commands.List (
-  piListTcpOpts
+    piListTcpOpts
   , piTcpSummaryOpts
   , piMptcpSummaryOpts
   , cmdListTcpConnections
   , cmdTcpSummary
+  , cmdTcpSummarySharkd
   , cmdMptcpSummary
 )
 where
@@ -29,7 +30,8 @@ import Net.Mptcp
 import Net.Mptcp.Stats
 import Net.Tcp
 import Net.Tcp.Stats
-import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
+import Net.Tcp.Constants (TcpFlag(..))
+import Tshark.Sharkd
 
 import Control.Lens hiding (argument)
 import Data.Either (fromRight)
@@ -65,7 +67,7 @@ piTcpSummaryOpts = info (
   )
   where
     piTcpSummary :: Parser CommandArgs
-    piTcpSummary = ArgsParserSummary <$> switch
+    piTcpSummary = ArgsTcpSummary <$> switch
               ( long "full"
             <> help "Print details for each subflow" )
           <*> argument readStreamId (
@@ -160,6 +162,41 @@ cmdTcpSummary streamId detailed = do
           else
             pure ()
           return CMD.Continue
+
+{-| Display statistics for the connection:
+throughput/goodput
+
+detailed
+-}
+cmdTcpSummarySharkd :: ( Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] r)
+  => FilePath
+  -> StreamId Tcp
+  -> Bool
+  -> Sem r RetCode
+cmdTcpSummarySharkd pcapPath streamId detailed = do
+    P.embed $ loadFile pcapPath defaultSocketPath >> return CMD.Continue
+    -- TODO then ask for the stats about that TCP flow
+    --
+    -- state <- P.get
+    -- let loadedPcap = view loadedFile state
+    -- case loadedPcap of
+    --   Nothing -> return $ CMD.Error "please load a pcap first"
+    --   Just frame -> case buildTcpConnectionFromStreamId frame streamId of
+    --     Left msg -> return $ CMD.Error msg
+    --     Right aframe -> do
+    --       -- let _tcpstreams = getTcpStreams frame
+    --       P.trace $ showConnection (ffCon aframe)
+    --       Log.info $ "Number of rows "  <> tshow (frameLength $ ffFrame aframe)
+    --       if detailed
+    --       then do
+    --         res <- showStats aframe RoleServer
+    --         P.trace res
+    --         res2 <- showStats aframe RoleClient
+    --         P.trace res2
+    --       else
+    --         pure ()
+    --       return CMD.Continue
+
 
 -- | Show stats in both directions
 showStats :: ( Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] r)

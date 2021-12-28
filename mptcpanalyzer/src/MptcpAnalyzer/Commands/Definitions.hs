@@ -42,7 +42,9 @@ data CommandArgs =
     | ArgsListInterfaces
       -- ^ _listSubflowsDetailed
     | ArgsListReinjections (StreamId Mptcp)
-    | ArgsParserSummary Bool (StreamId Tcp)
+    | ArgsTcpSummary Bool (StreamId Tcp)
+    | ArgsTcpSummaryFromFile FilePath 
+      -- Bool (StreamId Tcp)
     | ArgsMptcpSummary Bool (StreamId Mptcp)
     | ArgsExport FilePath   -- ^ argsExportFilename
     -- | plotOut

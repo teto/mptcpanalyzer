@@ -164,6 +164,7 @@ import Tshark.Main
        , generateCsvCommand
        , tsharkReadFilter
        )
+import Tshark.Sharkd
 
 
 -- hackage
@@ -405,6 +406,7 @@ mainParser = subparser (
     <> command "tcp-summary" CLI.piTcpSummaryOpts
     <> command "mptcp-summary" CLI.piMptcpSummaryOpts
     <> command "list-tcp" CLI.piListTcpOpts
+    <> command "list-tcp-from-file" piListFromFile
     <> command "map-tcp" CLI.mapTcpOpts
     <> command "map-mptcp" CLI.mapMptcpOpts
     <> commandGroup "MPTCP commands"
@@ -425,6 +427,18 @@ mainParser = subparser (
     where
       helpParser = info (pure ArgsHelp) (progDesc "Display help")
       quit = info (pure ArgsQuit) (progDesc "Quit mptcpanalyzer")
+      piListFromFile = info (
+            ArgsTcpSummaryFromFile <$>
+            argument filenameReader (metavar "PCAP"
+              <> completer completePath
+              <> help "Load a Pcap file"
+            ))
+          ( fullDesc
+            <> progDesc "Load a pcap file via wireshark"
+            <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
+            <> allPositional
+            )
+
 
 
 -- |Main parser
@@ -458,8 +472,7 @@ cmdListInterfaces = do
 runCommand :: (Members '[Log, Cache, P.Trace, P.State MyState, P.Embed IO] r)
   => CommandArgs -> Sem r CMD.RetCode
 
--- runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
-runCommand (ArgsLoadPcap fileToLoad) = loadPcapFromSharkd fileToLoad
+runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
   -- ret <- CL.loadPcap fileToLoad
   -- TODO modify only on success
   -- P.modify (\s -> s { _prompt = pcapFilename ++ "> ",
@@ -467,7 +480,8 @@ runCommand (ArgsLoadPcap fileToLoad) = loadPcapFromSharkd fileToLoad
   --     })
   -- return ret
 runCommand (ArgsLoadCsv csvFile _) = CL.cmdLoadCsv csvFile
-runCommand (ArgsParserSummary detailed streamId) = CLI.cmdTcpSummary streamId detailed
+runCommand (ArgsTcpSummary detailed streamId) = CLI.cmdTcpSummary streamId detailed
+runCommand (ArgsTcpSummaryFromFile filepath ) = CLI.cmdTcpSummarySharkd filepath (StreamId 0) False
 runCommand (ArgsMptcpSummary detailed streamId) = CLI.cmdMptcpSummary streamId detailed
 runCommand (ArgsListSubflows detailed) = CLI.cmdListSubflows detailed
 runCommand (ArgsListReinjections streamId)  = CLI.cmdListReinjections streamId
@@ -491,23 +505,6 @@ loadPcap :: (Members '[Log, P.State MyState, Cache, P.Embed IO] r)
   => FilePath -- ^ File to load
   -> Sem r RetCode
 loadPcap pcapFilename = do
-    Log.info $ "loading pcap " <> tshow pcapFilename
-    mFrame <- loadPcapIntoFrame defaultTsharkPrefs pcapFilename
-    -- fmap onSuccess mFrame
-    case mFrame of
-      Left _ -> return CMD.Continue
-      Right frame -> do
-        P.modify (\s -> s {
-            _prompt = finalizePrompt pcapFilename,
-            _loadedFile = Just frame
-          })
-        Log.info "Frame loaded" >> return CMD.Continue
-
--- TODO launch sharkd beforehand and fetch data from it
-loadPcapFromSharkd :: (Members '[Log, P.State MyState, Cache, P.Embed IO] r)
-  => FilePath -- ^ File to load
-  -> Sem r RetCode
-loadPcapFromSharkd pcapFilename = do
     Log.info $ "loading pcap " <> tshow pcapFilename
     mFrame <- loadPcapIntoFrame defaultTsharkPrefs pcapFilename
     -- fmap onSuccess mFrame

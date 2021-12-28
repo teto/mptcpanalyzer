@@ -10,9 +10,10 @@ License     : GPL-3
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 module MptcpAnalyzer.Commands.Load (
-  cmdLoadCsv
+    cmdLoadCsv
   , piLoadCsv
   , piLoadPcapOpts
+  , filenameReader
 )
 where
 import MptcpAnalyzer.Cache
@@ -76,12 +77,11 @@ piLoadCsv = info (cmdLoadCsvArgs <**> helper)
 
 piLoadPcapOpts :: ParserInfo CommandArgs
 -- <**> helper)
-piLoadPcapOpts = info (loadPcapArgs )
+piLoadPcapOpts = info loadPcapArgs
   ( fullDesc
   <> progDesc "Load a pcap file via wireshark"
   <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
   <> allPositional
-
   )
 
 

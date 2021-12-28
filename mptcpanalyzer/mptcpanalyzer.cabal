@@ -259,12 +259,21 @@ executable mptcpanalyzer
         , MptcpAnalyzer.Commands.ListMptcp
         , MptcpAnalyzer.Commands.Plot
         , MptcpAnalyzer.Plots.Stream
+        , MptcpAnalyzer.Plots.Live
+        , MptcpAnalyzer.Prelude
+        , MptcpAnalyzer.Units
+        , MptcpAnalyzer.Utils.Completion
+        , MptcpAnalyzer.Utils.Text
+        , Net.Mptcp.Stats
+        , Net.Tcp.Stats
+        , Tshark.Capture
+        , Tshark.TH
     -- for now reference mptcp-pm but later move part to a core
     -- build-depends: mptcp-pm >= 0.0.3
     main-is: app/Main.hs
     hs-source-dirs: src/
-    ghc-options:
-      -threaded -rtsopts -haddock
+    -- ghc-options:
+    --   -threaded -rtsopts -haddock
 
 benchmark map-stream
   type:             exitcode-stdio-1.0
