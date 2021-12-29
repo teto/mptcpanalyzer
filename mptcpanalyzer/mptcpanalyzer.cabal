@@ -65,6 +65,7 @@ common shared-properties
         base >= 4.12
       , ansi-terminal
       , aeson
+      , aeson-extra
       , Cabal
       , Chart >= 1.5
       , Chart-cairo
@@ -164,6 +165,9 @@ common shared-properties
 
 library
     import: shared-properties
+    -- build-depends:
+    --     aeson-extra
+
     -- visibility: public
     -- Other-modules:
     Exposed-Modules:

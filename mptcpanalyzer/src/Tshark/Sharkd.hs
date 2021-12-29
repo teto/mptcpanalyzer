@@ -15,6 +15,7 @@ where
 import Network.Socket
 import Network.Socket.ByteString
 import Data.Aeson
+import Data.Aeson.Extra.Merge (lodashMerge)
 import System.Process hiding (runCommand)
 import qualified Control.Exception as E
 import Data.ByteString.Lazy (toStrict)
@@ -28,6 +29,15 @@ import Foreign.C (CChar)
 defaultSocketPath :: FilePath
 defaultSocketPath = "/tmp/sharkd"
 
+basicPayload :: String -> Value
+basicPayload method = object [
+        "method" .= toJSON method
+      , "jsonrpc" .= toJSON ("2.0" :: String)
+      , "id" .= toJSON (0 ::Int)
+      -- , "params" .= object [
+      --     "file" .= pcapPath
+      --   ]
+      ]
 
 launchSharkd :: FilePath -- ^ Unix socket path
       -> IO ()
@@ -69,8 +79,14 @@ sendRequestToSharkd sockPath payload = do
       putStrLn $ "sending payload " ++ show payload
       sendAll sock (toStrict $ encode payload)
       putStrLn "sent"
+      -- threadDelay $ 1 * 10^6
+      -- do msg <- recv conn 1024
+      -- unless (C.null msg) $ do
+      --   C.putStrLn msg 
+      --   talk conn
       bs <- recv sock 1024
       putStrLn "recv"
+      print bs
       return $ eitherDecodeStrict bs
       -- listen sock 1024
       -- return sock
@@ -84,10 +100,12 @@ sendRequestToSharkd sockPath payload = do
 loadFile :: FilePath -> FilePath -> IO ()
 loadFile pcapPath sockPath = sendRequestToSharkd sockPath payload >> return ()
   where
-    payload = object [
-        "req" .= toJSON ("load" :: String)
-      , "file" .= pcapPath
-      ]
+    payload = lodashMerge (basicPayload "load") paramsPayload
+    paramsPayload = (object [
+        "params" .= object [
+          "file" .= pcapPath
+        ]
+      ])
 
 
 -- {"req":"status"}
