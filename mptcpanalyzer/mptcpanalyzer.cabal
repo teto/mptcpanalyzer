@@ -279,23 +279,23 @@ executable mptcpanalyzer
     -- ghc-options:
     --   -threaded -rtsopts -haddock
 
-benchmark map-stream
-  type:             exitcode-stdio-1.0
-  main-is:          Map.hs
-  hs-source-dirs:   benchmarks
-  build-depends:
-      base
-      , Frames
-      -- criterion depends on optparse-applicative so be careful
-      -- to rely on 0.16.1 fork (master has breaking changes)
-      , criterion
-      , mptcpanalyzer:mptcpanalyzer
-      , polysemy
-      , polysemy-log >= 0.2.2.4
-      , polysemy-log-co
+-- benchmark map-stream
+--   type:             exitcode-stdio-1.0
+--   main-is:          Map.hs
+--   hs-source-dirs:   benchmarks
+--   build-depends:
+--       base
+--       , Frames
+--       -- criterion depends on optparse-applicative so be careful
+--       -- to rely on 0.16.1 fork (master has breaking changes)
+--       , criterion
+--       , mptcpanalyzer:mptcpanalyzer
+--       , polysemy
+--       , polysemy-log >= 0.2.2.4
+--       , polysemy-log-co
 
-  ghc-options:
-  default-language: Haskell2010
+--   ghc-options:
+--   default-language: Haskell2010
 
 
 Test-Suite test

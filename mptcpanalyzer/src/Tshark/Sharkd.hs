@@ -27,17 +27,21 @@ import Foreign.C (CChar)
 
 
 defaultSocketPath :: FilePath
-defaultSocketPath = "/tmp/sharkd"
+defaultSocketPath = "/tmp/sharkd.sock"
 
 basicPayload :: String -> Value
 basicPayload method = object [
         "method" .= toJSON method
       , "jsonrpc" .= toJSON ("2.0" :: String)
-      , "id" .= toJSON (0 ::Int)
+      , "id" .= toJSON (1 ::Int)
       -- , "params" .= object [
       --     "file" .= pcapPath
       --   ]
       ]
+
+
+basicPayloadStr :: String -> String
+basicPayloadStr inside = "{'jsonrpc': '2.0', 'id': 1, 'method':'info'}"
 
 launchSharkd :: FilePath -- ^ Unix socket path
       -> IO ()
@@ -63,6 +67,8 @@ sendRequestToSharkd sockPath payload = do
   -- withFdSocket sock (setCloseOnExecIfNeeded)
   -- socketPair
   -- addr
+  -- {"jsonrpc":"2.0","id":1,"result":{"status":"OK"}},
+
   E.bracketOnError (socket AF_UNIX Stream defaultProtocol) close $ \sock -> do
       -- setSocketOption sock ReuseAddr 1
       -- withFdSocket sock setCloseOnExecIfNeeded
@@ -77,7 +83,9 @@ sendRequestToSharkd sockPath payload = do
       -- m <- newEmptyMVar
       -- forkIO $ (listenForResponse h m)
       putStrLn $ "sending payload " ++ show payload
-      sendAll sock (toStrict $ encode payload)
+      let bsPayload = (toStrict $ encode payload ) <> "\n"
+      putStrLn $ "sending payload " ++ show bsPayload
+      sendAll sock bsPayload
       putStrLn "sent"
       -- threadDelay $ 1 * 10^6
       -- do msg <- recv conn 1024
@@ -98,7 +106,9 @@ sendRequestToSharkd sockPath payload = do
 -- |
 -- {"req":"load","file":"c:/traces/Contoso_01/web01/web01_00001_20161012151754.pcapng"}
 loadFile :: FilePath -> FilePath -> IO ()
-loadFile pcapPath sockPath = sendRequestToSharkd sockPath payload >> return ()
+loadFile pcapPath sockPath =
+
+  sendRequestToSharkd sockPath payload >> return ()
   where
     payload = lodashMerge (basicPayload "load") paramsPayload
     paramsPayload = (object [
@@ -107,6 +117,16 @@ loadFile pcapPath sockPath = sendRequestToSharkd sockPath payload >> return ()
         ]
       ])
 
+-- this works
+getInfo :: FilePath -> IO ()
+getInfo sockPath = sendRequestToSharkd sockPath payload >> return ()
+  where
+    payload = basicPayload "info"
+    -- paramsPayload = (object [
+    --     "params" .= object [
+    --       "file" .= pcapPath
+    --     ]
+    --   ])
 
 -- {"req":"status"}
 
