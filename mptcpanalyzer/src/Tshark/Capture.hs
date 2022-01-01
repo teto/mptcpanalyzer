@@ -167,7 +167,8 @@ tsharkLoopMptcp config hout = do
         -- TODO change connection staths when seeing dataFin
         -- TODO update subflow stats and mptcp stats
         -- if row ^. mptcpDataFin
-        trace "todo: known subflow: update stats" lstats
+        trace "todo: known subflow: update stats" (updateSubflowStats lstats
+        )
       else
         case row ^. mptcpRecvToken of
           Nothing -> trace "No rcv token" lstats
@@ -188,6 +189,7 @@ tsharkLoopMptcp config hout = do
       where
         tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
         subflow = buildSubflowFromRecord row
+        updateSubflowStats = 
         -- hasRcvToken = row ^. mptcpRecvToken 
 
 

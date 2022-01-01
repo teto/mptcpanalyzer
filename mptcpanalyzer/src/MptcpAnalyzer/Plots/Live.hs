@@ -138,8 +138,11 @@ startMptcpCapture lsConfig initialLiveStats createProc = do
       -- hSetBuffering herr NoBuffering
       putStrLn $ "Starting live mptcp plotting stats (before): "
       liveStats <- execStateT (runEffect (tsharkLoopMptcp lsConfig hout)) initialLiveStats
-      putStrLn $ "Live stats (after): " ++ (T.unpack $ showMptcpConnectionText (fromJust $ liveStats ^. lsmMaster))
-      -- putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsMptcp) liveStats
+      case liveStats ^. lsmMaster of
+        Nothing -> putStrLn "Could not detect the mptcp connection"
+        Just master -> putStrLn $ "Live stats (after): " ++ (T.unpack $ showMptcpConnectionText master)
+      -- putStrLn $ "Live stats (after): " ++ (T.unpack $ showMptcpConnectionText (fromJust $ liveStats ^. lsmMaster))
+      putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsMptcp) liveStats
       -- putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
       -- blocking
       exitCode2 <- waitForProcess ph
