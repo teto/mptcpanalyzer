@@ -15,6 +15,7 @@ where
 import Network.Socket
 import Network.Socket.ByteString
 import Data.Aeson
+import Data.Aeson.Encode.Pretty
 import Data.Aeson.Extra.Merge (lodashMerge)
 import System.Process hiding (runCommand)
 import qualified Control.Exception as E
@@ -24,20 +25,20 @@ import Control.Concurrent
 import qualified Data.ByteString as S
 import Foreign (Ptr)
 import Foreign.C (CChar)
+import Data.Aeson.Encoding (encodingToLazyByteString)
 
 
 defaultSocketPath :: FilePath
 defaultSocketPath = "/tmp/sharkd.sock"
 
-basicPayload :: String -> Value
-basicPayload method = object [
+basicPayload :: String -> Series
+basicPayload method = 
         "method" .= toJSON method
-      , "jsonrpc" .= toJSON ("2.0" :: String)
-      , "id" .= toJSON (1 ::Int)
+        <> "jsonrpc" .= toJSON ("2.0" :: String)
+        <> "id" .= toJSON (1 ::Int)
       -- , "params" .= object [
       --     "file" .= pcapPath
       --   ]
-      ]
 
 
 basicPayloadStr :: String -> String
@@ -57,12 +58,15 @@ launchSharkd socketPath = let
     -- waitForProcess ph
 
 
+-- | 
+-- serializingConfig :: Config
+-- serializingConfig = defConfig { confCompare = compare }
 
 connectToSharkd :: FilePath -> IO ()
 connectToSharkd = undefined
 
 -- TODO should return a Either String Value instead ?
-sendRequestToSharkd :: FilePath -> Value -> IO (Either String Value)
+sendRequestToSharkd :: FilePath -> Encoding -> IO (Either String Value)
 sendRequestToSharkd sockPath payload = do
   -- withFdSocket sock (setCloseOnExecIfNeeded)
   -- socketPair
@@ -83,7 +87,7 @@ sendRequestToSharkd sockPath payload = do
       -- m <- newEmptyMVar
       -- forkIO $ (listenForResponse h m)
       putStrLn $ "sending payload " ++ show payload
-      let bsPayload = (toStrict $ encode payload ) <> "\n"
+      let bsPayload = (toStrict $ encodingToLazyByteString payload ) <> "\n"
       putStrLn $ "sending payload " ++ show bsPayload
       sendAll sock bsPayload
       putStrLn "sent"
@@ -108,34 +112,28 @@ sendRequestToSharkd sockPath payload = do
 loadFile :: FilePath -> FilePath -> IO ()
 loadFile pcapPath sockPath =
 
-  sendRequestToSharkd sockPath payload >> return ()
+  sendRequestToSharkd sockPath (pairs payload) >> return ()
   where
-    payload = lodashMerge (basicPayload "load") paramsPayload
-    paramsPayload = (object [
-        "params" .= object [
-          "file" .= pcapPath
-        ]
-      ])
+    payload = basicPayload "load" <> paramsPayload 
+    paramsPayload = 
+          "params" .= object [
+            "file" .= pcapPath
+          ]
 
 -- this works
 getInfo :: FilePath -> IO ()
-getInfo sockPath = sendRequestToSharkd sockPath payload >> return ()
+getInfo sockPath = sendRequestToSharkd sockPath (pairs payload) >> return ()
   where
     payload = basicPayload "info"
-    -- paramsPayload = (object [
-    --     "params" .= object [
-    --       "file" .= pcapPath
-    --     ]
-    --   ])
 
 -- {"req":"status"}
 
-getStatus :: Socket -> IO ()
-getStatus sock = sendRequestToSharkd defaultSocketPath payload >> return ()
-  where
-    payload = object [
-        "req" .= toJSON ("status" :: String)
-      ]
+-- getStatus :: Socket -> IO ()
+-- getStatus sock = sendRequestToSharkd defaultSocketPath payload >> return ()
+--   where
+--     payload = object [
+--         "req" .= toJSON ("status" :: String)
+--       ]
 
 -- {"req":"frames","filter":"frame.number<=20"}
 -- getFrames

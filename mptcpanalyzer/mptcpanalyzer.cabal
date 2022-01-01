@@ -65,6 +65,7 @@ common shared-properties
         base >= 4.12
       , ansi-terminal
       , aeson
+      , aeson-pretty
       , aeson-extra
       , Cabal
       , Chart >= 1.5
@@ -236,6 +237,7 @@ executable mptcpanalyzer
         , Tshark.Interfaces
         , Tshark.Fields
         , Tshark.Main
+        , Tshark.Sharkd
         -- , Net.Mptcp.Types
         -- reexport the rest
         , MptcpAnalyzer
