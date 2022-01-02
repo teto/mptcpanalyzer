@@ -135,6 +135,7 @@ getSubflowStats aframe role = TcpSubflowUnidirectionalStats {
       aframe' = FrameTcp (sfConn $ ffCon aframe) (ffFrame aframe)
 
 -- mptcp_compute_throughput est bourrin il calcule tout d'un coup, je veux avoir une version qui marche iterativement
+-- | Generates Stats for one direction only
 getMptcpStats ::
   (
    -- TcpDest F.∈ rs
@@ -151,7 +152,7 @@ getMptcpStats ::
   -> MptcpUnidirectionalStats
 getMptcpStats (FrameTcp mptcpConn frame) dest =
   MptcpUnidirectionalStats {
-    musDirection = dest
+      musDirection = dest
     , musApplicativeBytes = getSeqRange maxDsn minDsn
     , musMaxDsn = maxDsn
     , musMinDsn = minDsn

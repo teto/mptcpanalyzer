@@ -213,8 +213,9 @@ data LiveStatsMptcp = LiveStatsMptcp {
   -- ^ Key / Token
   , _lsmServer :: Maybe MptcpEndpointConfiguration
   -- ^ (Key, Token)
-  , _lsmSubflows :: Map.Map StreamIdTcp (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
-  -- ^ Map over tcp.stream Id ?
+  , _lsmSubflows :: Map.Map StreamIdTcp LiveStatsTcp
+        -- (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
+  -- ^ TODO these should be subflow stats (dss/dsn)
   , _lsmStats :: LiveStats MptcpUnidirectionalStats Packet
   }
 
