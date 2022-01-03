@@ -44,6 +44,9 @@ import qualified Data.Set as Set
 import Data.Maybe (fromJust)
 import Data.Either (rights)
 import Control.Arrow (first)
+import qualified Data.Foldable as F
+import qualified Frames as F
+import qualified Frames.InCore as F
 
 
 
@@ -58,18 +61,6 @@ pipeTableEitherOpt' opts = do
 
 -- updateStatsFromRecord :: LiveStatsTcp -> Record HostCols -> LiveStatsTcp
 -- updateStatsFromRecord ls row = 
-updateTcpStats :: FrameRec (TcpDest ': HostCols) -> LiveStatsTcp -> LiveStatsTcp
-updateTcpStats frameWithDest stats = let
-        forwardFrameWithDest = getTcpStatsFromAFrame frameWithDest RoleServer
-        backwardFrameWithDest = getTcpStatsFromAFrame frameWithDest RoleClient
-    in (stats {
-      lsPackets = lsPackets stats + 1
-    , lsFrame = (lsFrame stats)  <> (frameWithDest )
-    , lsForwardStats = let
-        merged = (lsForwardStats stats) <> trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest) forwardFrameWithDest
-        in traceShowId merged
-    , lsBackwardStats = (lsBackwardStats stats) <> traceShowId backwardFrameWithDest
-    })
 
 -- produceFrameChunks
 -- inCoreAoS
@@ -88,7 +79,7 @@ tsharkLoopTcp lsConfig hout = do
       let frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection lsConfig) frame)
 
       -- stFrame <- gets lsFrame
-      modify' (updateTcpStats $ ffFrame frameWithDest)
+      modify' (updateTcpStats frameWithDest)
       -- liftIO $ cursorUp 1
       liveStats <- get
       let output = showLiveStatsTcp liveStats
@@ -110,9 +101,23 @@ tsharkLoopTcp lsConfig hout = do
 
     -- updateStatsFrame :: FrameRec HostCols -> LiveStatsTcp -> LiveStatsTcp
     -- updateStatsFrame frame lstats = foldl updateStats lstats frame
+    updateTcpStats frameWithDest tstats = tstats <> genLiveStatsTcp frameWithDest
 
     recEither = rtraverse getCompose
 
+updateMptcpStats ::
+  (
+   -- TcpDest F.∈ rs
+  MptcpDsn F.∈ rs, TcpSeq F.∈ rs, IpDest F.∈ rs, IpSource F.∈ rs
+  , TcpLen F.∈ rs
+  , PacketId F.∈ rs
+  , TcpDestPort F.∈ rs, MptcpRecvToken F.∈ rs
+  , TcpFlags F.∈ rs, TcpSrcPort F.∈ rs, TcpStream F.∈ rs, RelTime F.∈ rs
+  , rs F.⊆ HostCols
+  , F.RecVec rs
+  )
+  => FrameFiltered MptcpConnection (F.Record rs)
+updateMptcpStats = undefined
 
 -- Tricky function:
 -- Contrary to TCP we have to filter on the master subflow but as we can't update the filter as we discover
@@ -182,20 +187,26 @@ tsharkLoopMptcp config hout = do
             else
               trace ("ignoring flow " ++ show subflow) lstats
             )
-        Just lsSubflow ->
+        Just subflowStats ->
           -- TODO update tcp stats for th
           -- TODO change connection staths when seeing dataFin
           -- TODO update subflow stats and mptcp stats
           -- if row ^. mptcpDataFin
           let
-            newMptcpStats = getMptcpStats mptcpAframe
-            subflowUpdatedStats = updateTcpStats
-          --  (updateSubflowStats lstats
-          -- )
+            subflow = master
+            tcpAframe :: FrameFiltered TcpConnection Packet
+            tcpAframe =  FrameTcp master frame
+
+            newMptcpStats :: LiveStats MptcpUnidirectionalStats Packet
+            newMptcpStats = genLiveStatsMptcp mptcpAframe
+
+            subflowUpdatedStats = genLiveStatsTcp tcpAframe
           in
           trace "todo: known subflow: update stats" (lstats {
-              _lsmStats = lstats ^. lsmStats <> newMptcpStats
-            , _lsmSubflows = Map.insert (row ^. tcpStream) subflowUpdatedStats
+              -- TODO we should have stats in both direction !
+              -- _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
+              _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
+            , _lsmSubflows = Map.insert (row ^. tcpStream) (subflowStats <> subflowUpdatedStats)
           })
       -- if row ^. mptcpRecvToken /= Nothing then
       --   trace "Connection established" lstats
@@ -241,7 +252,7 @@ tsharkLoopMptcp config hout = do
             trace "SYN FOUND! retreiving client key" lstats {
                 _lsmClient = traceShowId mptcpConfig
               , _lsmMaster = finalizeLiveStatsMptcp mptcpConfig (_lsmServer lstats)
-              , _lsmSubflows = Map.singleton (row ^. tcpStream) (mempty, mempty)
+              , _lsmSubflows = Map.singleton (row ^. tcpStream) (genLiveStatsTcp mempty)
               -- Set.fromList $ map ffCon (rights subflows)
               }
         else if isSynAck then
@@ -254,6 +265,7 @@ tsharkLoopMptcp config hout = do
           trace "No syn\n" lstats
       where
         tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
+        -- tcpAframe = buildA
         -- TcpFlagSyn `elem` (row ^. tcpFlags) &&
         hasClientKey = (row ^. mptcpSendKey ) /= Nothing && lsConnection config == tcpConnectionFromOriented tuple
         isSynAck = TcpFlagSyn `elem` (row ^. tcpFlags) &&  TcpFlagAck `elem` (row ^. tcpFlags)

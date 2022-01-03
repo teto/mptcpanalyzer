@@ -33,7 +33,6 @@ import qualified Data.Text as T
 
 import Control.Lens
 import Control.Lens hiding (argument)
-import qualified Data.Foldable as F
 import Data.List (sort, sortBy, sortOn)
 import Data.Map (Map, fromList, mapKeys)
 import qualified Data.Map as Map
@@ -41,6 +40,7 @@ import Data.Maybe (catMaybes, fromJust)
 import Data.Set (toList)
 import Data.Vinyl
 import Data.Word (Word32, Word64)
+import qualified Data.Foldable as F
 import qualified Frames as F
 import qualified Frames.InCore as F
 import MptcpAnalyzer.Types
@@ -49,7 +49,7 @@ import MptcpAnalyzer.Types
 -- | Useful to show DSN
 data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
   -- tssStats :: TcpUnidirectionalStats
-  tssStats    :: TcpUnidirectionalStats
+    tssStats  :: TcpUnidirectionalStats
   , tssMinDsn :: Word64
   , tssMaxDsn :: Word64
   } deriving Show
@@ -70,7 +70,7 @@ instance Monoid TcpSubflowUnidirectionalStats where
 
 -- | Holds MPTCP application level statistics for one direction
 data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
-  musDirection          :: ConnectionRole
+    musDirection        :: ConnectionRole
   , musApplicativeBytes :: Word64
   , musMaxDsn           :: Word64
   , musMinDsn           :: Word64
@@ -133,6 +133,7 @@ getSubflowStats aframe role = TcpSubflowUnidirectionalStats {
     }
     where
       aframe' = FrameTcp (sfConn $ ffCon aframe) (ffFrame aframe)
+
 
 -- mptcp_compute_throughput est bourrin il calcule tout d'un coup, je veux avoir une version qui marche iterativement
 -- | Generates Stats for one direction only

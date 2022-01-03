@@ -123,7 +123,7 @@ genRecordFrom "ReceiverCols" baseFieldsReceiver
 -- (i.e., one pcap was captured at the client, the other at the receiver)
 data PcapMapping a = PcapMapping {
       -- | Host 1 pcap to load
-      pmapPcap1 :: FilePath
+        pmapPcap1 :: FilePath
       , pmapStream1 :: StreamId a
       -- | Host 2
       , pmapPcap2 :: FilePath

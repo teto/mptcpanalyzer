@@ -15,6 +15,8 @@ module Tshark.Live (
   , LiveStatsMptcp(..)
   , lsmMaster, lsmSubflows, lsmStats
   , mkLiveStatsMptcp
+  , genLiveStatsMptcp
+  , genLiveStatsTcp
   -- , CaptureSettingsMptcp
 )
 where
@@ -22,6 +24,7 @@ where
 
 import Tshark.Main (csvDelimiter, defaultTsharkPrefs)
 import Net.Stream
+import Net.Mptcp.Stats
 
 import Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -53,7 +56,7 @@ import Frames.CSV
        , tokenizeRow
        )
 import Frames.Exploration
-import MptcpAnalyzer.Types (HostCols, Packet)
+import MptcpAnalyzer.Types (HostCols, Packet, PacketWithTcpDest)
 import qualified Pipes as P
 import qualified Pipes.Parse as P
 import qualified Pipes.Prelude as P
@@ -238,6 +241,32 @@ mkLiveStatsMptcp = LiveStatsMptcp {
         , _lsmStats = mempty
         }
 -- type CaptureSettingsMptcp = LiveStatsMptcp
+
+-- TODO 
+genLiveStatsTcp :: FrameFiltered TcpConnection PacketWithTcpDest -> LiveStatsTcp
+genLiveStatsTcp frameWithDest@(FrameTcp _ frame) = let
+        forwardFrameWithDest = getTcpStatsFromAFrame frameWithDest RoleServer
+        backwardFrameWithDest = getTcpStatsFromAFrame frameWithDest RoleClient
+    in (mempty :: LiveStatsTcp) {
+      lsPackets = frameLength frame
+    -- , lsFrame = frame
+    , lsForwardStats = let
+        merged = 
+          -- trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest)
+          forwardFrameWithDest
+        in merged
+    , lsBackwardStats =  backwardFrameWithDest
+    }
+
+
+genLiveStatsMptcp :: FrameFiltered MptcpConnection Packet -> LiveStats MptcpUnidirectionalStats Packet
+genLiveStatsMptcp mptcpAframe =  (mempty :: LiveStats MptcpUnidirectionalStats Packet) {
+    lsPackets = frameLength $ ffFrame mptcpAframe
+  , lsFrame = ffFrame mptcpAframe
+  , lsForwardStats = getMptcpStats mptcpAframe RoleServer
+  , lsBackwardStats = getMptcpStats mptcpAframe RoleClient
+  }
+
 
 showLiveStatsMptcp :: LiveStatsMptcp -> Text
 showLiveStatsMptcp stats = T.unlines [

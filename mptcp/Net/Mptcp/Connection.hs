@@ -109,6 +109,9 @@ getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.
   (_:_) -> error "There can be only one master subflow"
 
 
+getSubflowFromStreamId :: MptcpConnection -> StreamIdTcp -> Maybe MptcpSubflow
+getSubflowFromStreamId
+
 -- TODO test
 tokenBelongToConnection :: Word32 -> MptcpConnection -> Bool
 tokenBelongToConnection rcvToken con = 
