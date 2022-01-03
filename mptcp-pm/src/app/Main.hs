@@ -24,7 +24,7 @@ iproute2/misc/ss.c to see how `ss` utility interacts with the kernel
 
 Capture netlink packets in your computer ?
 -}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -33,18 +33,27 @@ module Main where
 
 import Net.IP
 import Net.Mptcp
-import Net.Mptcp.Constants
+
+-- import Net.Mptcp.V0.Constants as CONST
+import qualified Net.Mptcp.V1.Constants as C
+import qualified Net.Mptcp.V1.Commands as CMD
+-- import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
-import Net.Mptcp.PathManager.Default
+import Net.Mptcp.PathManager.V1.NdiffPorts
 import Net.SockDiag
 import Net.SockDiag.Constants
 import Net.Tcp
+import Net.Mptcp.Utils
+import Netlink.Route
 
+
+-- hackage
+import Control.Lens ((^.))
 import Control.Monad (foldM)
 import Control.Monad.Trans (liftIO)
 -- import           Control.Monad.Trans                    (liftIO)
 import Control.Monad.Trans.State (State, StateT, execStateT, get, put)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 -- import           Data.Text                              (Text)
 import Foreign.C.Types (CInt)
 import Options.Applicative hiding (ErrorMsg, empty, value)
@@ -61,9 +70,10 @@ import System.Linux.Netlink.GeNetlink as GENL
 -- import System.Linux.Netlink.Helpers
 -- import System.Log.FastLogger
 import System.Linux.Netlink.GeNetlink.Control
-import qualified System.Linux.Netlink.Route as NLR
+-- import qualified System.Linux.Netlink.Route as NLR
 import qualified System.Linux.Netlink.Simple as NLS
 
+import Text.Pretty.Simple
 import Data.Word (Word32)
 import System.Exit
 import System.Process
@@ -75,7 +85,6 @@ import Data.Serialize.Put
 import Control.Concurrent
 import Data.Bits (Bits(..))
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as TS
@@ -99,10 +108,23 @@ import Polysemy.Log.Colog (interpretLogStdout)
 import qualified Polysemy.State as P
 import Polysemy.Trace (Trace, trace)
 import qualified Polysemy.Trace as P
+import Net.Mptcp.Netlink
+import Net.Tcp.Constants
+import Net.Stream
 
 -- for getEnvDefault, to get TMPDIR value.
 -- we could pass it as an argument
 -- import System.Environment.Blank(getEnvDefault)
+
+interfacesToIgnore :: [String]
+interfacesToIgnore = [
+    "virbr0"
+  , "virbr1"
+  , "docker0"
+  , "nlmon0"
+  -- , "ppp0"
+  -- , "lo"
+  ]
 
 tshow :: Show a => a -> TS.Text
 tshow = TS.pack . Prelude.show
@@ -118,8 +140,10 @@ onFailureSleepingDelay = 100
 
 -- |the default path manager
 pathManager :: PathManager
-pathManager = meshPathManager
+pathManager = ndiffports
 
+
+type MptcpToken = Word32
 -- |Helper to pass information across functions
 data MyState = MyState {
   -- |Socket
@@ -141,12 +165,6 @@ type GState a = State MyState a
 -- addJsonKey _ _ xs = xs
 
 
-dumpCommand :: MptcpGenlEvent -> String
-dumpCommand x = show x ++ " = " ++ show (fromEnum x)
-
-dumpMptcpCommands :: MptcpGenlEvent -> String
-dumpMptcpCommands MPTCP_CMD_EXIST = dumpCommand MPTCP_CMD_EXIST
-dumpMptcpCommands x               = dumpCommand x ++ "\n" ++ dumpMptcpCommands (succ x)
 
 
 -- | Arguments expected on startup
@@ -182,7 +200,7 @@ dumpSystemInterfaces = do
   res <- tryReadMVar globalInterfaces
   case res of
     Nothing         -> putStrLn "No interfaces"
-    Just interfaces -> Prelude.print interfaces
+    Just interfaces -> pPrint interfaces
 
   putStrLn "End of dump"
 
@@ -242,16 +260,15 @@ makeMptcpSocket :: IO MptcpSocket
 makeMptcpSocket = do
     -- for legacy reasons this opens a route socket
   sock <- GENL.makeSocket
-  res <- getFamilyIdS sock mptcpGenlName
+  res <- getFamilyIdS sock C.mptcpGenlName
   case res of
-    Nothing  -> error $ "Could not find family " ++ mptcpGenlName
-    Just fid -> return  (MptcpSocket sock fid)
+    Nothing  -> error $ "Could not find family " ++ C.mptcpGenlName
+    Just fid -> pure (MptcpSocket sock fid)
 
 
 
 makeMetricsSocket :: IO NetlinkSocket
 makeMetricsSocket = makeSocketGeneric eNETLINK_SOCK_DIAG
-
 
 -- A utility function - threadDelay takes microseconds, which is slightly annoying.
 sleepMs :: Natural -> IO()
@@ -259,7 +276,7 @@ sleepMs n = threadDelay $ (fromIntegral n :: Int) * 1000
 
 
 -- | here we may want to run mptcpnumerics to get some results
-updateSubflowMetrics :: NetlinkSocket -> TcpConnection -> IO SockDiagMetrics
+updateSubflowMetrics :: NetlinkSocket -> MptcpSubflow -> IO SockDiagMetrics
 updateSubflowMetrics sockMetrics subflow = do
     putStrLn "Updating subflow metrics"
     let queryPkt = genQueryPacket (Right subflow) [TcpListen, TcpEstablished]
@@ -318,16 +335,16 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
     mptcpConn <- embed $ readMVar mConn
     Log.trace "Showing MPTCP connection"
     Log.trace $ tshow mptcpConn <> "..."
-    let _token = connectionToken mptcpConn
+    -- let _token = connectionToken mptcpConn
     let tmpdir = out cliArgs
 
     -- TODO this is the issue
     -- not sure it's the master with a set
-    let _masterSf = Set.elemAt 0 (subflows mptcpConn)
+    -- let _masterSf = Set.elemAt 0 (subflows mptcpConn)
 
     -- Get updated metrics
-    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ subflows mptcpConn)
-    let filename = tmpdir ++ "/" ++ "mptcp_" ++ show (connectionToken mptcpConn) ++ "_" ++ show elapsed ++ ".json"
+    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ _mpconSubflows mptcpConn)
+    let filename = tmpdir ++ "/" ++ "mptcp_" ++ show (mptcpConn ^. mpconClientConfig ^. mecToken) ++ "_" ++ show elapsed ++ ".json"
     -- logStatistics filename elapsed mptcpConn lastMetrics
 
     duration <- case cliOptimizer cliArgs of
@@ -347,10 +364,12 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
                   Log.info $ "Requesting to set cwnds..." <> tshow cwnds
                   -- TODO fix
                   -- KISS for now (capCwndPkt mptcpSock )
+#ifdef EXPERIMENTAL_CWND
                   let cwndPackets  = map (\(cwnd, sf) -> capCwndPkt mptcpSock mptcpConn cwnd sf) (zip cwnds (Set.toList $ subflows mptcpConn))
-
                   embed $ mapM_ (sendPacket sock) cwndPackets
-
+#else 
+                  Log.debug $ "Cwnd capping not compiled"
+#endif
                   return onSuccessSleepingDelayMs
     Log.debug $ "Finished monitoring token. Waiting " <> tshow duration
     embed $ sleepMs duration
@@ -372,7 +391,7 @@ getCapsForConnection :: FilePath     -- ^Statistics file
                         -> IO (Maybe [Word32])
 getCapsForConnection filename prog mptcpConn metrics = do
 
-    let subflowCount = length $ subflows mptcpConn
+    let subflowCount = length $ _mpconSubflows mptcpConn
 
     -- Data.ByteString.Lazy.writeFile filename jsonBs
 
@@ -391,12 +410,12 @@ getCapsForConnection filename prog mptcpConn metrics = do
     return values
 
 -- the library contains showAttrs / showNLAttrs
-showAttributes :: Attributes -> String
-showAttributes attrs =
-  let
-    mapped = Map.foldrWithKey (\k v -> (dumpAttribute k v ++)  ) "\n " attrs
-  in
-    mapped
+-- showAttributes :: Attributes -> String
+-- showAttributes attrs =
+--   let
+--     mapped = Map.foldrWithKey (\k v -> (dumpAttribute k v ++)  ) "\n " attrs
+--   in
+--     mapped
 
 putW32 :: Word32 -> ByteString
 putW32 x = runPut (putWord32host x)
@@ -404,6 +423,8 @@ putW32 x = runPut (putWord32host x)
 
 -- I want to override the GenlHeader version
 newtype GenlHeaderMptcp = GenlHeaderMptcp GenlHeader
+
+-- TODO remove shouldn't be a show instance
 instance Show GenlHeaderMptcp where
   show (GenlHeaderMptcp (GenlHeader cmd ver)) =
     "Header: Cmd = " ++ show cmd ++ ", Version: " ++ show ver ++ "\n"
@@ -426,75 +447,13 @@ inspectAnswer (Packet _ (GenlData hdr NoData) attributes) = let
     cmd = genlCmd hdr
   in
     putStrLn $ show ("Inspecting answer custom:\n" ++ showHeaderCustom hdr
-            ++ "Supposing it's a mptcp command: " ++ dumpCommand ( toEnum $ fromIntegral cmd))
-
+              ++ "Supposing it's a mptcp command: ")
 inspectAnswer pkt = putStrLn $ "Inspecting answer:\n" ++ showPacket pkt
-
-
--- should have this running in parallel
-queryAddrs :: NLR.RoutePacket
-queryAddrs = NL.Packet
-    (NL.Header NLC.eRTM_GETADDR (NLC.fNLM_F_ROOT .|. NLC.fNLM_F_MATCH .|. NLC.fNLM_F_REQUEST) 0 0)
-    (NLR.NAddrMsg 0 0 0 0 0)
-    mempty
 
 
 -- |Deal with events for already registered connections
 -- Warn: MPTCP_EVENT_ESTABLISHED registers a "null" interface
 -- or a list of packets to send
-
-
--- TODO maybe the path manager should be part of the MptcpConnection
-dispatchPacketForKnownConnection :: MptcpSocket
-                                    -> MptcpConnection
-                                    -> MptcpGenlEvent
-                                    -> Attributes
-                                    -> AvailablePaths
-                                    -> (Maybe MptcpConnection, [MptcpPacket])
-dispatchPacketForKnownConnection mptcpSock con event attributes availablePaths = let
-        token = connectionToken con
-        subflow = subflowFromAttributes attributes
-    in
-    case event of
-
-      -- let the Path manager kick in
-      MPTCP_EVENT_ESTABLISHED -> let
-              -- onMasterEstablishement mptcpSock
-              -- Needs IO because of NetworkInterface
-              newPkts = (onMasterEstablishement pathManager) mptcpSock con availablePaths
-          in
-              (Just con, newPkts)
-
-      -- TODO trigger the pathManager again, fix the remote interpretation
-      MPTCP_EVENT_ANNOUNCED -> let
-          -- what if it's local
-            remId = remoteIdFromAttributes attributes
-            -- newConn = mptcpConnAddRemoteId con remId
-            newConn = con
-          in
-            (Just newConn, [])
-
-      MPTCP_EVENT_CLOSED -> (Nothing, [])
-
-      MPTCP_EVENT_SUB_ESTABLISHED -> let
-                newCon = mptcpConnAddSubflow con subflow
-            in
-                (Just newCon,[])
-        -- let newState = oldState
-        -- putMVar con newCon
-        -- let newState = oldState { connections = Map.insert token newCon (connections oldState) }
-        -- TODO we should insert the
-        -- newConn <-
-        -- return newState
-
-      -- TODO remove
-      MPTCP_EVENT_SUB_CLOSED -> let
-              newCon = mptcpConnRemoveSubflow con subflow
-            in
-              (Just newCon, [])
-
-      -- MPTCP_CMD_EXIST -> con
-      _ -> error $ "should not happen " ++ show event
 
 
 -- |Filter connections
@@ -517,42 +476,96 @@ mapSubflowToInterfaceIdx ip = do
 
 
 
-registerMptcpConnection :: MptcpToken -> TcpConnection -> StateT MyState IO ()
+registerMptcpConnection :: MptcpToken -> MptcpSubflow -> StateT MyState IO ()
 registerMptcpConnection token subflow = (do
     oldState <- get
     let (MyState mptcpSock conns cliArgs filtered) = oldState
-    if acceptConnection subflow filtered == False
+    if acceptConnection (sfConn subflow) filtered == False
     then do
         -- infoM "main" $ "filtered out connection:" ++ show subflow
         return ()
     else (do
-            -- putStrLn $ "accepted connection :" ++ show subflow
-            -- should we add the subflow yet ? it doesn't have the correct interface idx
-            mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (srcIp subflow)
-            let fixedSubflow = subflow { subflowInterface = mappedInterface }
-            -- let newMptcpConn = (MptcpConnection token [] Set.empty Set.empty)
-            let newMptcpConn = mptcpConnAddSubflow (
-                    MptcpConnection token Set.empty Set.empty Set.empty (cliOptimizer cliArgs)
-                    ) fixedSubflow
+        -- putStrLn $ "accepted connection :" ++ show subflow
+        -- should we add the subflow yet ? it doesn't have the correct interface idx
+        mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (conTcpClientIp $ sfConn subflow)
+        let fixedSubflow = subflow { sfInterface = mappedInterface }
+        let mptcpCon = MptcpConnection (StreamId 0) (MptcpEndpointConfiguration 0 token 0) (MptcpEndpointConfiguration 0 0 0) Set.empty
+        let newMptcpConn = mptcpConnAddSubflow (mptcpCon) fixedSubflow
 
-            newConn <- liftIO $ newMVar newMptcpConn
-            -- putStrLn $ "Connection established !!\n"
+        newConn <- liftIO $ newMVar newMptcpConn
+        -- putStrLn $ "Connection established !!\n"
 
-            -- create a new
-            sockMetrics <- liftIO $ makeMetricsSocket
-            -- start monitoring connection
-            -- let threadId = undefined
-            threadId <- liftIO $ forkOS (
-            --   -- runLogAction @IO (contramap message logTextStdout) $ interpretDataLogColog @Message $ progData
-              runM $ P.traceToStdout $ interpretLogStdout$
-                startMonitorConnection cliArgs 0 mptcpSock sockMetrics newConn
-              )
+        -- create a new
+        sockMetrics <- liftIO $ makeMetricsSocket
+        -- start monitoring connection
+        -- let threadId = undefined
+        threadId <- liftIO $ forkOS (
+        --   -- runLogAction @IO (contramap message logTextStdout) $ interpretDataLogColog @Message $ progData
+          runM $ P.traceToStdout $ interpretLogStdout$
+            startMonitorConnection cliArgs 0 mptcpSock sockMetrics newConn
+          )
 
-            -- putStrLn $ "Inserting new MVar "
-            put (oldState {
-                connections = Map.insert token (threadId, newConn) (connections oldState)
-            })
-            ))
+        -- putStrLn $ "Inserting new MVar "
+        put (oldState {
+            connections = Map.insert token (threadId, newConn) (connections oldState)
+        })
+        ))
+
+-- TODO maybe the path manager should be part of the MptcpConnection
+dispatchPacketForKnownConnection :: MptcpSocket
+                                    -> MptcpConnection
+                                    -> C.MptcpGenlEvent
+                                    -> Attributes
+                                    -> ExistingInterfaces
+                                    -> (Maybe MptcpConnection, [MptcpPacket])
+dispatchPacketForKnownConnection mptcpSock con event attributes existingInterfaces = let
+        token =  con ^. mpconClientConfig ^. mecToken
+        subflow = CMD.subflowFromAttributes attributes
+    in
+    case event of
+
+      -- let the Path manager kick in
+      C.MPTCP_EVENT_ESTABLISHED -> let
+          -- onMasterEstablishement mptcpSock
+          -- Needs IO because of NetworkInterface
+          newPkts = (onMasterEstablishement pathManager) mptcpSock con existingInterfaces
+        in
+          (Just con, newPkts)
+
+      -- TODO trigger the pathManager again, fix the remote interpretation
+      C.MPTCP_EVENT_ANNOUNCED -> let
+          -- what if it's local
+            newConn = con
+          in
+            (Just newConn, [])
+
+      C.MPTCP_EVENT_CLOSED -> (Nothing, [])
+
+      C.MPTCP_EVENT_SUB_ESTABLISHED -> let
+                newCon = mptcpConnAddSubflow con subflow
+            in
+                (Just newCon,[])
+        -- let newState = oldState
+        -- putMVar con newCon
+        -- let newState = oldState { connections = Map.insert token newCon (connections oldState) }
+        -- TODO we should insert the
+        -- newConn <-
+        -- return newState
+
+      -- TODO remove
+      C.MPTCP_EVENT_SUB_CLOSED -> let
+              newCon = mptcpConnRemoveSubflow con subflow
+            in
+              (Just newCon, [])
+
+      -- MPTCP_CMD_EXIST -> con
+      _ -> error $ "should not happen " ++ show event
+
+-- allowedInterfaces :: ExistingInterfaces
+-- allowedInterfaces = 
+
+filterInterfaces :: ExistingInterfaces -> ExistingInterfaces
+filterInterfaces existingInterfaces = flip Map.filter existingInterfaces (\x -> interfaceName x `elem` interfacesToIgnore)
 
 -- |Treat MPTCP events depending on if the connection is known or not
 dispatchPacket :: MyState -> MptcpPacket -> IO MyState
@@ -563,15 +576,17 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
 
         -- i suppose token is always available right ?
         token :: MptcpToken
-        token = case Map.lookup (fromEnum MPTCP_ATTR_TOKEN) attributes of
+        token = case Map.lookup (fromEnum C.MPTCP_ATTR_TOKEN) attributes of
           Nothing   -> error "Could not retreive token "
           Just bstr -> fromRight (error "could not retreive token") (readToken bstr)
         maybeMatch = Map.lookup token (connections oldState)
     in do
         putStrLn "Fetching available paths"
-        availablePaths <- readMVar globalInterfaces
+        existingInterfaces <- readMVar globalInterfaces
+        -- TODO filter the map based on values
 
         putStrLn $ "dispatch cmd " ++ show cmd ++ " for token " ++ show token
+        let allowedInterfaces = filterInterfaces existingInterfaces
 
         case maybeMatch of
             -- Unknown token
@@ -580,23 +595,24 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
                 putStrLn $ "Unknown token/connection " ++ show token
                 case cmd of
 
-                  MPTCP_EVENT_ESTABLISHED -> do
-                      -- putStrLn "Ignoring Creating EVENT"
+                  C.MPTCP_EVENT_ESTABLISHED -> do
+                      putStrLn "Ignoring EVENT established"
                                   -- let newMptcpConn = (MptcpConnection token [] Set.empty Set.empty)
                       return oldState
 
-                  MPTCP_EVENT_CREATED -> let
-                      subflow = subflowFromAttributes attributes
-                    in
+                  C.MPTCP_EVENT_CREATED -> let
+                      subflow = CMD.subflowFromAttributes attributes
+                    in do
+                      putStrLn "New EVENT_CREATED"
                       execStateT (registerMptcpConnection token subflow) oldState
-                  _ -> return oldState
+                  _ -> putStrLn "Ignoring event" >> return oldState
 
             Just (threadId, mvarConn) -> do
                 putStrLn "MATT: Received request for a known connection "
                 mptcpConn <- takeMVar mvarConn
 
                 putStrLn "Forwarding to dispatchPacketForKnownConnection "
-                case dispatchPacketForKnownConnection mptcpSock mptcpConn cmd attributes availablePaths of
+                case dispatchPacketForKnownConnection mptcpSock mptcpConn cmd attributes allowedInterfaces of
                   (Nothing, _) -> do
                         putStrLn $ "Killing thread " ++ show threadId
                         killThread threadId
@@ -608,7 +624,7 @@ dispatchPacket oldState (Packet hdr (GenlData genlHeader NoData) attributes) = l
                         -- TODO update state
 
                         putStrLn "List of requests made on new master:"
-                        mapM_ (\pkt -> sendPacket mptcpSockRaw pkt) pkts
+                        mapM_ (sendPacket mptcpSockRaw) pkts
                         let newState = oldState {
                             connections = Map.insert token (threadId, mvarConn) (connections oldState)
                         }
@@ -659,7 +675,10 @@ dispatchPacket s (ErrorMsg hdr errCode errPacket) = do
   if errCode == 0 then
     putStrLn $ "Received acknowledgement for " ++ show hdr
   else
-    putStrLn $ "Error msg of type " ++ showErrCode errCode ++ " Packet content:\n" ++ show errPacket
+    putStrLn $ unlines [
+      "Error msg of type " ++ showErrCode errCode
+      , "Packet content:\n" ++ show errPacket
+      ]
 
   return s
 
@@ -675,6 +694,7 @@ showErrCode :: CInt -> String
 showErrCode err
   | Errno err == ePERM = "EPERM"
   | Errno err == eOK = "EOK"
+  | Errno err == eOPNOTSUPP = "Operation not supported"
   | otherwise = show err
 
 -- showErrCode err = case err of
@@ -705,18 +725,17 @@ doDumpLoop myState = do
 
 
 -- TODO use polysemy State / log / trace
-
 listenToEvents :: Members '[
   Log, P.Trace, P.State MyState, P.Embed IO
   ] r
-  => CtrlAttrMcastGroup
+  => Word32
   -> Sem r ()
-listenToEvents my_group = do
+listenToEvents eventGrpId = do
   myState <- P.get
-  let     (MptcpSocket sock fid) = socket myState
+  let (MptcpSocket sock fid) = socket myState
 
-  embed $ joinMulticastGroup sock (grpId my_group)
-  trace $ "Joined grp " ++ grpName my_group
+  embed $ joinMulticastGroup sock eventGrpId
+  trace $ "Joined grp " ++ show eventGrpId
   _ <- P.embed $ doDumpLoop myState
   trace "end of listenToEvents"
 
@@ -781,7 +800,7 @@ data SockDiagMetrics = SockDiagMetrics {
 instance ToJSON SockDiagExtension where
   toJSON (tcpInfo@DiagTcpInfo {} )  = let
       -- rtt = tcpi_rtt tcpInfo
-      tcpState = toEnum $ fromIntegral ( tcpi_state tcpInfo) :: TcpState
+      tcpState = toEnum $ fromIntegral ( tcpi_state tcpInfo) :: TcpStateLinux
       -- TODO could log ca_state ?
 
     in
@@ -833,12 +852,13 @@ instance ToJSON SockDiagMetrics where
   toJSON (SockDiagMetrics msg metrics) = let
 
       sf = connectionFromDiag msg
-      tcpState = toEnum $ fromIntegral ( idiag_state msg) :: TcpState
+      con = sfConn sf
+      tcpState = toEnum $ fromIntegral ( idiag_state msg) :: TcpStateLinux
       initialValue = object [
-          "srcIp" .= toJSON (srcIp sf)
-          , "dstIp" .= toJSON (dstIp sf)
-          , "srcPort" .= toJSON (srcPort sf)
-          , "dstPort" .= toJSON (dstPort sf)
+            "srcIp" .= toJSON (conTcpClientIp con)
+          , "dstIp" .= toJSON (conTcpServerIp con)
+          , "srcPort" .= toJSON (conTcpClientPort con)
+          , "dstPort" .= toJSON (conTcpServerPort con)
           -- doesnt work as subflow id
           -- , "subflow_id" .= idiag_uid msg
           ]
@@ -851,11 +871,11 @@ instance ToJSON SockDiagMetrics where
 
 -- |Updates the list of interfaces
 -- should run in background
-trackSystemInterfaces :: IO ()
-trackSystemInterfaces = do
+trackSystemInterfaces :: [String] -> IO ()
+trackSystemInterfaces interfacesToIgnore' = do
   -- check routing information
   routingSock <- NLS.makeNLHandle (const $ pure ()) =<< NL.makeSocket
-  let cb = NLS.NLCallback (pure ()) (handleAddr defaultPathManagerConfig . runGet getGenPacket)
+  let cb = NLS.NLCallback (pure ()) (handleAddr interfacesToIgnore' . runGet getGenPacket)
   NLS.nlPostMessage routingSock queryAddrs cb
   NLS.nlWaitCurrent routingSock
   dumpSystemInterfaces
@@ -888,31 +908,36 @@ program options = do
 
   Log.info "Now Tracking system interfaces..."
   embed $ putMVar globalInterfaces Map.empty
-  routeNl <- embed $ forkIO trackSystemInterfaces
+  routeNl <- embed $ forkIO (trackSystemInterfaces [])
 
   Log.debug "socket created. MPTCP Family id "
 
   mptcpSocket <- embed makeMptcpSocket
   let (MptcpSocket sock fid) = mptcpSocket
+
   mcastMptcpGroups <- embed $ getMulticastGroups sock fid
   -- TODO Log.debug
-  embed $ mapM_ Prelude.print mcastMptcpGroups
+  embed $ pPrint mcastMptcpGroups
+  let mcEventGroupId = fromMaybe (error "Could not find the mptcp event multicast group") (getMulticast C.mptcpGenlEvGrpName mcastMptcpGroups)
 
 
   -- use fmap instead
-  filteredConns <- case Main.cliFilter options of
-      Nothing -> return Nothing
-      Just filename -> do
-          Log.info ("Loading connections whitelist from " <> tshow filename <> "...")
-          filteredConnectionsStr <- embed $ BL.readFile filename
-          case Data.Aeson.eitherDecode filteredConnectionsStr of
-            Left errMsg -> error ("Failed loading " ++ filename ++ ":\n" ++ errMsg)
-            Right list  -> return list
+  -- filteredConns <- case Main.cliFilter options of
+  --     Nothing -> return Nothing
+  --     Just filename -> do
+  --         Log.info ("Loading connections whitelist from " <> tshow filename <> "...")
+  --         filteredConnectionsStr <- embed $ BL.readFile filename
+  --         case Data.Aeson.eitherDecode filteredConnectionsStr of
+  --           Left errMsg -> error ("Failed loading " ++ filename ++ ":\n" ++ errMsg)
+  --           Right list  -> return list
+  -- Log.info ("Loading connections whitelisted connections..." <> (tshow filteredConns))
 
-  Log.info ("Loading connections whitelisted connections..." <> (tshow filteredConns))
+  let filteredConns = Nothing
+
 
   -- TODO update the state
   let globalState = MyState mptcpSocket Map.empty options filteredConns
 
-  mapM_ (\x -> P.evalState globalState (listenToEvents x)) mcastMptcpGroups
+  P.evalState globalState (listenToEvents mcEventGroupId)
+  -- return ()
   -- putStrLn $ " Groups: " ++ unwords ( map grpName mcastMptcpGroups )

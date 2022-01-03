@@ -5,6 +5,7 @@ License     : GPL-3
 
 Pot-pourri
 -}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -25,7 +26,6 @@ Pot-pourri
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE PackageImports #-}
 module MptcpAnalyzer.Pcap (
@@ -42,8 +42,12 @@ module MptcpAnalyzer.Pcap (
     , loadRows
     , getTcpStreams
     , getMptcpStreams
+    , buildSubflowFromRecord
     , buildSubflowFromTcpStreamId
+    , buildTcpConnectionFromRecord
+    , buildTcpConnectionTupleFromRecord
 
+    , genMptcpEndpointConfigFromRow 
     -- TODO remove ? use instance instead
     , showMptcpSubflowText
     , StreamConnection(..)
@@ -61,10 +65,13 @@ import MptcpAnalyzer.Types
 import MptcpAnalyzer.Utils.Text
 import Net.Mptcp.Connection
 import Net.Tcp
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import Net.Stream
+import Net.Tcp.Constants (TcpFlag(..))
 import Tshark.Fields
 import Tshark.TH
 
+-- hackage
+import Control.Lens ((^.))
 import Data.Kind (Type)
 import Data.Monoid (First(..))
 import qualified Data.Text as T
@@ -108,7 +115,7 @@ import qualified Data.Set as Set
 -- import Lens.Micro.Extras
 import Control.Lens
 import qualified Data.Foldable as F
-import Data.Maybe (catMaybes, fromJust)
+import Data.Maybe (catMaybes, fromJust, isNothing)
 import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
 import Data.Vinyl.Class.Method
 import Data.Vinyl.Functor (Compose(..), (:.))
@@ -120,15 +127,15 @@ import Numeric (readHex)
 import Pipes (Producer, cat, (>->))
 import qualified Pipes.Prelude as P
 -- import qualified Frames.InCore
+import Control.Exception (assert)
 import Data.Either (lefts, rights)
 import qualified Data.Map as Map
 import Debug.Trace
 import qualified Frames.InCore as I
+import GHC.IO.Handle (hClose)
 import System.Environment (getEnvironment)
 import System.IO.Temp
 import Tshark.Main
-import GHC.IO.Handle (hClose)
-import Control.Exception (assert)
 
 -- tableTypes is a Template Haskell function, which means that it is executed at compile time. It generates a data type for our CSV, so we have everything under control with our types.
 
@@ -255,17 +262,29 @@ getTcpFrame :: FrameRec HostCols -> StreamId Tcp -> Either String (FrameFiltered
 getTcpFrame = buildTcpConnectionFromStreamId
 
 -- | For now assume the packet is the first syn from client to server
+-- TODO this is wrong, assumes source ip is client, convert to return a TcpConnectionOriented
 buildTcpConnectionFromRecord :: (
-  IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
-    -- rs ⊆ HostCols
+  IpFields rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
   ) => Record rs -> TcpConnection
 buildTcpConnectionFromRecord r =
   TcpConnection {
-    conTcpClientIp = r ^. ipSource
+      conTcpClientIp = r ^. ipSource
     , conTcpServerIp = r ^. ipDest
     , conTcpClientPort = r ^. tcpSrcPort
     , conTcpServerPort = r ^. tcpDestPort
     , conTcpStreamId = r ^. tcpStream
+  }
+
+buildTcpConnectionTupleFromRecord :: (
+  IpFields rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
+  ) => Record rs -> TcpConnectionOriented
+buildTcpConnectionTupleFromRecord r =
+  TcpConnectionOriented {
+      conTcpSourceIp = r ^. ipSource
+    , conTcpDestinationIp = r ^. ipDest
+    , conTcpSourcePort = r ^. tcpSrcPort
+    , conTcpDestinationPort = r ^. tcpDestPort
+    -- , conTcpStreamId = r ^. tcpStream
   }
 
 {- Builds a Tcp connection from a non filtered frame
@@ -283,9 +302,31 @@ buildTcpConnectionFromStreamId frame streamId =
       streamPackets = filterFrame  (\x -> x ^. tcpStream == streamId) frame
       synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
 
+
+-- |
+-- buildMasterSubflowFromRecord ::
+
+
 -- | Builds
 -- should expect a filteredFrame with MPTCP
 -- buildSubflowFromTcpStreamId :: FrameFiltered TcpConnection Packet -> StreamId Tcp -> Either String (FrameFiltered MptcpSubflow Packet)
+buildSubflowFromRecord :: Packet -> MptcpSubflow
+buildSubflowFromRecord row =
+  MptcpSubflow {
+          sfConn = sfCon
+        -- TODO ignore if it's master token
+        , sfJoinToken = row ^. mptcpRecvToken
+        , sfPriority = Nothing
+        -- TODO
+        , sfLocalId = 0
+        , sfRemoteId = 0
+        -- todo load it from row
+        , sfInterface = Nothing
+      }
+  where
+      sfCon = buildTcpConnectionFromRecord row
+
+
 buildSubflowFromTcpStreamId ::
   (
   rs ⊆ HostCols
@@ -315,7 +356,7 @@ buildSubflowFromTcpStreamId frame streamId =
         , sfPriority = Nothing
         , sfLocalId = 0
         , sfRemoteId = 0
-        , sfInterface = "unknown"
+        , sfInterface = Nothing
       }
 
 -- | Sets mptcp role column
@@ -336,8 +377,8 @@ addMptcpDest frame con =
     -- foldl' (\tframe sf -> addDestToFrame tframe sf) startingFrame subflows
     mconcat subflowFrames
     where
-      -- filteredFrame = filterFrame  (\x -> x ^. mptcpStream == Just (mptcpStreamId con)) frame
-      -- filteredFrame = filterFrame  (\x -> (rgetField @MptcpStream x) == Just (mptcpStreamId con)) frame
+      -- filteredFrame = filterFrame  (\x -> x ^. mptcpStream == Just (mpconStreamId con)) frame
+      -- filteredFrame = filterFrame  (\x -> (rgetField @MptcpStream x) == Just (mpconStreamId con)) frame
 
       subflowFrames = map addDestsToSubflowFrames subflows
 
@@ -350,8 +391,8 @@ addMptcpDest frame con =
       startingFrame = fmap setTempDests frame
       setTempDests :: Record rs -> Record ( MptcpDest ': TcpDest ': rs)
       setTempDests x = Col RoleClient :& Col RoleClient :& x
-      addMptcpDestToRec x role = (Col $ role) :& x
-      subflows = Set.toList $ mpconSubflows con
+      addMptcpDestToRec x role = Col role :& x
+      subflows = Set.toList $ _mpconSubflows con
 
 addMptcpDestToFrame :: MptcpConnection -> FrameFiltered MptcpSubflow Packet -> FrameRec '[MptcpDest]
 addMptcpDestToFrame mpcon (FrameTcp sf frame) = fmap (addMptcpDest' (getMptcpDest mpcon sf)) frame
@@ -363,7 +404,7 @@ getMptcpDest :: MptcpConnection -> MptcpSubflow -> ConnectionRole
 getMptcpDest mptcpCon sf = case sfJoinToken sf of
   -- master subflow, dest is by definition the server
   Nothing -> RoleServer
-  Just token -> if token == mptcpServerToken mptcpCon then
+  Just token -> if token == (_mecToken . _mpconServerConfig) mptcpCon then
     RoleServer
   else
     RoleClient
@@ -457,9 +498,23 @@ addTcpDestToRec :: (TcpStream ∈ rs, IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort
 addTcpDestToRec x role = (Col role) :& x
 
 
+-- TODO take into account the different mptcp versions ?
+genMptcpEndpointConfigFromRow :: Packet -> Maybe MptcpEndpointConfiguration
+genMptcpEndpointConfigFromRow synAckPacket =
+  case (synAckPacket ^. mptcpSendKey, synAckPacket ^. mptcpExpectedToken, synAckPacket ^. mptcpVersion) of 
+    (Just key, Just token, Just version) -> Just $ MptcpEndpointConfiguration key token version
+    _ -> Nothing
+    -- error $ "Could not find key/token/version " ++ show synAckPacket
 
-buildMptcpConnectionFromStreamId ::
-    FrameRec HostCols
+-- retreiveMptcpServerTokenFromRow :: Packet -> Maybe (Word64, Word32)
+-- retreiveMptcpServerTokenFromRow synAckPacket = 
+--   case (synAckPacket ^. mptcpSendKey, synAckPacket ^. mptcpExpectedToken) of 
+--     (Just key, Just token) -> Just (key, token)
+--     _ -> error "Could not generate"
+
+-- TODO
+
+buildMptcpConnectionFromStreamId :: FrameRec HostCols
     -> StreamId Mptcp -> Either String (FrameFiltered MptcpConnection Packet)
 buildMptcpConnectionFromStreamId frame streamId = do
     -- Right $ frameLength synPackets
@@ -470,36 +525,40 @@ buildMptcpConnectionFromStreamId frame streamId = do
       -- ++ show streamPackets
     else if lefts subflows /= [] then
       Left $ concat (lefts subflows)
+    else if mbServerConfig == Nothing then
+      Left $ "Could not find MPTCP server config in " ++ show synAckPacket
     else
-      -- TODO now add a check on abstime
-      -- if ds.loc[server_id, "abstime"] < ds.loc[client_id, "abstime"]:
-      --     log.error("Clocks are not synchronized correctly")
-      -- update temporary fframe with the computed subflows
-      Right tempFframe
-      -- {
-      --     ffCon = (ffCon tempFframe) {
-      --         mpconSubflows = Set.fromList $ map ffCon (rights subflows)
-      --     }
-      -- }
-      --  $ frameRow synPackets 0
+
+      case buildTcpConnectionFromStreamId streamPackets (synPacket ^. tcpStream) of
+        Left err -> Left err
+        Right aframe -> let
+            clientFrame = filterFrame (\x -> ((not . isNothing) (x ^. mptcpSendKey))) (ffFrame aframe)
+            mbClientConfig = genMptcpEndpointConfigFromRow (frameRow clientFrame 0)
+          in
+            if frameLength clientFrame == 0 then
+              Left $ "Could not find mptcp client key"
+            else
+              -- TODO now add a check on abstime
+              -- if ds.loc[server_id, "abstime"] < ds.loc[client_id, "abstime"]:
+              --     log.error("Clocks are not synchronized correctly")
+              -- update temporary fframe with the computed subflows
+              Right $ FrameTcp {
+                    ffCon = tempMptcpConn mbClientConfig
+                  , ffFrame = streamPackets
+                }
     where
       streamPackets :: FrameRec HostCols
       streamPackets = filterFrame  (\x -> x ^. mptcpStream == Just streamId) frame
       --
-      tempFframe = FrameTcp {
-          ffCon = tempMptcpConn
-        , ffFrame = streamPackets
-      }
       -- |Just for the time
-      tempMptcpConn = MptcpConnection {
-          mptcpStreamId = streamId
-          , mptcpServerKey = fromJust $ synAckPacket ^. mptcpSendKey
-          , mptcpClientKey = fromJust $ synPacket ^. mptcpSendKey
-          , mptcpServerToken = fromJust $ synAckPacket ^. mptcpExpectedToken
-          , mptcpClientToken = fromJust $ synPacket ^. mptcpExpectedToken
-          , mptcpNegotiatedVersion = fromIntegral $ fromJust clientMptcpVersion :: Word8
+      tempMptcpConn clientConfig = MptcpConnection {
+            mpconStreamId = streamId
+          -- kinda risky, assumes we have the server key always
+          , _mpconServerConfig = fromJust mbServerConfig
+          , _mpconClientConfig = fromJust clientConfig
+          -- , mptcpNegotiatedVersion = fromIntegral $ fromJust clientMptcpVersion :: Word8
 
-          , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
+          , _mpconSubflows = Set.fromList $ map ffCon (rights subflows)
         }
       -- suppose tcpflags is a list of flags, check if it is in the list
       -- of type FrameRec [(Symbol, *)]
@@ -507,11 +566,18 @@ buildMptcpConnectionFromStreamId frame streamId = do
       synPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags)) streamPackets
       synAckPackets = filterFrame (\x -> TcpFlagSyn `elem` (x ^. tcpFlags) && TcpFlagAck `elem` (x ^. tcpFlags)) streamPackets
 
+
       synPacket = frameRow synPackets 0
       synAckPacket = frameRow synAckPackets 0
+      mbServerConfig = genMptcpEndpointConfigFromRow synAckPacket
+      -- clientConfig :: Maybe MptcpEndpointConfiguration
+      -- clientConfig = case mbServerConfig of
+      --   Nothing -> Nothing
+      --   Just serverConfig ->
+      --     if mecVersion == 0 then genMptcpEndpointConfigFromRow synPacket
+      --     else genMptcpEndpointConfigFromRow
 
       masterTcpstreamId = synPacket ^. tcpStream
-
       clientMptcpVersion = synPacket ^. mptcpVersion
 
       --
@@ -562,7 +628,8 @@ instance StreamConnection TcpConnection Tcp where
 -- | Computes a score
 scoreMptcpCon :: MptcpConnection -> MptcpConnection -> Int
 scoreMptcpCon con1 con2 =
-  let keyScore = if mptcpServerKey con1 == mptcpServerKey con2 && mptcpClientKey con1 == mptcpClientKey con2
+  let keyScore = if con1 ^. mpconServerConfig ^. mecKey == con2 ^. mpconServerConfig ^. mecKey
+                    && con1 ^. mpconClientConfig ^. mecKey == con2 ^. mpconClientConfig ^. mecKey
       then 200
       else 0
   in

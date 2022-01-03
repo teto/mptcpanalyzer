@@ -164,8 +164,11 @@ import Tshark.Main
        , generateCsvCommand
        , tsharkReadFilter
        )
+import Tshark.Sharkd
 
 
+-- hackage
+import Control.Lens ((^.))
 import qualified Data.Text as T
 import Options.Applicative
 import Options.Applicative.Common
@@ -213,8 +216,6 @@ import System.Console.ANSI
 import System.Console.Haskeline
 import System.Exit
 import System.Process hiding (runCommand)
--- withOpenFile
--- withOpenFile
 import Data.List (isPrefixOf)
 import Debug.Trace (traceShowId)
 import GHC.Conc (forkIO)
@@ -223,6 +224,7 @@ import Options.Applicative.Builder (allPositional)
 import Options.Applicative.Types
 import System.IO (stderr, stdout)
 import Tshark.Fields (TsharkFieldDesc(tfieldFullname), baseFields)
+import MptcpAnalyzer.Plots.Live
 
 data CLIArguments = CLIArguments {
   _input :: Maybe FilePath
@@ -404,6 +406,7 @@ mainParser = subparser (
     <> command "tcp-summary" CLI.piTcpSummaryOpts
     <> command "mptcp-summary" CLI.piMptcpSummaryOpts
     <> command "list-tcp" CLI.piListTcpOpts
+    <> command "list-tcp-from-file" piListFromFile
     <> command "map-tcp" CLI.mapTcpOpts
     <> command "map-mptcp" CLI.mapMptcpOpts
     <> commandGroup "MPTCP commands"
@@ -418,11 +421,24 @@ mainParser = subparser (
     -- Main.piParserGeneric
     <> command "plot-tcp" ( info Plots.parserPlotTcpMain (progDesc "Plot One-Way-Delays (also called One-Time-Trips)"))
     <> command "plot-mptcp" ( info Plots.parserPlotMptcpMain (progDesc "Multipath-tcp plots"))
-    <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "Live plots"))
+    <> command "plot-tcp-live" ( info Plots.parserPlotTcpLive (progDesc "TCP Live plots"))
+    <> command "plot-mptcp-live" ( info Plots.parserPlotMptcpLive (progDesc "MPTCP Live plots"))
     )
     where
       helpParser = info (pure ArgsHelp) (progDesc "Display help")
       quit = info (pure ArgsQuit) (progDesc "Quit mptcpanalyzer")
+      piListFromFile = info (
+            ArgsTcpSummaryFromFile <$>
+            argument filenameReader (metavar "PCAP"
+              <> completer completePath
+              <> help "Load a Pcap file"
+            ))
+          ( fullDesc
+            <> progDesc "Load a pcap file via wireshark"
+            <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
+            <> allPositional
+            )
+
 
 
 -- |Main parser
@@ -455,6 +471,7 @@ cmdListInterfaces = do
 
 runCommand :: (Members '[Log, Cache, P.Trace, P.State MyState, P.Embed IO] r)
   => CommandArgs -> Sem r CMD.RetCode
+
 runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
   -- ret <- CL.loadPcap fileToLoad
   -- TODO modify only on success
@@ -463,7 +480,8 @@ runCommand (ArgsLoadPcap fileToLoad) = loadPcap fileToLoad
   --     })
   -- return ret
 runCommand (ArgsLoadCsv csvFile _) = CL.cmdLoadCsv csvFile
-runCommand (ArgsParserSummary detailed streamId) = CLI.cmdTcpSummary streamId detailed
+runCommand (ArgsTcpSummary detailed streamId) = CLI.cmdTcpSummary streamId detailed
+runCommand (ArgsTcpSummaryFromFile filepath ) = CLI.cmdTcpSummarySharkd filepath (StreamId 0) False
 runCommand (ArgsMptcpSummary detailed streamId) = CLI.cmdMptcpSummary streamId detailed
 runCommand (ArgsListSubflows detailed) = CLI.cmdListSubflows detailed
 runCommand (ArgsListReinjections streamId)  = CLI.cmdListReinjections streamId
@@ -583,49 +601,13 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           (_, Left err) -> return $ CMD.Error err
 
       -- Starts livestatistics on a connection
-      (ArgsPlotLiveTcp connectionFilter mbFake mbConnectionRole ifname) -> do
-        -- (exitCode, ifs) <- P.embed listInterfaces
-        -- Here we would start a process and keep updating some metrics until we get a cancel signal ?
-        -- case exitCode of
-        --   ExitSuccess -> return $ CMD.Error "failed listing interfaces"
-        --   _  -> return $ CMD.Error "failed listing interfaces"
+      ArgsPlotLiveTcp livePlotSettings  -> 
+        -- (ArgsPlotLiveTcp connectionFilter mbFake mbConnectionRole ifname)
+        configureLivePlotTcp livePlotSettings >> return CMD.Continue
 
-        let
-          fields = Map.elems $ Map.map tfieldFullname baseFields
-
-          -- stats/packetCount/Frame
-          -- keeping it light for now
-          destination = fromMaybe RoleServer mbConnectionRole
-          initialLiveStats :: LiveStatsTcp = LiveStats mempty mempty 0 connectionFilter destination mempty False
-          -- initialLiveStats :: LiveStatsTcp = LiveStats mempty 0 mempty
-          toLoad = case mbFake of
-            Just filename -> Right filename
-            Nothing -> Left ifname
-
-          --capture-comment
-          tsharkPrefs = defaultTsharkPrefs {
-            tsharkReadFilter = Just $ genReadFilterFromTcpConnection connectionFilter (Just destination)
-            }
-          (RawCommand bin genArgs) = generateCsvCommand fields toLoad tsharkPrefs
-          -- args = genArgs ++ ["--capture-comment='Generated by mptcpanalyzer'"]
-          args = genArgs ++ [ "-l"]
-          createProc :: CreateProcess
-          createProc = (proc bin args) {
-                std_err = CreatePipe
-                -- Inherit,
-                , std_out = CreatePipe
-                -- lets the child handle Ctrl-c
-                , delegate_ctlc = True
-              }
-
-        Log.info $ "Looking at destination " <> tshow destination
-
-        trace $ "Command run: " ++ show (RawCommand bin args)
-        trace $ "Command run: " ++ showCommandForUser bin args
-        -- Log.info $ "Starting " <> tshow bin <> tshow args
-        _ <- P.embed $ startLivePlot initialLiveStats createProc
-
-        return CMD.Continue
+      ArgsPlotLiveMptcp livePlotSettings -> do
+        Log.info $ "Looking at destination "
+        configureLivePlotMptcp livePlotSettings >> return CMD.Continue
 
     P.embed $ forM_ mbOut (renameFile tempPath)
     -- _ <- P.embed $ case mbOut of
@@ -653,39 +635,6 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
       getDests mbDest = maybe [RoleClient, RoleServer] (: []) mbDest
 
 
-startLivePlot :: LiveStatsTcp -> CreateProcess -> IO ()
--- startLivePlot createProc = do
---   -- hSetBuffering tmpFileHandle LineBuffering
---   -- hSeek tmpFileHandle AbsoluteSeek 0 >> T.hPutStrLn tmpFileHandle fieldHeader
---   -- mb_stdin_hdl, mb_stdout_hdl, mb_stderr_hdl, ph
---   (_, Just hout, Just herr, ph) <-  createProcess_ "error" createProc
---   -- threadId <- forkIO $
---   readTsharkOutputAndPlotIt hout herr
---   exitCode <- waitForProcess ph
-startLivePlot initialLiveStats createProc = do
-  (_, Just hout, Just herr, ph) <-  createProcess_ "error when creating process" createProc
-  hSetBuffering stdout NoBuffering
-  -- non blocking
-  exitCode <- getProcessExitCode ph
-  case exitCode of
-    Just code -> putStrLn "Finished"
-    _ -> do
-      -- hSetBuffering hout LineBuffering
-      -- hSetBuffering herr NoBuffering
-      putStrLn $ "Live stats (before): " ++ show (lsPackets initialLiveStats)
-      liveStats <- execStateT (runEffect (tsharkLoop hout)) initialLiveStats
-      putStrLn $ "Live stats (after): " ++ (T.unpack . showLiveStatsTcp) liveStats
-      putStrLn $ "Live stats (after): " ++ show (lsPackets liveStats)
-      -- blocking
-      exitCode2 <- waitForProcess ph
-      case exitCode2 of
-        ExitSuccess -> putStrLn "Success"
-        _  -> do
-          putStrLn "hGetContents"
-          hGetContents herr >>= putStrLn
-  putStrLn $ "final exitCode"
-
-  -- pure ()
 
 -- TODO use genericRunCommand
 runIteration :: (Members '[Log, Cache, P.Trace, P.State MyState, P.Embed IO] r)

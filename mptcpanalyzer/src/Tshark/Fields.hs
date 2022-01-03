@@ -15,6 +15,7 @@ using "Frames" to load the resulting data into a frame.
 {-# LANGUAGE PackageImports #-}
 module Tshark.Fields
 where
+import Net.Stream
 import MptcpAnalyzer.Stream
 
 import Data.Text (Text)
@@ -24,7 +25,7 @@ import GHC.TypeLits (KnownSymbol)
 import Language.Haskell.TH (Name, Q)
 import Net.IP
 import Net.IPv6 (IPv6(..))
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
 
 import Data.Map (Map, fromList, mapKeys)
 -- Phantom types
@@ -44,6 +45,7 @@ type MbPacketIdList = Maybe [Word64]
 
 type MbMptcpStream = Maybe StreamIdMptcp
 type MbMptcpSendKey = Maybe Word64
+-- TODO convert to a Word8
 type MbMptcpVersion = Maybe Int
 type MbMptcpExpectedToken = Maybe Word32
 

@@ -1,19 +1,27 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Utils (
   loadAFrame
   -- , loadPcapIntoFrameNoCache
 )
 where
 
-import MptcpAnalyzer.Types
+import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Types
+import qualified MptcpAnalyzer.Utils.Text as T
 import Net.Tcp.Connection
 import Tshark.Main
-import MptcpAnalyzer.ArtificialFields
-import qualified MptcpAnalyzer.Utils.Text as T
 
+import Control.Monad.IO.Class (liftIO)
+import Data.Either (fromRight)
+import Distribution.Simple.Utils
+import Frames (ColumnHeaders, ElField, FrameRec)
+import qualified Frames.CSV
+import qualified Frames.InCore
+import MptcpAnalyzer.Cache (CacheConfig(..))
+import MptcpAnalyzer.Loader (loadPcapIntoFrame, loadPcapIntoFrameNoCache)
 import Polysemy (Final, Members, Sem, runFinal)
 import qualified Polysemy as P
 import qualified Polysemy.Embed as P
@@ -22,15 +30,7 @@ import qualified Polysemy.Internal as P
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
 import Polysemy.Log.Colog (interpretLogStdout)
-import MptcpAnalyzer.Loader (loadPcapIntoFrame, loadPcapIntoFrameNoCache)
-import qualified Frames.InCore
-import qualified Frames.CSV
-import Frames (ColumnHeaders, ElField, FrameRec)
-import MptcpAnalyzer.Cache (CacheConfig(..))
-import Control.Monad.IO.Class (liftIO)
-import Distribution.Simple.Utils
 import System.Exit
-import Data.Either (fromRight)
 cacheDisabledConfig :: CacheConfig
 cacheDisabledConfig = CacheConfig {
   cacheFolder = "/tmp"
@@ -53,14 +53,14 @@ cacheDisabledConfig = CacheConfig {
 --     Right aframe -> return aframe
 
 
-loadAFrame :: FilePath -> IO (FrameFiltered TcpConnection Packet)
+loadAFrame :: FilePath -> StreamId Tcp -> IO (FrameFiltered TcpConnection Packet)
 loadAFrame = loadAFrameWithOpts defaultTsharkPrefs
 
-loadAFrameWithOpts :: TsharkParams -> FilePath -> IO (FrameFiltered TcpConnection Packet)
-loadAFrameWithOpts tsharkParams path = do
+loadAFrameWithOpts :: TsharkParams -> FilePath -> StreamId Tcp -> IO (FrameFiltered TcpConnection Packet)
+loadAFrameWithOpts tsharkParams path streamId = do
   frame1 <- loadPcapIntoFrameNoCache tsharkParams path
 
-  (aframe :: FrameFiltered TcpConnection Packet) <- case buildFrameFromStreamId (fromRight (error "should not happen") frame1) (StreamId 0) of
+  (aframe :: FrameFiltered TcpConnection Packet) <- case buildFrameFromStreamId (fromRight (error "should not happen") frame1) streamId of
     Left err -> error err
     Right aframe -> return aframe
 

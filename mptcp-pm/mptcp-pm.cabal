@@ -1,13 +1,13 @@
 cabal-version: 3.0
 name: mptcp-pm
-version: 0.0.3
+version: 0.0.4
 license: GPL-3.0-only
 license-file: LICENSE
 build-type: Simple
 Maintainer:  teto
 Category:   Network, Mptcp
 Synopsis: A Multipath TCP path manager
-Homepage:   https://github.com/teto/netlink_pm
+Homepage:   https://github.com/teto/quantum2
 Description:
   Multipath TCP (www.multipath-tcp.org) starting from version 0.95 provides a
   netlink path manager module. This package implements the userspace component
@@ -34,6 +34,12 @@ Flag WithPolysemy {
   Default:     True
 }
 
+Flag CwndCapping {
+  Description: With an experimental kernel, it's possible to cap some congestion window
+  Default:     False
+}
+
+
 Flag Dev {
   Description: Relax constraints
   Default:     True
@@ -46,21 +52,35 @@ common shared-properties
       -Wall -fno-warn-unused-binds -fno-warn-unused-matches -haddock
     build-depends:
       -- TODO remove that boundary
-      netlink >= 1.1.1.0
+        netlink >= 1.1.1.0
       , formatting
       , readable
       , polysemy
+      -- winning combination
+      -- co-log-0.4.0.1
+    -- co-log-core-0.2.1.1
+    -- co-log-polysemy-0.0.1.3
+    -- integer-logarithms-1.0.3.1
+    -- polysemy-log-0.3.0.2
+    -- polysemy-log-co-0.3.0.2
+    -- co-log-polysemy-0.0.1.3
+    -- polysemy-1.7.1.0
+    -- polysemy-conc-0.5.0.0
+    -- polysemy-log-0.3.0.2
+    -- polysemy-log-co-0.3.0.2
+    -- polysemy-plugin-0.4.3.0
+    -- polysemy-time-0.1.4.0
+      --  >= 0.2.2.4
       , polysemy-log
       , polysemy-log-co
 
     default-extensions:
-        FlexibleContexts
+          FlexibleContexts
         , StrictData
         , DataKinds
         , FlexibleContexts
         , GADTs
         , LambdaCase
-        -- , OverloadedStrings
         , PolyKinds
         , RankNTypes
         , ScopedTypeVariables
@@ -81,9 +101,14 @@ library
     -- apparently this just helps getting a better error messages
     Includes:
         tcp_states.h
-      , linux/sock_diag.h
-      , linux/inet_diag.h
-      , linux/mptcp.h
+      -- , linux/sock_diag.h
+      -- , linux/inet_diag.h
+      -- , linux/mptcp.h
+      , linux/mptcp_v0.h
+      -- , linux/mptcp_v1.h
+      -- linux_latest.dev
+      -- pass it via --extra-include-dirs=/nix/store/0l32krcbak7jw4lkwysmsg52k3m0dlm9-linux-5.15.7-dev/lib/modules/5.15.7/source/include/uapi
+      -- , linux/mptcp.h
     -- TODO try to pass it from CLI instead , Net.TcpInfo
     include-dirs:
       headers
@@ -96,6 +121,8 @@ library
     build-depends:
         base >= 4.12
       , containers
+      , mptcp
+      , lens
       , readable
       , bytestring
       , process
@@ -119,24 +146,41 @@ library
       src/
     build-tool-depends:
       c2hs:c2hs
+    -- other-modules:
     Exposed-Modules:
         Net.SockDiag
-      , Net.Tcp
+      -- , Net.Tcp
       , Net.Bitset
       , Net.Tcp.Constants
-      , Net.Tcp.Definitions
-      , Net.Mptcp
+      -- , Net.Tcp.Definitions
+      -- , Net.Mptcp
+      , Net.Mptcp.Types
+      , Net.Mptcp.Utils
       , Net.Mptcp.Constants
+      , Net.Mptcp.Netlink
+      -- , Net.Mptcp.Constants_v0
+      -- , Net.Mptcp.V0.Constants
+      -- , Net.Mptcp.V0.Commands
+      , Net.Mptcp.V1.Constants
+      , Net.Mptcp.V1.Commands
+      -- , Net.Mptcp.PathManager.V0.NdiffPorts
+      , Net.Mptcp.PathManager.V1.NdiffPorts
+      -- Now implemented in Net.Mptcp.PathManager.V1.NdiffPorts, remerge later ?
+      -- , Net.Mptcp.PathManager.Default
       , Net.Mptcp.PathManager
-      , Net.Mptcp.PathManager.Default
       , Net.IPAddress
       , Net.SockDiag.Constants
+      , Netlink.Route
       -- TODO let it high level
+    if flag(CwndCapping)
+      ghc-options: -DEXPERIMENTAL_CWND=1
 
+    ghc-options:
+      -Werror=missing-home-modules
 
 -- monitor new mptcp connections
 -- and delegate the behavior to a monitor
-executable mptcp-manager
+executable mptcp-pm
     import: shared-properties
     default-language: Haskell2010
     build-depends:
@@ -146,11 +190,11 @@ executable mptcp-manager
       , base >= 4.12 && < 4.17
       , bytestring
       , containers
+      , lens
+      , mptcp
       , mptcp-pm
       , optparse-applicative
       , transformers
-      -- , fast-logger
-      -- , hslogger
       , ip
       , text
       , mtl
@@ -158,6 +202,7 @@ executable mptcp-manager
       , process
       , temporary
       , filepath
+      , pretty-simple
       -- to use Simple module. Try to do without
       , netlink >= 1.1.1.0
     default-extensions: DeriveGeneric
@@ -169,11 +214,13 @@ executable mptcp-manager
 Test-Suite test-tcp
   -- 2 types supported, exitcode is based on ... exit codes ....
   type:               exitcode-stdio-1.0
-  default-language: Haskell2010
+  default-language:   Haskell2010
   main-is:            Main.hs
   hs-source-dirs:     test
-  ghc-options: -threaded -rtsopts
-  build-depends:      base >=4.12
-                     , HUnit
-                     , mptcp-pm
-                     , ip, text
+  ghc-options:        -threaded -rtsopts
+  build-depends:
+      base >=4.12
+    , HUnit
+    , mptcp
+    , mptcp-pm
+    , ip, text

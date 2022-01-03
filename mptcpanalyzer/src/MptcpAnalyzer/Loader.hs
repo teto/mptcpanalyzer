@@ -20,8 +20,6 @@ import MptcpAnalyzer.Utils.Text
 import Tshark.Main
 
 import Control.Monad.Trans (liftIO)
-import Prelude hiding (log)
-import System.Exit (ExitCode(..))
 import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
 import Frames
 import Frames.CSV
@@ -30,12 +28,14 @@ import Net.Mptcp
 import Net.Tcp
 import Polysemy (Embed, Members, Sem)
 import Polysemy.State as P
+import Prelude hiding (log)
+import System.Exit (ExitCode(..))
 
 import qualified Data.Vinyl as V
 import qualified Data.Vinyl.Class.Method as V
+import GHC.IO.Handle (hClose)
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
-import GHC.IO.Handle (hClose)
 
 loadPcapIntoFrameNoCache :: (
     Frames.InCore.RecVec a

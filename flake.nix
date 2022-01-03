@@ -2,10 +2,10 @@
   description = "Multipath tcp pcap analyzer tool";
 
   nixConfig = {
-    substituters = [
+    extra-substituters = [
       "https://haskell-language-server.cachix.org"
     ];
-    trusted-public-keys = [
+    extra-trusted-public-keys = [
       "haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8="
     ];
   };
@@ -36,11 +36,13 @@
         ip = unmarkBroken (dontCheck hold.ip);
         bytebuild = unmarkBroken (dontCheck hold.bytebuild);
 
+        relude = hold.relude_1_0_0_1;
+
         # may not be needed anymore ?
         wide-word = unmarkBroken (dontCheck hold.wide-word);
-        polysemy = hnew.polysemy_1_6_0_0;
+        polysemy = hnew.polysemy_1_7_1_0;
         co-log-polysemy = doJailbreak (hold.co-log-polysemy);
-        polysemy-plugin = hnew.polysemy-plugin_0_4_1_0;
+        polysemy-plugin = hnew.polysemy-plugin_0_4_3_0;
 
         netlink = (overrideSrc hold.netlink {
           # src = builtins.fetchGit {
@@ -55,6 +57,7 @@
             sha256 = "sha256-qopa1ED4Bqk185b1AXZ32BG2s80SHDSkCODyoZfnft0=";
           };
         });
+        mptcp = self.packages."${system}".mptcp;
 
       };
 
@@ -70,33 +73,42 @@
       myModifier = drv:
         pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
           cabal-install
-            ghcid
-            replica.packages.${system}.build
-            hls.packages.${system}."haskell-language-server-${compilerVersion}"
-            # hls.packages.${system}."hie-bios-${compilerVersion}"
-            cairo # for chart-cairo
-            dhall  # for the repl
-            pkgs.dhall-json  # for dhall-to-json
-            glib
-            hasktags
-            stan
-            # pkg-config
-            zlib
-            pkgs.dhall-lsp-server
-            pkgs.stylish-haskell
-          #   threadscope
-          ]);
+          replica.packages.${system}.build
+          hls.packages.${system}."haskell-language-server-${compilerVersion}"
+          # hls.packages.${system}."hie-bios-${compilerVersion}"
+          cairo # for chart-cairo
+          dhall  # for the repl
+          pkgs.dhall-json  # for dhall-to-json
+          glib
+          hasktags
+          stan
+          # pkg-config
+          zlib
+          pkgs.dhall-lsp-server
+          pkgs.stylish-haskell
+
+          # we need the mptcp.h in mptcp-pm
+          pkgs.linuxHeaders
+          # alternatively we could do makeLinuxHeaders pkgs.linux_latest.dev
+
+        #   threadscope
+        ]);
+
+      mkPackage = name:
+          hsPkgs.developPackage {
+            root =  pkgs.lib.cleanSource (builtins.toPath ./. + "/${name}");
+            name = name;
+            returnShellEnv = false;
+            withHoogle = true;
+            overrides = haskellOverlay;
+            modifier = myModifier;
+          };
+
     in {
       packages = {
 
-        mptcp-pm = hsPkgs.developPackage {
-          root =  pkgs.lib.cleanSource ./mptcp-pm;
-          name = "mptcp-pm";
-          returnShellEnv = false;
-          withHoogle = true;
-          overrides = haskellOverlay;
-          modifier = myModifier;
-        };
+        mptcp = mkPackage "mptcp";
+        mptcp-pm = mkPackage "mptcp-pm";
 
         mptcpanalyzer = hsPkgs.developPackage {
           root = pkgs.lib.cleanSource ./mptcpanalyzer;
@@ -112,16 +124,20 @@
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
 
-      devShell = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
-       postShellHook = ''
-          cd mptcpanalyzer
-          set -x
-          result=$(cabal list-bin exe:mptcpanalyzer)
-          if [ $? -eq 0 ]; then
-            export PATH="$(dirname $result):$PATH"
-          fi
-          alias hls=haskell-language-server
-        '';
-      });
+      devShells = {
+        mptcp = self.packages.${system}.mptcp.envFunc {};
+        mptcp-pm = self.packages.${system}.mptcp-pm.envFunc {};
+
+        mptcpanalyzer = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
+          postShellHook = ''
+              cd mptcpanalyzer
+              set -x
+              result=$(cabal list-bin exe:mptcpanalyzer)
+              if [ $? -eq 0 ]; then
+                export PATH="$(dirname $result):$PATH"
+              fi
+            '';
+          });
+      };
     });
 }

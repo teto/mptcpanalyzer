@@ -10,9 +10,10 @@ License     : GPL-3
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 module MptcpAnalyzer.Commands.Load (
-  cmdLoadCsv
+    cmdLoadCsv
   , piLoadCsv
   , piLoadPcapOpts
+  , filenameReader
 )
 where
 import MptcpAnalyzer.Cache
@@ -51,9 +52,7 @@ filenameReader = eitherReader readFilename
 loadPcapArgs :: Parser CommandArgs
 loadPcapArgs =  ArgsLoadPcap <$>
   argument filenameReader (metavar "PCAP"
-    -- <> completeWith ["toto", "tata"]
     <> completer completePath
-    -- <> action "file"
     <> help "Load a Pcap file"
   )
 
@@ -61,8 +60,8 @@ cmdLoadCsvArgs :: Parser CommandArgs
 cmdLoadCsvArgs =  ArgsLoadCsv <$> (
     argument str (
       metavar "CSV"
-      <> completeWith ["toto", "tata"]
       -- <> action "file"
+      <> completer completePath
       <> help "Load a Csv file"
     ))
     <*> argument auto (metavar "bool"
@@ -78,12 +77,11 @@ piLoadCsv = info (cmdLoadCsvArgs <**> helper)
 
 piLoadPcapOpts :: ParserInfo CommandArgs
 -- <**> helper)
-piLoadPcapOpts = info (loadPcapArgs )
+piLoadPcapOpts = info loadPcapArgs
   ( fullDesc
   <> progDesc "Load a pcap file via wireshark"
   <> footer "Example: load-pcap examples/client_2_filtered.pcapng"
   <> allPositional
-
   )
 
 

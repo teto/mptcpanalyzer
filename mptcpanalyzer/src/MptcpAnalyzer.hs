@@ -15,8 +15,8 @@ module MptcpAnalyzer (
   module X
 )
 where
-import MptcpAnalyzer.Loader as X
-import MptcpAnalyzer.Types as X
 import MptcpAnalyzer.Cache as X
 import MptcpAnalyzer.Frame as X
+import MptcpAnalyzer.Loader as X
+import MptcpAnalyzer.Types as X
 import MptcpAnalyzer.Utils.Completion as X

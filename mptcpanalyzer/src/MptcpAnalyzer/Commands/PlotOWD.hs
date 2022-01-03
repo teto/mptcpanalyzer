@@ -40,8 +40,8 @@ import MptcpAnalyzer.Utils.Text
 -- for retypeColumn
 -- import MptcpAnalyzer.Frames.Utils
 -- for fields
-import "this" Net.Mptcp
-import "this" Net.Tcp
+import Net.Mptcp
+import Net.Tcp
 
 import Frames
 import qualified Frames as F

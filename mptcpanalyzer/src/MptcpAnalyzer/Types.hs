@@ -22,10 +22,11 @@ where
 
 -- Inspired by Frames/demo/missingData
 import MptcpAnalyzer.Stream
-import Net.Bitset (fromBitMask, toBitMask)
+import Net.Stream
+import Net.Bitset (fromBitMask, toBitMask, ToBitMask)
 import Net.IP
 import Net.IPv6 (IPv6(..))
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
 import Tshark.Fields
 import Tshark.TH
 
@@ -65,6 +66,9 @@ import GHC.Generics
 import GHC.TypeLits (KnownSymbol)
 import MptcpAnalyzer.ArtificialFields
 import Options.Applicative
+
+
+instance ToBitMask TcpFlag
 
 {- Describe a TCP connection, possibly an Mptcp subflow
   The equality implementation ignores several fields
@@ -119,7 +123,7 @@ genRecordFrom "ReceiverCols" baseFieldsReceiver
 -- (i.e., one pcap was captured at the client, the other at the receiver)
 data PcapMapping a = PcapMapping {
       -- | Host 1 pcap to load
-      pmapPcap1 :: FilePath
+        pmapPcap1 :: FilePath
       , pmapStream1 :: StreamId a
       -- | Host 2
       , pmapPcap2 :: FilePath
@@ -183,9 +187,9 @@ aframeLength = frameLength . ffFrame
 
 -- Helper to pass information across functions
 data MyState = MyState {
-  _stateCacheFolder :: FilePath
+    _stateCacheFolder :: FilePath
   , _loadedFile   :: Maybe (FrameRec HostCols)  -- ^ cached loaded pcap
-  , _prompt   :: String  -- ^ cached loaded pcap
+  , _prompt   :: String  -- ^ Prompt entry
 }
 
 makeLenses ''MyState
@@ -294,6 +298,7 @@ instance ShowCSV [Word64] where
 instance ShowCSV IP where
   showCSV = encode
 
+instance ShowCSV Word8 where
 instance ShowCSV Word16 where
 instance ShowCSV Word32 where
 instance ShowCSV Word64 where
@@ -309,9 +314,11 @@ instance ShowCSV (StreamId a) where
 
 -- type ManMaybe = Rec (Maybe :. ElField) ManColumns
 -- TODO goal here is to choose the most performant Data.Vector
+type instance VectorFor Word8  = V.Vector
 type instance VectorFor Word16 = V.Vector
 type instance VectorFor Word32 = V.Vector
 type instance VectorFor Word64 = V.Vector
+type instance VectorFor (Maybe Word8) = V.Vector
 type instance VectorFor (Maybe Word16) = V.Vector
 type instance VectorFor (Maybe Word32) = V.Vector
 type instance VectorFor (Maybe Word64) = V.Vector
@@ -331,15 +338,4 @@ type instance VectorFor (Maybe [Word64]) = V.Vector
 
 type TcpFields rs = (TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs)
 type IpFields rs = (IpSource ∈ rs, IpDest ∈ rs)
-
-
--- type instance VectorFor MbTcpStream = V.Vector
-
--- getHeaders :: [(T.Text, TsharkFieldDesc)] -> [(T.Text, Q Type)]
--- getHeaders = map (\(name, x) -> (name, colType x))
-
--- headersFromFields :: [(T.Text, TsharkFieldDesc)] -> Q [(T.Text, Q Type)]
--- headersFromFields fields = do
---   pure (getHeaders fields)
-
 

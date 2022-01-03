@@ -1,10 +1,10 @@
 {-|
 Description : Implementation of mptcp netlink path manager
-module: Net.Mptcp.PathManager.Default
+module: Net.Mptcp.PathManager.V0.NdiffPorts
 Maintainer  : matt
 Portability : Linux
 -}
-module Net.Mptcp.PathManager.Default (
+module Net.Mptcp.PathManager.V0.NdiffPorts (
     -- TODO don't export / move to its own file
     ndiffports
     , meshPathManager
@@ -14,6 +14,7 @@ import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import Debug.Trace
 import Net.Mptcp
+import Net.Mptcp.V0.Commands
 import Net.Mptcp.PathManager
 import Net.Tcp
 
@@ -23,6 +24,17 @@ ndiffports = PathManager {
   name = "ndiffports"
   , onMasterEstablishement = nportsOnMasterEstablishement
 }
+
+
+{-
+  Generate requests
+TODO it iterates over local interfaces but not
+-}
+nportsOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> ExistingInterfaces -> [MptcpPacket]
+nportsOnMasterEstablishement mptcpSock con paths = do
+  foldr (meshGenPkt mptcpSock con) [] paths
+  -- TODO create #X subflows
+  -- iterate
 
 -- | Creates a subflow between each pair of (client, server) interfaces
 meshPathManager :: PathManager
@@ -62,18 +74,8 @@ meshGenPkt mptcpSock mptcpCon intf pkts =
   Generate requests
 it iterates over local interfaces and try to connect
 -}
-meshOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> AvailablePaths -> [MptcpPacket]
+meshOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> ExistingInterfaces -> [MptcpPacket]
 meshOnMasterEstablishement mptcpSock con paths = do
   foldr (meshGenPkt mptcpSock con) [] paths
 
-
-{-
-  Generate requests
-TODO it iterates over local interfaces but not
--}
-nportsOnMasterEstablishement :: MptcpSocket -> MptcpConnection -> AvailablePaths -> [MptcpPacket]
-nportsOnMasterEstablishement mptcpSock con paths = do
-  foldr (meshGenPkt mptcpSock con) [] paths
-  -- TODO create #X subflows
-  -- iterate
 

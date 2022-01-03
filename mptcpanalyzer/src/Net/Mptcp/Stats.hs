@@ -7,7 +7,7 @@ License     : GPL-3
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Net.Mptcp.Stats (
-  TcpSubflowUnidirectionalStats(..)
+    TcpSubflowUnidirectionalStats(..)
   , MptcpUnidirectionalStats(..)
   , getMptcpStats
   , getMptcpGoodput
@@ -18,10 +18,9 @@ module Net.Mptcp.Stats (
 where
 
 import MptcpAnalyzer.ArtificialFields
--- import MptcpAnalyzer.Types
--- import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
+import MptcpAnalyzer.Units
 
 import qualified Data.Map as Map
 import Net.Mptcp.Connection
@@ -34,7 +33,6 @@ import qualified Data.Text as T
 
 import Control.Lens
 import Control.Lens hiding (argument)
-import qualified Data.Foldable as F
 import Data.List (sort, sortBy, sortOn)
 import Data.Map (Map, fromList, mapKeys)
 import qualified Data.Map as Map
@@ -42,24 +40,39 @@ import Data.Maybe (catMaybes, fromJust)
 import Data.Set (toList)
 import Data.Vinyl
 import Data.Word (Word32, Word64)
+import qualified Data.Foldable as F
 import qualified Frames as F
 import qualified Frames.InCore as F
 import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
+import Control.Exception (assert)
 -- import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 
 -- | Useful to show DSN
 data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
   -- tssStats :: TcpUnidirectionalStats
-  tssStats    :: TcpUnidirectionalStats
+    tssStats  :: TcpUnidirectionalStats
   , tssMinDsn :: Word64
   , tssMaxDsn :: Word64
   } deriving Show
 -- newtype TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats
 
+instance Semigroup TcpSubflowUnidirectionalStats where
+   -- (<>) :: a -> a -> a
+   -- TODO this does nothing
+   (<>) a b = a
 
--- | Holds MPTCP statistics for one direction
+instance Monoid TcpSubflowUnidirectionalStats where
+  mempty = TcpSubflowUnidirectionalStats {
+      tssStats = mempty 
+    , tssMinDsn = 0
+    , tssMaxDsn = 0
+    }
+
+
+-- | Holds MPTCP application level statistics for one direction
 data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
-  musDirection          :: ConnectionRole
+    musDirection        :: ConnectionRole
   , musApplicativeBytes :: Word64
   , musMaxDsn           :: Word64
   , musMinDsn           :: Word64
@@ -70,7 +83,13 @@ instance Monoid MptcpUnidirectionalStats where
   mempty = MptcpUnidirectionalStats RoleServer 0 0 0 mempty
 
 instance Semigroup MptcpUnidirectionalStats where
-  (<>) s1 s2 = s1
+  -- TODO fix
+  (<>) s1 s2 = assert (musDirection s1 == musDirection s2)
+      s1 {
+            musMaxDsn = max (musMaxDsn s1) (musMaxDsn s2)
+          , musMinDsn = min (musMinDsn s1) (musMinDsn s2)
+          -- , musApplicativeBytes = musApplicativeBytes s1 ++ musApplicativeBytes s2
+        }
 
 
     -- ''' application data = goodput = useful bytes '''
@@ -88,16 +107,17 @@ instance Semigroup MptcpUnidirectionalStats where
 
 -- |Goodput is defined as the amount of effective data exchanged over time
 -- I.e., (maxDsn - minDsn) / (Mptcp communication Duration)
-getMptcpGoodput :: MptcpUnidirectionalStats -> Double
-getMptcpGoodput s = fromIntegral (musApplicativeBytes s) / ((getMptcpStatsDuration s) ^. _1)
+getMptcpGoodput :: MptcpUnidirectionalStats -> Throughput
+getMptcpGoodput s = Throughput (Bytes $ musApplicativeBytes s) ((getMptcpStatsDuration s) ^. _1)
 
+-- fromIntegral
 
 -- | return max - min across subflows
-getMptcpStatsDuration :: MptcpUnidirectionalStats -> (Double, Double, Double)
-getMptcpStatsDuration s = (end - start, start, end)
+getMptcpStatsDuration :: MptcpUnidirectionalStats -> (Duration, Timestamp, Timestamp)
+getMptcpStatsDuration s = (diffTime end start, start, end)
   where
-    start = head $ sort starts
-    end = last $ sort ends
+    start = Timestamp $ head $ sort starts
+    end = Timestamp $ last $ sort ends
     -- min of
     -- TODO get min
     starts = map (tusStartTime . tssStats) (Map.elems $ musSubflowStats s)
@@ -114,14 +134,16 @@ getSubflowStats ::
   )
   => FrameFiltered MptcpSubflow (F.Record rs) -> ConnectionRole -> TcpSubflowUnidirectionalStats
 getSubflowStats aframe role = TcpSubflowUnidirectionalStats {
-      tssStats = getTcpStats (addTcpDestinationsToAFrame aframe') role
+      tssStats = getTcpStatsFromAFrame (addTcpDestinationsToAFrame aframe') role
       , tssMinDsn = 0
       , tssMaxDsn = 0
     }
     where
       aframe' = FrameTcp (sfConn $ ffCon aframe) (ffFrame aframe)
 
+
 -- mptcp_compute_throughput est bourrin il calcule tout d'un coup, je veux avoir une version qui marche iterativement
+-- | Generates Stats for one direction only
 getMptcpStats ::
   (
    -- TcpDest F.∈ rs
@@ -138,12 +160,12 @@ getMptcpStats ::
   -> MptcpUnidirectionalStats
 getMptcpStats (FrameTcp mptcpConn frame) dest =
   MptcpUnidirectionalStats {
-    musDirection = dest
+      musDirection = dest
     , musApplicativeBytes = getSeqRange maxDsn minDsn
     , musMaxDsn = maxDsn
     , musMinDsn = minDsn
     -- we need the stream id / FrameFiltered MptcpSubflow (Record rs)
-    , musSubflowStats = Map.fromList $ map (\sf -> (sf, getStats dest sf))  (toList $ mpconSubflows mptcpConn)
+    , musSubflowStats = Map.fromList $ map (\sf -> (sf, getStats dest sf))  (toList $ _mpconSubflows mptcpConn)
   }
   where
     -- buildTcpConnectionFromStreamId :: SomeFrame -> StreamId Tcp -> Either String (FrameFiltered TcpConnection Packet)
@@ -178,5 +200,5 @@ getMptcpStats (FrameTcp mptcpConn frame) dest =
 
 showMptcpUnidirectionalStats :: MptcpUnidirectionalStats -> Text
 showMptcpUnidirectionalStats stats = T.unlines [
-  "MptcpUnidirectionalStats todo"
+  "Max/min dsn: " <> tshow (musMinDsn stats) <> "/" <> tshow (musMaxDsn stats) <> " towards " <> tshow (musDirection stats)
   ]

@@ -24,7 +24,7 @@ import Data.Maybe (catMaybes, fromJust)
 import qualified Data.Set as Set
 import Data.Word (Word16, Word32, Word64, Word8)
 import Frames
-import "mptcp-pm" Net.Tcp (TcpFlag(..))
+import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
 import Options.Applicative
 import qualified Pipes.Prelude as PP
 import Polysemy (Embed, Member, Members, Sem)
@@ -62,7 +62,7 @@ piListMptcpSubflowOpts = info (
 
 type SomeFrame = Frame Packet
 
--- TODO return MptcpStreamId instead
+-- TODO return mpconStreamId instead
 getMpTcpStreams :: SomeFrame -> [StreamIdMptcp]
 getMpTcpStreams ps =
     catMaybes $

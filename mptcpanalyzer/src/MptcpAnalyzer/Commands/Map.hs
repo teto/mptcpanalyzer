@@ -22,6 +22,7 @@ import MptcpAnalyzer.Merge
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Completion (completePath, readFilename)
 import MptcpAnalyzer.Utils.Text
 import Net.Mptcp
 
@@ -65,10 +66,12 @@ parserMapConnection forMptcp =
       CommandMapPcap <$>
       strArgument (
           metavar "PCAP1"
+          <> completer completePath
           <> help "File to analyze"
       )
       <*> strArgument (
           metavar "PCAP2"
+          <> completer completePath
           <> help "File to analyze"
       )
       -- readStreamId
@@ -145,7 +148,7 @@ cmdMapMptcpConnection (CommandMapPcap pcap1 pcap2 streamId verbose limit) = do
 
         -- setSGRCode [SetColor Foreground Vivid Red] <>
         -- <> setSGRCode [Reset]
-        displayScore (con, score) = "Score for connection " <> tshow (mptcpStreamId con)
+        displayScore (con, score) = "Score for connection " <> tshow (mpconStreamId con)
             <> ": " <> tshow score <> "\n" <> showConnectionText con <> "\n"
         displayFailure err = "Couldn't compute score for mptcp.stream " <> tshow err
     _ -> return $ CMD.Error "An error happened"

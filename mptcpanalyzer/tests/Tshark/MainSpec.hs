@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Tshark.MainSpec (spec) 
+module Tshark.MainSpec (spec)
 where
+import Data.Maybe (fromJust)
 import Distribution.Simple.Utils (TempFileOptions(..), withTempFileEx)
+import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Stream
 import Net.IP
@@ -12,8 +14,6 @@ import System.IO
 import Test.Hspec
 import Test.QuickCheck hiding (Success)
 import Tshark.Main
-import MptcpAnalyzer.ArtificialFields
-import Data.Maybe (fromJust)
 
 
 
@@ -29,7 +29,7 @@ opts = TempFileOptions True
 -- main :: IO ()
 -- main = hspec $ do
 spec :: Spec
-spec = 
+spec =
   describe "tshark tests" $ do
     it "Generate bidirectional tshark filter" $
       genReadFilterFromTcpConnection exampleTcpConnectionLocalhost Nothing

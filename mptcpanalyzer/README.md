@@ -44,6 +44,10 @@ mptcpanalyzer "map-tcp examples/client_2_filtered.pcapng examples/server_2_filte
 mptcpanalyzer "load-pcap examples/client_2_filtered.pcapng"
 ```
 
+```
+plot-mptcp-live 10.0.0.1 10.0.0.2 33784 5201 client lo -f examples/client_2_cleaned_start.pcapng
+```
+
 I use [vd](visidata).
 
 # How to develop/contribute

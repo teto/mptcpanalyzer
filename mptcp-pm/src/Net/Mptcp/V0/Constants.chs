@@ -11,7 +11,7 @@ https://stackoverflow.com/questions/6689969/how-does-one-interface-with-a-c-enum
 TODO might be best to just use the netlink script and adapt it
 https://github.com/Ongy/netlink-hs/issues/7
 -}
-module Net.Mptcp.Constants (
+module Net.Mptcp.V0.Constants (
   MptcpAttr(..)
   , MptcpGenlEvent(..)
 
@@ -27,7 +27,7 @@ import Data.Word (Word8)
 import Data.Bits ()
 
 -- from include/uapi/linux/mptcp.h
-#include <linux/mptcp.h>
+#include <linux/mptcp_v0.h>
 
 -- {underscoreToCase}
 -- add prefix = "e"
@@ -48,3 +48,6 @@ mptcpGenlCmdGrpName = {#const MPTCP_GENL_CMD_GRP_NAME #}
 mptcpGenlEvGrpName :: String
 mptcpGenlEvGrpName  = {#const MPTCP_GENL_EV_GRP_NAME #}
 
+
+-- toEvent :: MptcpGenlEvent -> MptcpEvent
+-- toEvent

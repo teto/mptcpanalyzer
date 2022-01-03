@@ -12,7 +12,7 @@ source-repository-package
 --   subdir: co-log-polysemy
 --   tag: 72fbe394b437c698d574cd7604ad3f7f807383e0
 
--- profiling: True
+profiling: True
 documentation: False
 -- ghc options -ddump-timings
 -- tests: True
@@ -21,6 +21,7 @@ benchmarks: True
 -- -- Frames for colDecExplicit
 packages:
   ../mptcp-pm/
+  ../mptcp/
    ./*.cabal
   ../../optparse-applicative
 

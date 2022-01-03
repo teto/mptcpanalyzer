@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-|
-Module      : Net.Mptcp.Constants
-Description : A module to bridge the haskell code to underlying C code
+Module      : Net.Tcp.Constants
+Description : Bridge the haskell code to underlying C code
 
 I consider this module internal.
 The documentation may be a bit sparse.
@@ -22,7 +22,7 @@ import GHC.Generics (Generic)
 #include <tcp_states.h>
 
 -- For anonymous C enums, we can use , Bits
-{#enum TCP_ESTABLISHED as TcpState {underscoreToCase} deriving (Eq, Show)#}
+{#enum TCP_ESTABLISHED as TcpStateLinux {underscoreToCase} deriving (Eq, Show)#}
 
 -- tcp_ca_state is a bitfield see
 -- http://www.yonch.com/tech/linux-tcp-congestion-control-internals

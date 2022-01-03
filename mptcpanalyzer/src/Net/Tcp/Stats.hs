@@ -13,7 +13,7 @@ module Net.Tcp.Stats (
   , getTcpGoodput
   , getTcpThroughput
   , getTcpSeqRange
-  , getTcpStats
+  , getTcpStatsFromAFrame
   , getSeqRange
   , showTcpUnidirectionalStats
 )
@@ -51,6 +51,8 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     tusNrPackets :: Int
     -- duration
     -- , tusDuration :: Double
+
+    -- TODO convert to date ?
     , tusStartTime :: Double
     , tusEndTime :: Double
 
@@ -95,12 +97,12 @@ instance Semigroup TcpUnidirectionalStats where
       tusNrPackets = tusNrPackets a + tusNrPackets b
       , tusStartTime = min (tusStartTime a) (tusStartTime b)
       , tusEndTime = max (tusEndTime a) (tusEndTime b)
-      -- TODO fill it
+      -- let it to 0 for now
       , tusMinSeq = 0
 
       -- TODO should be max of seen acks
-      , tusSndUna = 0
-      , tusSndNext = 0
+      , tusSndUna = max (tusSndUna a) (tusSndUna b)
+      , tusSndNext = max (tusSndNext a) (tusSndNext b)
       , tusReinjectedBytes = 0
       -- , tusSnd = 0
       -- , tusNumberOfPackets = mempty
@@ -148,8 +150,8 @@ genTcpStats aframe = TcpUnidirectionalStats {
     , tusStartTime = minTime
     , tusEndTime = maxTime
 
-    , tusMinSeq = 0
-    , tusSndUna = 0
+    , tusMinSeq = 0 -- not used
+    , tusSndUna = maxUna
     , tusSndNext = 0
     , tusReinjectedBytes = 0
   }
@@ -167,9 +169,17 @@ genTcpStats aframe = TcpUnidirectionalStats {
         (Just pmin, Just pmax) -> (pmin, pmax)
         _otherwise -> error "Could not find either min or max"
 
+    -- TODO
+    (minUna, maxUna) = case L.fold ((,) <$> L.minimum <*> L.maximum) $ F.toList $ view tcpAck <$> aframe of
+        (Just pmin, Just pmax) -> (pmin, pmax)
+        _otherwise -> error "Could not find either min or max"
+
+
+
 -- | Destination should have been filtered upstream
 -- see @genTcpDestFrame@
-getTcpStats :: (
+-- TODO suffix fromFrame
+getTcpStatsFromAFrame :: (
   TcpSeq F.∈ rs
   , F.RecVec rs
   , TcpLen F.∈ rs, RelTime F.∈ rs
@@ -180,7 +190,7 @@ getTcpStats :: (
   => FrameFiltered TcpConnection (F.Record rs)
   -> ConnectionRole
   -> TcpUnidirectionalStats
-getTcpStats aframe dest =
+getTcpStatsFromAFrame aframe dest =
   if frameLength frame == 0 then
     mempty
   else

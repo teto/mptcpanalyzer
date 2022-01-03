@@ -13,12 +13,13 @@ module Tshark.Main (
   , defaultTsharkPrefs
   , defaultTsharkOptions
   , genReadFilterFromTcpConnection
+  , genReadFilterMptcpFromMptcpConnection
 )
 where
 
 import Data.List (intercalate)
 import qualified Data.Text as T
-import MptcpAnalyzer.ArtificialFields (ConnectionRole (RoleClient, RoleServer))
+import MptcpAnalyzer.ArtificialFields (ConnectionRole(RoleClient, RoleServer))
 import qualified Net.IP
 import Net.Tcp (TcpConnection(..))
 import System.Process
@@ -52,10 +53,10 @@ showIP = T.unpack . Net.IP.encode
 
 
 -- |One way filter
--- genReadFilterUnidirectional :: 
+-- genReadFilterUnidirectional ::
 -- genReadFilterUnidirectional =
 
--- genReadFilterBidirectional :: 
+-- genReadFilterBidirectional ::
 -- genReadFilterBidirectional =
 
 -- |Create a tshark read filter from a 'TcpConnection'
@@ -65,7 +66,7 @@ genReadFilterFromTcpConnection ::
   -> String
 genReadFilterFromTcpConnection con dest =
   case dest of
-    Just RoleClient -> 
+    Just RoleClient ->
       -- TODO should depend on destination
       "tcp and ip.src==" ++ (showIP . conTcpClientIp) con ++ " and ip.dst==" ++ (showIP . conTcpServerIp) con
         ++ " and tcp.srcport==" ++ show (conTcpClientPort con) ++ " and tcp.dstport==" ++ show (conTcpServerPort con)
@@ -81,6 +82,12 @@ genReadFilterFromTcpConnection con dest =
 -- |Create a tshark read filter from a 'MptcpConnection'
 -- genReadFilterFromMptcpConnection :: MptcpConnection -> String
 -- genReadFilterFromMptcpConnection con =
+
+
+-- we cant update the filter on the fly so we need to look at all the mptcp traffic
+-- and match on master subflow
+genReadFilterMptcpFromMptcpConnection :: String
+genReadFilterMptcpFromMptcpConnection = "mptcp"
 
 
 

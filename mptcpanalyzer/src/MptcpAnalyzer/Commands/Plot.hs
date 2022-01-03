@@ -17,17 +17,17 @@ module MptcpAnalyzer.Commands.Plot (
   , piPlotTcpMainParser
   , parserPlotTcpMain
   , parserPlotTcpLive
+  , parserPlotMptcpLive
   , parserPlotMptcpMain
 )
 where
 
-import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
-import Data.Vinyl.Class.Method
-
+-- from mptcpanalyzer
 import MptcpAnalyzer.ArtificialFields
 import MptcpAnalyzer.Cache
 import MptcpAnalyzer.Plots.Types
 import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Completion (completePath, readFilename)
 -- import MptcpAnalyzer.Commands.Definitions
 import MptcpAnalyzer.Commands.Definitions as CMD
 import MptcpAnalyzer.Commands.PlotOWD
@@ -36,10 +36,12 @@ import MptcpAnalyzer.Loader
 import MptcpAnalyzer.Pcap
 import MptcpAnalyzer.Utils.Text
 import Net.IP
-import "this" Net.Mptcp
-import "this" Net.Tcp
+import Net.Mptcp
+import Net.Tcp
 import Tshark.Fields (TsharkFieldDesc(tfieldLabel), baseFields)
 -- import Net.IPv4
+
+-- hackage
 import Frames
 import Frames.CSV
 import Options.Applicative
@@ -48,6 +50,8 @@ import Prelude hiding (filter, log, lookup, repeat)
 -- import Graphics.Rendering.Chart.Backend.Diagrams (defaultEnv, runBackendR)
 -- import Graphics.Rendering.Chart.Easy
 
+import Data.Vinyl (ElField(..), Rec(..), rapply, rmapX, xrec)
+import Data.Vinyl.Class.Method
 import Data.Word (Word16, Word32, Word64, Word8)
 import Graphics.Rendering.Chart.Backend.Cairo (toFile)
 import Graphics.Rendering.Chart.Easy hiding (argument)
@@ -111,10 +115,6 @@ parserPlotSettings mptcpPlot = PlotSettings
         <> Options.Applicative.value mptcpPlot
         <> help ""
       )
-    -- <*> (switch
-    --   ( long "protocol"
-    --   <> help "Uses xdg-open to display plot"
-    --   ))
 
 
 -- |
@@ -125,17 +125,15 @@ piPlotTcpMainParser = info parserPlotTcpMain
   ( progDesc " TCP Plots"
   )
 
--- loadConnectionsFromFile
-plotLiveFilter :: Parser ArgsPlots
-plotLiveFilter = ArgsPlotLiveTcp <$>
+
+--
+parserLivePlotTcpSettings :: Parser LivePlotTcpSettings
+parserLivePlotTcpSettings = LivePlotTcpSettings <$>
     parserConnection
     <*> optional (strOption
       ( long "fake" <> short 'f'
       <> help "Load data from a pcap. This is used only for testing."
-      -- this is a filename !
-      -- TODO create a completer inspired by haskeline
-      -- completer ( String -> IO [String])
-      -- <> completeWith ["eno1"]
+      <> completer completePath
       <> metavar "PCAP" ))
     <*> optional (parserDestinationRole)
   <*> strArgument (
@@ -143,6 +141,10 @@ plotLiveFilter = ArgsPlotLiveTcp <$>
     -- TODO fetch list of interfaces in advance !
     <> completeWith ["eno1"]
     )
+
+-- loadConnectionsFromFile
+plotLiveFilter :: Parser ArgsPlots
+plotLiveFilter = ArgsPlotLiveTcp <$> parserLivePlotTcpSettings
 
 
 -- |Helper to load an IP
@@ -165,6 +167,10 @@ parserConnection = TcpConnection <$>
 parserPlotTcpLive :: Parser CommandArgs
 parserPlotTcpLive  = ArgsPlotGeneric <$> parserPlotSettings False
     <*> (plotLiveFilter)
+
+parserPlotMptcpLive :: Parser CommandArgs
+parserPlotMptcpLive  = ArgsPlotGeneric <$> parserPlotSettings False
+    <*> (ArgsPlotLiveMptcp <$> parserLivePlotTcpSettings)
 
 
 -- -> Bool -- ^ for mptcp yes or no
@@ -421,7 +427,7 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
       layout_title .= "MPTCP " ++ field
       -- TODO generate for mptcp plot
       -- for each subflow, plot the MptcpDest
-      mapM_ plotAttr ( [ (dest, con) | dest <- destinations , con <- Set.toList $ mpconSubflows $ ffCon aFrame ])
+      mapM_ plotAttr ( [ (dest, con) | dest <- destinations , con <- Set.toList $ _mpconSubflows $ ffCon aFrame ])
       -- mapM_ plotAttr destinations
 
   return Continue

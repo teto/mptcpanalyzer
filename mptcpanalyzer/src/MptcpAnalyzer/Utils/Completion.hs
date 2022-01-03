@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-|
 Module: MptcpAnalyzer.Utils.Completion
 Maintainer  : matt
@@ -11,12 +12,9 @@ parseError peut renvoyer un missingArgP qui du coup aura le completer, qu'on n'a
 
 -}
 module MptcpAnalyzer.Utils.Completion (
-  -- completeInitialCommand
-  -- generateHaskelineCompleterFromParser
   generateHaskelineCompleterFromParserInfo
   , completePath
   , readFilename
-  -- , generateHaskelineCompleterFromOption
 )
 where
 
@@ -54,8 +52,15 @@ readFilename path =
           return False
   in
   case exists of
-    True -> trace "right path" Right path
-    False -> trace ("path " ++ path ++ " DOES NOT EXIST (returning Left)")
+    True ->
+#ifdef DEBUG_COMPLETION
+      trace "right path"
+#endif
+      Right path
+    False ->
+#ifdef DEBUG_COMPLETION
+      trace ("path " ++ path ++ " DOES NOT EXIST (returning Left)")
+#endif
       Left "Path does not exist"
 
 -- optparse2haskelineCompletion
@@ -74,15 +79,24 @@ hl2oa (Completion replacement' display' isFinished') =
 -- The first 'String' argument is the contents of the line to the left of the cursor,
 -- reversed.
 -- The second 'String' argument is the contents of the line to the right of the cursor.
+-- TODO this should accept a filter ? like for which type of file
 completePath :: Completer
 completePath = mkCompleter $ \entry -> do
   -- case words entry of
   --   [] -> ""
   --   x -> tail
-  (_, completions) <- trace "completeFilename called with entry" completeFilename (reverse entry, "")
+  (_, completions) <-
+#ifdef DEBUG_COMPLETION
+    trace "completeFilename called with entry"
+#endif
+    completeFilename (reverse entry, "")
   let completions' = map hl2oa completions
   putStrLn $ "completePath called !! with entry: [" ++ entry ++ "]"
-  return $ trace ("completions: " ++ show completions) completions'
+  return $
+#ifdef DEBUG_COMPLETION
+    trace ("completions: " ++ show completions)
+#endif
+    completions'
 
 -- drop 1 was for progname ?
 -- TODO make it so that it returns [Completion] instead
@@ -94,15 +108,31 @@ haskelineCompletionQuery :: ParserInfo a -> ParserPrefs
   -- ^ current word (to remove ?)
   -> String -> IO [Completion]
 haskelineCompletionQuery pinfo pprefs ws rest = case runCompletion compl pprefs of
-  Just (Left (SomeParser p, a)) -> trace "listing options\n" list_options a p
+  Just (Left (SomeParser p, a)) ->
+#ifdef DEBUG_COMPLETION
+    trace "listing options\n"
+#endif
+    list_options a p
   -- terminal case
-  Just (Right c) -> trace "terminal completer\n" run_completer c
-  Nothing -> trace "runCompletion into Nothing\n" return []
+  Just (Right c) ->
+#ifdef DEBUG_COMPLETION
+    trace "terminal completer\n"
+#endif
+    run_completer c
+  Nothing ->
+#ifdef DEBUG_COMPLETION
+    trace "runCompletion into Nothing\n"
+#endif
+    return []
   where
     --current word
     -- runParserInfo te renvoie une (Completion a)
     -- drop 1 looks necesary here ?
-    compl = traceShow ("Passing args " ++ show ws ++ "\n") runParserInfo pinfo ws
+    compl =
+#ifdef DEBUG_COMPLETION
+      traceShow ("Passing args " ++ show ws ++ "\n")
+#endif
+      runParserInfo pinfo ws
     -- runParserInfo calls runParserFully
     -- compl = runParserInfo pinfo ws
     -- trace ("runCompleter: ws=" ++ show ws ++ " i=" ++ show i ++ "ws''= " ++ show ws'' ++ " rest=" ++ show rest)
