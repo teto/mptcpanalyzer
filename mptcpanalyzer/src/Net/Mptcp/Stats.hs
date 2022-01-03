@@ -44,6 +44,8 @@ import qualified Data.Foldable as F
 import qualified Frames as F
 import qualified Frames.InCore as F
 import MptcpAnalyzer.Types
+import MptcpAnalyzer.Utils.Text
+import Control.Exception (assert)
 -- import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 
 -- | Useful to show DSN
@@ -82,7 +84,12 @@ instance Monoid MptcpUnidirectionalStats where
 
 instance Semigroup MptcpUnidirectionalStats where
   -- TODO fix
-  (<>) s1 s2 = s1
+  (<>) s1 s2 = assert (musDirection s1 == musDirection s2)
+      s1 {
+            musMaxDsn = max (musMaxDsn s1) (musMaxDsn s2)
+          , musMinDsn = min (musMinDsn s1) (musMinDsn s2)
+          -- , musApplicativeBytes = musApplicativeBytes s1 ++ musApplicativeBytes s2
+        }
 
 
     -- ''' application data = goodput = useful bytes '''
@@ -193,5 +200,5 @@ getMptcpStats (FrameTcp mptcpConn frame) dest =
 
 showMptcpUnidirectionalStats :: MptcpUnidirectionalStats -> Text
 showMptcpUnidirectionalStats stats = T.unlines [
-  "MptcpUnidirectionalStats todo"
+  "Max/min dsn: " <> tshow (musMinDsn stats) <> "/" <> tshow (musMaxDsn stats) <> " towards " <> tshow (musDirection stats)
   ]

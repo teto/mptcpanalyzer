@@ -173,52 +173,58 @@ tsharkLoopMptcp config hout = do
 
     updateStats :: LiveStatsMptcp -> Record HostCols -> LiveStatsMptcp
     -- case where the master subflow was already identified
-    updateStats lstats@(LiveStatsMptcp (Just master) _ _ subflows stats) row = 
+    updateStats lstats@(LiveStatsMptcp (Just main) _ _ subflows stats) row = 
       case mbSubflow of
         -- Not a registered subflow yet
         Nothing -> case row ^. mptcpRecvToken of
           Nothing -> trace "No rcv token" lstats
-          Just rcvToken -> trace "Rcv token received" (
-            -- if token of client then subflow initiated by server
-            if tokenBelongToConnection rcvToken master then
-              lstats {
-                _lsmMaster = trace "Adding new subflow" (Just (mptcpConnAddSubflow master subflow))
-              }
-            else
-              trace ("ignoring flow " ++ show subflow) lstats
-            )
+          Just rcvToken -> let 
+              subflow = buildSubflowFromRecord row
+            in
+
+              trace "Rcv token received" (
+              -- if token of client then subflow initiated by server
+              if tokenBelongToConnection rcvToken main then
+                lstats {
+                  _lsmMaster = trace "Adding new subflow" (Just (mptcpConnAddSubflow main subflow))
+                }
+              else
+                trace ("ignoring flow " ++ show subflow) lstats
+              )
         Just subflowStats ->
-          -- TODO update tcp stats for th
-          -- TODO change connection staths when seeing dataFin
-          -- TODO update subflow stats and mptcp stats
-          -- if row ^. mptcpDataFin
-          let
-            subflow = master
-            tcpAframe :: FrameFiltered TcpConnection Packet
-            tcpAframe =  FrameTcp master frame
+          case getSubflowFromStreamId main (row ^. tcpStream) of
+            Nothing -> error "Could not find the subflow :s "
+            Just subflow -> let
+              -- TODO update tcp stats for th
+              -- TODO change connection staths when seeing dataFin
+              -- TODO update subflow stats and mptcp stats
+              -- if row ^. mptcpDataFin
+                -- subflow = master
+                tcpAframe :: FrameFiltered TcpConnection Packet
+                tcpAframe =  FrameTcp (sfConn subflow) frame
 
-            newMptcpStats :: LiveStats MptcpUnidirectionalStats Packet
-            newMptcpStats = genLiveStatsMptcp mptcpAframe
+                newMptcpStats :: LiveStats MptcpUnidirectionalStats Packet
+                newMptcpStats = genLiveStatsMptcp mptcpAframe
 
-            subflowUpdatedStats = genLiveStatsTcp tcpAframe
-          in
-          trace "todo: known subflow: update stats" (lstats {
-              -- TODO we should have stats in both direction !
-              -- _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
-              _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
-            , _lsmSubflows = Map.insert (row ^. tcpStream) (subflowStats <> subflowUpdatedStats)
-          })
-      -- if row ^. mptcpRecvToken /= Nothing then
-      --   trace "Connection established" lstats
-      -- else
-      --   -- TODO
-      --   lstats
+                subflowUpdatedStats :: LiveStatsTcp
+                subflowUpdatedStats = genLiveStatsTcp (addTcpDestinationsToAFrame tcpAframe)
+              in
+              trace "known subflow: update stats" (lstats {
+                  -- TODO we should have stats in both direction !
+                  -- _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
+                  _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
+                , _lsmSubflows = Map.insert (row ^. tcpStream) (subflowStats <> subflowUpdatedStats) (lstats ^. lsmSubflows)
+              })
+          -- if row ^. mptcpRecvToken /= Nothing then
+          --   trace "Connection established" lstats
+          -- else
+          --   -- TODO
+          --   lstats
       where
         tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
-        subflow = buildSubflowFromRecord row
 
         mptcpAframe :: FrameFiltered MptcpConnection Packet
-        mptcpAframe =  FrameTcp master frame
+        mptcpAframe =  FrameTcp main frame
 
         -- aframe :: FrameFiltered TcpConnection Packet
         -- aframe = FrameTcp 
@@ -252,7 +258,7 @@ tsharkLoopMptcp config hout = do
             trace "SYN FOUND! retreiving client key" lstats {
                 _lsmClient = traceShowId mptcpConfig
               , _lsmMaster = finalizeLiveStatsMptcp mptcpConfig (_lsmServer lstats)
-              , _lsmSubflows = Map.singleton (row ^. tcpStream) (genLiveStatsTcp mempty)
+              , _lsmSubflows = Map.singleton (row ^. tcpStream) (genLiveStatsTcp (FrameTcp (sfConn subflow) mempty))
               -- Set.fromList $ map ffCon (rights subflows)
               }
         else if isSynAck then

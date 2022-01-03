@@ -18,6 +18,7 @@ module Net.Mptcp.Connection (
   , mptcpConnAddSubflow
   , mptcpConnRemoveSubflow
   , getMasterSubflow
+  , getSubflowFromStreamId
 
   , tokenBelongToConnection
 )
@@ -110,7 +111,10 @@ getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.
 
 
 getSubflowFromStreamId :: MptcpConnection -> StreamIdTcp -> Maybe MptcpSubflow
-getSubflowFromStreamId
+getSubflowFromStreamId con streamId = 
+  case Prelude.filter (\sf -> (conTcpStreamId . sfConn) sf == streamId) (Set.toList $ _mpconSubflows con) of 
+    [] -> Nothing
+    (x:_) -> Just x
 
 -- TODO test
 tokenBelongToConnection :: Word32 -> MptcpConnection -> Bool
