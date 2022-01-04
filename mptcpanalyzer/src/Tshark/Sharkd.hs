@@ -8,7 +8,6 @@ module Tshark.Sharkd (
   , launchSharkd
   , connectToSharkd
   , loadFile
-
   )
 where
 
@@ -41,9 +40,12 @@ basicPayload method =
       --   ]
 
 
+
 basicPayloadStr :: String -> String
 basicPayloadStr inside = "{'jsonrpc': '2.0', 'id': 1, 'method':'info'}"
 
+
+-- | Launches the wireshark daemon
 launchSharkd :: FilePath -- ^ Unix socket path
       -> IO ()
 launchSharkd socketPath = let

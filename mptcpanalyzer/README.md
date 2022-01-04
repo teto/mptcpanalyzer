@@ -31,24 +31,35 @@ cabal run mptcpanalyzer "load-pcap examples/client_2_filtered.pcapng"  -- +RTS
 
 # Installation
 
-You will need a wireshark version __>= 3.0.0__ .
-Install zsh
---zsh-completion-script
+You will need a wireshark version __>= 3.6.0__ .
+
+Until changes are upstreamed, you will need this fork of optparse-applicative
+- https://github.com/teto/optparse-applicative/tree/quantum-wip-16.1
+to get autocompletion working
 
 
 # How to use
-`cabal run mptcpanalyzer`
-`plot --display tcp examples/client_2_filtered.pcapng 0 tcpseq`
+
+mptcpanalyzer can run into 2 modes:
+  1. interactive mode (default): an interpreter with some basic completion will accept your commands. There is also interactive help.
+  2. otherwise, it will consider the unknow arguments as one command, the same that could be used interactively
+
+For example, we can load mptcp pcaps (available at [wireshark wiki](https://wiki.wireshark.org/SampleCaptures#MPTCP) or in this [folder](./examples)).
+
 ```
 mptcpanalyzer "map-tcp examples/client_2_filtered.pcapng examples/server_2_filtered.pcapng 0"
 mptcpanalyzer "load-pcap examples/client_2_filtered.pcapng"
 ```
 
+or for a live analysis:
 ```
 plot-mptcp-live 10.0.0.1 10.0.0.2 33784 5201 client lo -f examples/client_2_cleaned_start.pcapng
 ```
 
-I use [vd](visidata).
+See https://teto.github.io/ for more tutorials about mptcpanalyzer.
+
+NB: in a local repository, you can run the previous command prefixed with
+`mptcpanalyzer$ cabal run -- COMMAND`.
 
 # How to develop/contribute
 
@@ -60,7 +71,6 @@ See [CONTRIBUTING](./CONTRIBUTING.md).
 - [Frames](frames) to analyze data
 - [haskell-chart](haskell-chart) with the svg backend
 - [wireshark](wireshark-mptcp) to convert packet captures (.pcapng) to csv files.
-
 
 
 # Roadmap
@@ -92,7 +102,6 @@ This project is founded by ![NGI pointer](img/ngi_logo.png).
 [replica]: https://github.com/berewt/REPLica
 wireshark-mptcp: https://www.wireshark.org/docs/dfref/m/mptcp.html
 polysemy: https://hackage.haskell.org/package/polysemy
-visidata: https://www.visidata.org/
 diagrams: https://hackage.haskell.org/package/diagrams
 frames: https://hackage.haskell.org/package/Frames
 shelltestrunner: https://github.com/simonmichael/shelltestrunner

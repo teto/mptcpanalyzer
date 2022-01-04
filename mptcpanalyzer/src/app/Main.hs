@@ -342,9 +342,10 @@ main = do
       False -> createDirectory cacheFolderXdg
 
   let myState = MyState {
-    _stateCacheFolder = cacheFolderXdg,
-    _loadedFile = Nothing,
-    _prompt = finalizePrompt ">"
+      _stateCacheFolder = cacheFolderXdg
+    , _loadedFile = Nothing
+    , _prompt = finalizePrompt ">"
+    , _sharkdHandle = Nothing
   }
 
   options <- execParser opts
@@ -373,8 +374,12 @@ main = do
           $ interpretLogStdout
             (inputLoop (extraCommands options))
 
-      -- -- Set the level of logging we want (for more control see 'filterLogs')
-      -- & setLogLevel Debug
+
+  -- TODO when the process is not nothing
+  -- withProcessHandle (_sharkdHandle myState) $ \ph_ ->
+  --   case ph_ of
+  --     OpenHandle pid -> signalProcess sigKILL pid
+  --     ClosedHandle _ -> return ()                   -- shouldn't happen
   return ()
 
 

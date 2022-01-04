@@ -66,6 +66,7 @@ import GHC.Generics
 import GHC.TypeLits (KnownSymbol)
 import MptcpAnalyzer.ArtificialFields
 import Options.Applicative
+import System.Process (ProcessHandle)
 
 
 instance ToBitMask TcpFlag
@@ -190,6 +191,7 @@ data MyState = MyState {
     _stateCacheFolder :: FilePath
   , _loadedFile   :: Maybe (FrameRec HostCols)  -- ^ cached loaded pcap
   , _prompt   :: String  -- ^ Prompt entry
+  , _sharkdHandle   :: Maybe ProcessHandle -- ^ sharkd process handle
 }
 
 makeLenses ''MyState

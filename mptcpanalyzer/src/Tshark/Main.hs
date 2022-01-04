@@ -108,18 +108,6 @@ data TsharkParams = TsharkParams {
     }
 
 
--- split into live ?
--- inspired by TcpConnection
--- data TsharkFilter =  TsharkFilter {
---   tfTcpClientIp :: IP -- ^Client ip
---   , tfTcpServerIp :: IP -- ^Server ip
---   , tfTcpClientPort :: Word16  -- ^ Source port
---   , tfTcpServerPort :: Word16  -- ^Destination port
---   -- tfProto ::
---   -- tfStreamId ::
--- }
-
-
 -- |Generate the tshark command to export a pcap into a csv
 generateCsvCommand :: [T.Text] -- ^Fields to exports e.g., "mptcp.stream"
           -> Either String FilePath    -- ^ (interface, path towards the pcap file)

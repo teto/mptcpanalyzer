@@ -1,6 +1,7 @@
 [![Hackage][hk-img]][hk]
 
-This is a userspace path manager for the [linux multipath TCP
+# Presentation
+This is a userspace mptcp path manager for the [linux multipath TCP
 kernel][mptcp-fork], starting from version v0.95.
 It now also supports the upstream linux kernel.
 
