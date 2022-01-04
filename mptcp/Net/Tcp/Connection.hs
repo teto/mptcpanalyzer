@@ -1,4 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-
+Module:  Net.Tcp.Connection
+Description : Describes
+Maintainer  : matt
+Portability : Linux
+
+
+-}
 
 module Net.Tcp.Connection (
     TcpConnection(..)
@@ -15,14 +23,11 @@ import Net.Stream
 import Net.IP
 
 -- | Identifies a TCP connection
--- TODO TcpTsharkConnection
 data TcpConnection = TcpConnection {
-  -- TODO use libraries to deal with that ? filter from the command line for instance ?
     conTcpClientIp :: IP -- ^Client ip
   , conTcpServerIp :: IP -- ^Server ip
-  , conTcpClientPort :: Word16  -- ^ Source port
-  , conTcpServerPort :: Word16  -- ^Destination port
-  -- Could be a maybe ?
+  , conTcpClientPort :: Word16  -- ^Client port
+  , conTcpServerPort :: Word16  -- ^Server port
   , conTcpStreamId :: StreamIdTcp -- ^ @tcp.stream@ in wireshark
   } deriving (Show, Eq, Ord)
 
@@ -70,8 +75,6 @@ tcpConnectionToOriented con = TcpConnectionOriented {
   , conTcpSourcePort = conTcpClientPort con
   , conTcpDestinationPort = conTcpServerPort con
   }
-
-
 
 tshow :: Show a => a -> TS.Text
 tshow = TS.pack . Prelude.show

@@ -215,17 +215,8 @@ validMptcpAttributes = validTcpAttributes
 
 validTcpAttributes :: [String]
 validTcpAttributes = map T.unpack (Map.keys $ Map.mapMaybe tfieldLabel baseFields)
--- [
---   "tsval"
---   , "rwnd"
---   , "tcpSeq"
---   , "tcpAck"
---   ]
-
--- type ValidAttributes = [String]
 
 
--- TODO pass valid
 validateField :: [String] -> ReadM String
 validateField validFields = eitherReader $ \arg -> if elem arg validFields then
   Right arg
@@ -235,10 +226,6 @@ validationErrorMsg :: [String] -> String -> String
 validationErrorMsg validFields entry = "validatedField: incorrect value `" ++ entry ++ "` choose from:\n -" ++ intercalate "\n - " validFields
 
 
--- readStreamId :: ReadM (StreamId a)
--- readStreamId = eitherReader $ \arg -> case reads arg of
---   [(r, "")] -> return $ StreamId r
---   _ -> Left $ "readStreamId: cannot parse value `" ++ arg ++ "`"
 parserDestinationRole :: Parser ConnectionRole
 parserDestinationRole = argument readConnectionRole (
           metavar "Destination"
@@ -263,27 +250,18 @@ plotStreamParser _validAttributes mptcpPlot = ArgsPlotTcpAttr <$>
           metavar "PCAP"
           <> help "File to analyze"
       )
-      -- auto readStreamId
       <*> argument auto (
           metavar "STREAM_ID"
           <> help "Stream Id (tcp.stream)"
       )
       -- TODO validate as presented in https://github.com/pcapriotti/optparse-applicative/issues/75
-      --validate :: (a -> Either String a) -> ReadM a -> ReadM a
       <*> argument (validateField _validAttributes) (
           metavar "TCP_ATTR"
-          <> help "A TCP attr in the list: "
+          <> help ("A TCP attr in the list: " <> (unlines validTcpAttributes))
           <> completeWith _validAttributes
       )
       -- TODO ? if nothing prints both directions
       <*> optional (parserDestinationRole)
-      -- <*> option auto (
-      --     metavar "MPTCP"
-      --   -- internal is stronger than --belive, hides from all descriptions
-      --   <> internal
-      --   <> Options.Applicative.value mptcpPlot
-      --   <> help ""
-      -- )
       <**> helper
 
 -- | A typeclass abstracting the functions we need
@@ -324,7 +302,6 @@ instance PlotValue Word64 where
 -- destinations is an array of destination
 cmdPlotTcpAttribute :: (
   Members [Log, P.State MyState, Cache, Embed IO] m
-  -- , Ord y
   )
   => String -- Tcp attr
   -- -> FilePath -- ^ temporary file to save plot to
