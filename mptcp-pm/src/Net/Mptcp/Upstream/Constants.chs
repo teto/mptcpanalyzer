@@ -11,7 +11,7 @@ https://stackoverflow.com/questions/6689969/how-does-one-interface-with-a-c-enum
 TODO might be best to just use the netlink script and adapt it
 https://github.com/Ongy/netlink-hs/issues/7
 -}
-module Net.Mptcp.V1.Constants (
+module Net.Mptcp.Upstream.Constants (
   MptcpAttr(..)
   , MptcpGenlEvent(..)
   , MptcpGenlCommand(..)

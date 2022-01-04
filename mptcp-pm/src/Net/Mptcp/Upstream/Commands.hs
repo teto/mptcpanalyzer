@@ -1,11 +1,11 @@
 {-
-Module:   Net.Mptcp.V1.Commands
+Module:   Net.Mptcp.Upstream.Commands
 Description :  Description
 Maintainer  : matt
 Portability : Linux
 -}
 {-# LANGUAGE CPP #-}
-module Net.Mptcp.V1.Commands (
+module Net.Mptcp.Upstream.Commands (
     attrToPair
   , newSubflowPkt
   , makeAttribute
@@ -14,7 +14,7 @@ module Net.Mptcp.V1.Commands (
   ) where
 
 -- mptcp-pm
-import Net.Mptcp.V1.Constants
+import Net.Mptcp.Upstream.Constants
 import Net.Mptcp.Netlink
 import Net.Mptcp.Types
 import Net.Mptcp.Utils

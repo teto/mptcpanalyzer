@@ -1,11 +1,11 @@
 {-
-Module:   Net.Mptcp.V0.Commands
+Module:   Net.Mptcp.Fork.Commands
 Description :  Description
 Maintainer  : matt
 Portability : Linux
 -}
 {-# LANGUAGE CPP #-}
-module Net.Mptcp.V0.Commands (
+module Net.Mptcp.Fork.Commands (
     attrToPair
   , checkIfSocketExistsPkt
   , newSubflowPkt
@@ -15,7 +15,7 @@ module Net.Mptcp.V0.Commands (
   ) where
 
 -- mptcp-pm
-import Net.Mptcp.V0.Constants
+import Net.Mptcp.Fork.Constants
 import Net.Mptcp.Netlink
 import Net.Mptcp.Types
 import Net.Mptcp.Utils

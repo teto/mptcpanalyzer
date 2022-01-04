@@ -4,7 +4,7 @@ module: Net.Mptcp.PathManager.V1.NdiffPorts
 Maintainer  : matt
 Portability : Linux
 -}
-module Net.Mptcp.PathManager.V1.NdiffPorts (
+module Net.Mptcp.PathManager.Upstream.NdiffPorts (
   -- TODO don't export / move to its own file
     ndiffports
   , meshPathManager
@@ -19,7 +19,7 @@ import Net.Stream
 import Net.Mptcp.PathManager
 -- import Net.Mptcp.Types
 import Net.Tcp.Connection
-import Net.Mptcp.V1.Commands
+import Net.Mptcp.Upstream.Commands
 import Net.Mptcp.Netlink
 
 

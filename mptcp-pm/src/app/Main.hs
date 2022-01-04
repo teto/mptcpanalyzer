@@ -34,12 +34,12 @@ module Main where
 import Net.IP
 import Net.Mptcp
 
--- import Net.Mptcp.V0.Constants as CONST
-import qualified Net.Mptcp.V1.Constants as C
-import qualified Net.Mptcp.V1.Commands as CMD
+-- import Net.Mptcp.Fork.Constants as CONST
+import qualified Net.Mptcp.Upstream.Constants as C
+import qualified Net.Mptcp.Upstream.Commands as CMD
 -- import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
-import Net.Mptcp.PathManager.V1.NdiffPorts
+import Net.Mptcp.PathManager.Upstream.NdiffPorts
 import Net.SockDiag
 import Net.SockDiag.Constants
 import Net.Tcp

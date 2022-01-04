@@ -56,7 +56,7 @@ or for a live analysis:
 plot-mptcp-live 10.0.0.1 10.0.0.2 33784 5201 client lo -f examples/client_2_cleaned_start.pcapng
 ```
 
-See https://teto.github.io/ for more tutorials about mptcpanalyzer.
+See [this blog](http://teto.github.io/tags/mptcp.html) for more tutorials about mptcpanalyzer.
 
 NB: in a local repository, you can run the previous command prefixed with
 `mptcpanalyzer$ cabal run -- COMMAND`.

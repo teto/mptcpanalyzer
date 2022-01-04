@@ -146,25 +146,20 @@ library
       src/
     build-tool-depends:
       c2hs:c2hs
-    -- other-modules:
     Exposed-Modules:
         Net.SockDiag
-      -- , Net.Tcp
       , Net.Bitset
       , Net.Tcp.Constants
-      -- , Net.Tcp.Definitions
-      -- , Net.Mptcp
       , Net.Mptcp.Types
       , Net.Mptcp.Utils
       , Net.Mptcp.Constants
       , Net.Mptcp.Netlink
-      -- , Net.Mptcp.Constants_v0
-      -- , Net.Mptcp.V0.Constants
-      -- , Net.Mptcp.V0.Commands
-      , Net.Mptcp.V1.Constants
-      , Net.Mptcp.V1.Commands
-      -- , Net.Mptcp.PathManager.V0.NdiffPorts
-      , Net.Mptcp.PathManager.V1.NdiffPorts
+      -- , Net.Mptcp.Fork.Constants
+      -- , Net.Mptcp.Fork.Commands
+      , Net.Mptcp.Upstream.Constants
+      , Net.Mptcp.Upstream.Commands
+      -- , Net.Mptcp.PathManager.Fork.NdiffPorts
+      , Net.Mptcp.PathManager.Upstream.NdiffPorts
       -- Now implemented in Net.Mptcp.PathManager.V1.NdiffPorts, remerge later ?
       -- , Net.Mptcp.PathManager.Default
       , Net.Mptcp.PathManager
