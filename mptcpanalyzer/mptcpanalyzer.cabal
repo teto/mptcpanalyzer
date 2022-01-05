@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: mptcpanalyzer
-version: 0.0.1
+version: 0.0.2.0
 license: GPL-3.0-only
 license-file: LICENSE
 -- we need custom because of cabal-doctest
@@ -18,6 +18,7 @@ Description:
   This software can automatically plot MPTCP characteristics such as Data Sequence Numbers, Data Acknowledgements etc.
   It can also map one packet capture to another to give more detailed statistics such
   as One-Way delays and reinjection qualifications.
+
   * list the MPTCP connections in the pcap
   * display chosen statistics on a specific MPTCP connection (list of subflows, number of reinjections, etc)
   * convert packet capture files (\*.pcap) to \*.csv files
@@ -125,6 +126,8 @@ common shared-properties
     --     ghc-options: -DMPTCP_EXTRA_CHECKS
 
     if flag(Dev)
+        cpp-options:
+          -DDEBUG_CAPTURE=1
         ghc-options:
           -- -ddump-splices
           -- -ddump-to-file

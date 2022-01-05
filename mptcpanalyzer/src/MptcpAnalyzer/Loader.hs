@@ -5,7 +5,7 @@ Maintainer  : matt
 License     : GPL-3
 -}
 module MptcpAnalyzer.Loader (
-  loadPcapIntoFrame
+    loadPcapIntoFrame
   , loadPcapIntoFrameNoCache
   , buildAFrameFromStreamIdTcp
   , buildAFrameFromStreamIdMptcp
@@ -84,6 +84,7 @@ loadPcapIntoFrame params path = do
           (tempPath , exitCode, stdErr) <- liftIO $ do
             withTempFileEx opts "/tmp" "mptcp.csv" $ \tmpPath handle -> do
                 (exitCode, herr) <- exportToCsv params path handle
+                hClose handle
                 return (tmpPath, exitCode, herr)
 
           if exitCode == ExitSuccess

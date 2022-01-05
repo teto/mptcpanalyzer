@@ -156,22 +156,39 @@ haskelineCompletionQuery pinfo pprefs ws rest = case runCompletion compl pprefs 
     -- trace ("argPolicy " ++ show argPolicy ++ "\n")
     opt_completions argPolicy reachability opt = case  optMain opt of
       OptReader ns _ _
-         | argPolicy /= AllPositionals -> trace "unreachable OptReader\n" return . add_opt_help opt $ show_names ns
+         | argPolicy /= AllPositionals ->
+#ifdef DEBUG_COMPLETION
+            trace "unreachable OptReader\n"
+#endif
+            return . add_opt_help opt $ show_names ns
          -- trace "optreader\n"
          | otherwise ->  return []
       FlagReader ns _
-         | argPolicy /= AllPositionals -> trace "unreachableflag reader\n" return . add_opt_help opt $ show_names ns
+         | argPolicy /= AllPositionals ->
+#ifdef DEBUG_COMPLETION
+            trace "unreachableflag reader\n"
+#endif
+            return . add_opt_help opt $ show_names ns
          -- trace "flagreader\n"
          | otherwise ->  return []
       ArgReader rdr
-         | argumentIsUnreachable reachability -> trace "unreachable\n " return []
+         | argumentIsUnreachable reachability -> 
+#ifdef DEBUG_COMPLETION
+            trace "unreachable\n " 
+#endif
+            return []
          -- TODO restore arg Reader with file autocomplete
          --  | otherwise -> return []
          -- trace "argreader\n"
          | otherwise -> run_completer (crCompleter rdr)
          -- >>= \x -> return $ Completion x "argreader help" True
       CmdReader _ ns p
-         | argumentIsUnreachable reachability -> trace "unreachable cmdreader\n" return []
+         | argumentIsUnreachable reachability ->
+#ifdef DEBUG_COMPLETION
+              trace "unreachable cmdreader\n" 
+#endif
+
+              return []
          -- trace "cmdreader\n"
          | otherwise -> return . add_cmd_help p $ filter_names ns
 
@@ -211,7 +228,12 @@ haskelineCompletionQuery pinfo pprefs ws rest = case runCompletion compl pprefs 
     -- TODO fix the arg
     run_completer :: Completer -> IO [Completion]
     -- (fromMaybe "" (listToMaybe [currentArg]))
-    run_completer c = trace ("running completer against " ++ currentArg) runCompleter c currentArg >>= return . map oa2hl
+    run_completer c =
+
+#ifdef DEBUG_COMPLETION
+      trace ("running completer against " ++ currentArg)
+#endif
+      runCompleter c currentArg >>= return . map oa2hl
 
     currentArg :: String
     currentArg = case ws of
@@ -233,14 +255,20 @@ generateHaskelineCompleterFromParserInfo parserPrefs pinfo =
     fullArgs = reverse rleft ++ right
     fullArgs' = words fullArgs ++ if trailingSpace then [""] else []
     currentWord = last leftArgs
-    parserResult = trace ("\nParsing args " ++ reverse rleft ++ "\n") execParserPure parserPrefs pinfo leftArgs
+    parserResult =
+#ifdef DEBUG_COMPLETION 
+        trace ("\nParsing args " ++ reverse rleft ++ "\n")
+#endif
+
+        execParserPure parserPrefs pinfo leftArgs
     trailingSpace = " " `isSuffixOf` fullArgs
     leftRes = case fullArgs' of
       [] -> ""
       _ -> mconcat (init fullArgs') ++ if trailingSpace then " " else ""
   in do
     candidates <- haskelineCompletionQuery pinfo parserPrefs (trace ("\n" ++ show fullArgs' ++ "\n" ) fullArgs') ""
-    putStrLn $ "Returned candidates : " ++ show candidates
+    -- putStrLn $ "Returned candidates : " ++ show candidates
+
     -- now onto converting candidates
     -- TODO stripper le commonPrefix
     -- map (\x -> System.Console.Haskeline.Completion x x False)

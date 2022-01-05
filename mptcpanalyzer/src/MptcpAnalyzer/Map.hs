@@ -72,7 +72,7 @@ showMptcpSubflowMapping m =
       <> (intercalate "\n-" $ map (\(sf, score) -> showMptcpSubflowText sf <> " SCORE: "<> tshow score) scores)
 
 
--- |
+-- | Ranks the pairings between TCP streams of two different pcaps
 -- Returns a list of
 mapTcpConnection ::
   -- Members '[Log String, P.State MyState, Cache, Embed IO] r =>

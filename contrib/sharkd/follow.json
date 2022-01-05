@@ -1,0 +1,1 @@
+{ "method":"follow" , "jsonrpc": "2.0" , "id" : 1, "params": { "follow": "TCP", "filter": "tcp.stream==1"} }

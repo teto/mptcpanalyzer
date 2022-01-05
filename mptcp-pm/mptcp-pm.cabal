@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: mptcp-pm
-version: 0.0.4
+version: 0.0.5
 license: GPL-3.0-only
 license-file: LICENSE
 build-type: Simple
@@ -38,13 +38,6 @@ Flag CwndCapping {
   Description: With an experimental kernel, it's possible to cap some congestion window
   Default:     False
 }
-
-
-Flag Dev {
-  Description: Relax constraints
-  Default:     True
-}
-
 
 common shared-properties
     default-language: Haskell2010
@@ -146,25 +139,20 @@ library
       src/
     build-tool-depends:
       c2hs:c2hs
-    -- other-modules:
     Exposed-Modules:
         Net.SockDiag
-      -- , Net.Tcp
       , Net.Bitset
       , Net.Tcp.Constants
-      -- , Net.Tcp.Definitions
-      -- , Net.Mptcp
       , Net.Mptcp.Types
       , Net.Mptcp.Utils
       , Net.Mptcp.Constants
       , Net.Mptcp.Netlink
-      -- , Net.Mptcp.Constants_v0
-      -- , Net.Mptcp.V0.Constants
-      -- , Net.Mptcp.V0.Commands
-      , Net.Mptcp.V1.Constants
-      , Net.Mptcp.V1.Commands
-      -- , Net.Mptcp.PathManager.V0.NdiffPorts
-      , Net.Mptcp.PathManager.V1.NdiffPorts
+      -- , Net.Mptcp.Fork.Constants
+      -- , Net.Mptcp.Fork.Commands
+      , Net.Mptcp.Upstream.Constants
+      , Net.Mptcp.Upstream.Commands
+      -- , Net.Mptcp.PathManager.Fork.NdiffPorts
+      , Net.Mptcp.PathManager.Upstream.NdiffPorts
       -- Now implemented in Net.Mptcp.PathManager.V1.NdiffPorts, remerge later ?
       -- , Net.Mptcp.PathManager.Default
       , Net.Mptcp.PathManager
@@ -173,7 +161,7 @@ library
       , Netlink.Route
       -- TODO let it high level
     if flag(CwndCapping)
-      ghc-options: -DEXPERIMENTAL_CWND=1
+      cpp-options: -DEXPERIMENTAL_CWND=1
 
     ghc-options:
       -Werror=missing-home-modules

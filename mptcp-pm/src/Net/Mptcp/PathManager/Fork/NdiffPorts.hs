@@ -1,10 +1,10 @@
 {-|
 Description : Implementation of mptcp netlink path manager
-module: Net.Mptcp.PathManager.V0.NdiffPorts
+module: Net.Mptcp.PathManager.Fork.NdiffPorts
 Maintainer  : matt
 Portability : Linux
 -}
-module Net.Mptcp.PathManager.V0.NdiffPorts (
+module Net.Mptcp.PathManager.Fork.NdiffPorts (
     -- TODO don't export / move to its own file
     ndiffports
     , meshPathManager
@@ -14,7 +14,7 @@ import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import Debug.Trace
 import Net.Mptcp
-import Net.Mptcp.V0.Commands
+import Net.Mptcp.Fork.Commands
 import Net.Mptcp.PathManager
 import Net.Tcp
 

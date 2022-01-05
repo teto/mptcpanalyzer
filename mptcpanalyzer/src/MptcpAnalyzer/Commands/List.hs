@@ -96,6 +96,8 @@ piMptcpSummaryOpts = info (
               )
 
 {-| Show a list of all connections
+
+@
 8 tcp connection(s)
   tcp.stream 0: 10.0.0.1:33782 -> 10.0.0.2:05201
   tcp.stream 1: 10.0.0.1:33784 -> 10.0.0.2:05201
@@ -105,6 +107,7 @@ piMptcpSummaryOpts = info (
   tcp.stream 5: 11.0.0.1:50077 -> 11.0.0.2:05201
   tcp.stream 6: 11.0.0.1:35589 -> 10.0.0.2:05201
   tcp.stream 7: 11.0.0.1:50007 -> 10.0.0.2:05201
+@
 -}
 cmdListTcpConnections ::
   (Members '[Log, P.Trace, P.State MyState, Cache, Embed IO] r)

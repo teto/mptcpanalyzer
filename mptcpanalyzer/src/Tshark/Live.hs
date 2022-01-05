@@ -271,7 +271,7 @@ genLiveStatsMptcp mptcpAframe =  (mempty :: LiveStats MptcpUnidirectionalStats P
 showLiveStatsMptcp :: LiveStatsMptcp -> Text
 showLiveStatsMptcp stats = T.unlines [
       "Forward: "  <> showMptcpUnidirectionalStats (lsForwardStats $ stats ^. lsmStats)
-    , "Backward: " <> showMptcpUnidirectionalStats (lsForwardStats $ stats ^. lsmStats)
+    , "Backward: " <> showMptcpUnidirectionalStats (lsBackwardStats $ stats ^. lsmStats)
     ]
 
 showLiveStats :: SomeStats -> Text

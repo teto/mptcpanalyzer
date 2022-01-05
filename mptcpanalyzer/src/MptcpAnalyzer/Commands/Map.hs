@@ -1,8 +1,12 @@
 {-
 Module:  MptcpAnalyzer.Commands.Map
-Description :
+Description : Map tcp.stream ids from one pcap to another
 Maintainer  : matt
 Portability : Linux
+
+
+* Mapping tcp.stream ids from one pcap to another
+
 -}
 module MptcpAnalyzer.Commands.Map (
   mapTcpOpts
@@ -44,8 +48,6 @@ import System.Console.ANSI
 import System.Console.Haskeline
 import Tshark.Main (defaultTsharkPrefs)
 
--- tshow :: Show a => a -> TS.Text
--- tshow = TS.pack . Prelude.show
 
 mapTcpOpts :: ParserInfo CommandArgs
 mapTcpOpts = info (
@@ -61,7 +63,6 @@ mapMptcpOpts = info (
 
 parserMapConnection :: Bool -> Parser CommandArgs
 parserMapConnection forMptcp =
-  -- if forMptcp then
     ArgsMapTcpConnections <$> (
       CommandMapPcap <$>
       strArgument (
