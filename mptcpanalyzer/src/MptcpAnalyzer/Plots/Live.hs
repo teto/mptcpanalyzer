@@ -126,9 +126,7 @@ startMptcpCapture ::
 
 startMptcpCapture lsConfig initialLiveStats createProc = do
   (_, Just hout, Just herr, ph) <- createProcess_ "error when creating process" createProc
-  -- or LineBuffering
   hSetBuffering stdout LineBuffering
-  -- hSetBuffering stdout NoBuffering
   -- non blocking
   exitCode <- getProcessExitCode ph
   case exitCode of
@@ -153,7 +151,8 @@ startMptcpCapture lsConfig initialLiveStats createProc = do
           hGetContents herr >>= putStrLn >> pure liveStats
   -- putStrLn $ "final exitCode"
 
-{- 
+{- | Starts live analysis of an MPTCP flow
+One needs to filter
 -}
 configureLivePlotMptcp :: Members '[Log, Cache, P.Trace, P.Embed IO] r =>
        LivePlotTcpSettings

@@ -2,6 +2,8 @@
 Module: MptcpAnalyzer.Commands.Plot
 Maintainer  : matt
 License     : GPL-3
+
+
 -}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -10,7 +12,7 @@ License     : GPL-3
 {-# LANGUAGE StandaloneDeriving #-}
 module MptcpAnalyzer.Commands.Plot (
   -- * Actual commands that plot
-  cmdPlotMptcpAttribute
+    cmdPlotMptcpAttribute
   , cmdPlotTcpAttribute
 
   -- * parsers
@@ -299,11 +301,13 @@ instance PlotValue Word64 where
 -- TODO filter according to destination
 
 
--- destinations is an array of destination
+-- | Plots the selected attribute
+-- ![image description](pathtoimage.png)
+
 cmdPlotTcpAttribute :: (
   Members [Log, P.State MyState, Cache, Embed IO] m
   )
-  => String -- Tcp attr
+  => String -- ^Tcp attribute see @validTcpAttributes@
   -- -> FilePath -- ^ temporary file to save plot to
   -> [ConnectionRole]
   -> FrameFiltered TcpConnection Packet

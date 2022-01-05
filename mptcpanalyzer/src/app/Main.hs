@@ -2,7 +2,9 @@
 Description : Mptcpanalyzer
 Maintainer  : matt
 
- accepts as input(s) capture file(s) (\*.pcap) and depending on from there can :
+* Tutorial
+
+Accepts as input(s) capture file(s) (\*.pcap) and depending on from there can :
 
 * list the MPTCP connections in the pcap
 * display some statistics on a specific MPTCP connection (list of subflows etc...);
@@ -503,9 +505,6 @@ runCommand ArgsHelp = cmdHelp
 
 -- TODO move commands to their own module
 -- TODO it should update the loadedFile in State !
--- handleParseResult
--- loadPcap :: CMD.CommandCb
--- loadPcap :: Members [Log, P.State MyState, Cache, Embed IO] m => [String] -> Sem m RetCode
 loadPcap :: (Members '[Log, P.State MyState, Cache, P.Embed IO] r)
   => FilePath -- ^ File to load
   -> Sem r RetCode
@@ -569,25 +568,6 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
       -- Destinations
       (ArgsPlotOwdTcp mapping dest) ->
         -- Log.info $ "plotting owd for tcp.stream " <> tshow streamId1 <> " and " <> tshow streamId2
-        -- eframe1 <- buildAFrameFromStreamIdTcp defaultTsharkPrefs pcap1 streamId1
-        -- eframe2 <- buildAFrameFromStreamIdTcp defaultTsharkPrefs pcap2 streamId2
-
-        -- res <- case (eframe1, eframe2 ) of
-        --   (Right (FrameTcp con frame1), Right aframe2) -> do
-        --       -- TODO addTcpDest -> convert then
-        --       let
-        --         dest = genTcpDestFrame frame1 con
-
-        --         convertCols' :: Record '[TcpDest] -> Record '[SenderDest]
-        --         convertCols' = F.withNames . F.stripNames
-        --         sendFrame = fmap convertCols' dest
-
-        --       mergedRes <- mergeTcpConnectionsFromKnownStreams (FrameTcp con (F.zipFrames sendFrame frame1)) aframe2
-        --       -- let mbRecs = map recMaybe mergedRes
-        --       -- let justRecs = catMaybes mbRecs
-        --       Plots.cmdPlotTcpOwd tempPath handle (getDests dest) (ffCon aframe1) mergedRes
-        --   (Left err, _) -> return $ CMD.Error err
-        --   (_, Left err) -> return $ CMD.Error err
         Plots.cmdPlotTcpOwd tempPath handle (getDests dest) mapping
 
       (ArgsPlotOwdMptcp (PcapMapping pcap1 streamId1 pcap2 streamId2) dest) -> do
@@ -607,7 +587,6 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
 
       -- Starts livestatistics on a connection
       ArgsPlotLiveTcp livePlotSettings  -> 
-        -- (ArgsPlotLiveTcp connectionFilter mbFake mbConnectionRole ifname)
         configureLivePlotTcp livePlotSettings >> return CMD.Continue
 
       ArgsPlotLiveMptcp livePlotSettings -> do
@@ -624,8 +603,8 @@ runPlotCommand (PlotSettings mbOut _mbTitle displayPlot mptcpPlot) specificArgs 
           createProc :: CreateProcess
           -- for some reason it recognizes the image as application/octet-stream
           -- and I can't manage to make it use my image/png application
-          -- createProc = proc "xdg-open" [ tempPath ]
-          createProc = (proc "sxiv" [ tempPath ]) {
+          createProc = (proc "xdg-open" [ tempPath ]) {
+          -- createProc = (proc "sxiv" [ tempPath ]) {
               delegate_ctlc = True
               }
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 Module:  Tshark.Capture
 Description :  Description
@@ -50,7 +51,6 @@ import qualified Frames.InCore as F
 
 
 
--- copy/pasted
 pipeTableEitherOpt' :: (Monad m, ReadRec rs)
                    => ParserOptions
                    -> P.Pipe T.Text (Rec (Either T.Text :. ElField) rs) m ()
@@ -58,9 +58,6 @@ pipeTableEitherOpt' opts = do
   -- when (isNothing (headerOverride opts)) (() <$ P.await)
   P.map (readRow opts)
 
-
--- updateStatsFromRecord :: LiveStatsTcp -> Record HostCols -> LiveStatsTcp
--- updateStatsFromRecord ls row = 
 
 -- produceFrameChunks
 -- inCoreAoS
@@ -166,30 +163,44 @@ tsharkLoopMptcp config hout = do
     recEither = rtraverse getCompose
 
 
-
     -- expects a frame and a LiveStatsMptcp
     updateStatsFrame :: FrameRec HostCols -> LiveStatsMptcp -> LiveStatsMptcp
     updateStatsFrame frame lstats = foldl updateStats lstats frame
 
     updateStats :: LiveStatsMptcp -> Record HostCols -> LiveStatsMptcp
     -- case where the master subflow was already identified
-    updateStats lstats@(LiveStatsMptcp (Just main) _ _ subflows stats) row = 
+    updateStats lstats@(LiveStatsMptcp (Just main) _ _ subflows stats) row =
       case mbSubflow of
         -- Not a registered subflow yet
         Nothing -> case row ^. mptcpRecvToken of
-          Nothing -> trace "No rcv token" lstats
-          Just rcvToken -> let 
+          Nothing ->
+#ifdef DEBUG_CAPTURE
+            trace "No rcv token"
+#endif
+            lstats
+
+          Just rcvToken -> let
               subflow = buildSubflowFromRecord row
             in
-
-              trace "Rcv token received" (
+#ifdef DEBUG_CAPTURE
+              trace "Rcv token received"
+#endif
+              (
               -- if token of client then subflow initiated by server
               if tokenBelongToConnection rcvToken main then
                 lstats {
-                  _lsmMaster = trace "Adding new subflow" (Just (mptcpConnAddSubflow main subflow))
+                  _lsmMaster =
+#ifdef DEBUG_CAPTURE
+                      trace "Adding new subflow"
+#endif
+                      (Just (mptcpConnAddSubflow main subflow))
+
                 }
               else
-                trace ("ignoring flow " ++ show subflow) lstats
+#ifdef DEBUG_CAPTURE
+                trace ("ignoring flow " ++ show subflow)
+#endif
+                lstats
               )
         Just subflowStats ->
           case getSubflowFromStreamId main (row ^. tcpStream) of
@@ -209,44 +220,27 @@ tsharkLoopMptcp config hout = do
                 subflowUpdatedStats :: LiveStatsTcp
                 subflowUpdatedStats = genLiveStatsTcp (addTcpDestinationsToAFrame tcpAframe)
               in
-              trace "known subflow: update stats" (lstats {
+#ifdef DEBUG_CAPTURE
+              trace "known subflow: update stats"
+#endif
+              (lstats {
                   -- TODO we should have stats in both direction !
                   -- _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
                   _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
                 , _lsmSubflows = Map.insert (row ^. tcpStream) (subflowStats <> subflowUpdatedStats) (lstats ^. lsmSubflows)
               })
-          -- if row ^. mptcpRecvToken /= Nothing then
-          --   trace "Connection established" lstats
-          -- else
-          --   -- TODO
-          --   lstats
       where
         tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
 
         mptcpAframe :: FrameFiltered MptcpConnection Packet
         mptcpAframe =  FrameTcp main frame
 
-        -- aframe :: FrameFiltered TcpConnection Packet
-        -- aframe = FrameTcp 
         frame :: FrameRec HostCols
         frame = boxedFrame [row]
         mbSubflow = Map.lookup (row ^. tcpStream) (_lsmSubflows lstats)
-        -- updateSubflowStats = 
-        -- hasRcvToken = row ^. mptcpRecvToken 
 
 
     updateStats lstats@(LiveStatsMptcp Nothing (Just clientCfg) (Just serverCfg)  _subflows stats) row = error "should not happen"
-      -- newStats = lstats {
-      --   lsmMaster = trace "FINALIZING MPTCP connection" Just $ MptcpConnection {
-      --           -- get it from map.singleton
-      --           mpconStreamId = fromJust $ mympconStreamId
-      --         -- fromJust $ synAckPacket ^. mptcpSendKey
-      --         , mptcpServerConfig = serverCfg
-      --         , mptcpClientConfig = clientCfg
-      --         -- , mptcpNegotiatedVersion = 0 -- ignore for now
-      --         , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
-      --       }
-      --     }
 
       -- in updateStats newStats row
     -- attempts to fetch client mptcp key/token from the initial syn (mptcp version 0)
@@ -255,7 +249,10 @@ tsharkLoopMptcp config hout = do
         if hasClientKey then
             -- streamPackets = filterFrame (\x -> x ^. mptcpStream == mympconStreamId) frame
             -- subflows = map (buildSubflowFromTcpStreamId frame) (getTcpStreams streamPackets)
-            trace "SYN FOUND! retreiving client key" lstats {
+#ifdef DEBUG_CAPTURE
+            trace "SYN FOUND! retreiving client key"
+#endif
+            lstats {
                 _lsmClient = traceShowId mptcpConfig
               , _lsmMaster = finalizeLiveStatsMptcp mptcpConfig (_lsmServer lstats)
               , _lsmSubflows = Map.singleton (row ^. tcpStream) (genLiveStatsTcp (FrameTcp (sfConn subflow) mempty))
@@ -263,12 +260,18 @@ tsharkLoopMptcp config hout = do
               }
         else if isSynAck then
           -- lstats & set (traceShowId mptcpConfig)
-              trace "SYNACK FOUND! retreiving server key" lstats {
+#ifdef DEBUG_CAPTURE
+              trace "SYNACK FOUND! retreiving server key"
+#endif
+              lstats {
                 _lsmServer = traceShowId mptcpConfig
               , _lsmMaster = finalizeLiveStatsMptcp (_lsmClient lstats) mptcpConfig
               }
         else
-          trace "No syn\n" lstats
+#ifdef DEBUG_CAPTURE
+          trace "No syn\n"
+#endif
+          lstats
       where
         tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
         -- tcpAframe = buildA
@@ -284,7 +287,10 @@ tsharkLoopMptcp config hout = do
         finalizeLiveStatsMptcp :: Maybe MptcpEndpointConfiguration -> Maybe MptcpEndpointConfiguration -> Maybe MptcpConnection
         finalizeLiveStatsMptcp mclientCfg mserverCfg = case (mclientCfg, mserverCfg) of
           (Just clientCfg, Just serverCfg) ->
-            trace "FINALIZING MPTCP connection" (Just $ MptcpConnection {
+#ifdef DEBUG_CAPTURE
+            trace "FINALIZING MPTCP connection"
+#endif
+            (Just $ MptcpConnection {
                 -- get it from map.singleton
                 mpconStreamId = fromJust $ mympconStreamId
               -- fromJust $ synAckPacket ^. mptcpSendKey
@@ -295,40 +301,3 @@ tsharkLoopMptcp config hout = do
               , _mpconSubflows = Set.singleton subflow
             })
           _ -> Nothing
-
-    -- fetch server mptcp key/token from the syn/ack
-    -- TODO at the end it should call itself ?
-    -- updateStats frame lstats@(LiveStatsMptcp Nothing _clientCfg Nothing _subflows stats) =
-    --   let
-    --     synPacket = (frameRow synPackets 0)
-    --     mympconStreamId :: Maybe StreamIdMptcp
-    --     mympconStreamId =  synPacket ^. mptcpStream
-    --     mptcpServerCfg = fromJust $ genMptcpEndpointConfigFromRow synPacket 
-    --     matchConnection row = let
-    --         tuple = traceShowId (buildTcpConnectionTupleFromRecord row)
-    --       in
-    --         TcpFlagSyn `elem` (row ^. tcpFlags) && lsConnection config == tcpConnectionfromOriented (reverseTcpConnectionTuple tuple)
-    --     synPackets = filterFrame (matchConnection) frame
-    --     streamPackets = filterFrame (\x -> x ^. mptcpStream == mympconStreamId) frame
-
-    --     -- subflows shall be discovered along the way
-    --     subflows = map (buildSubflowFromTcpStreamId frame) (getTcpStreams streamPackets)
-
-    --   in
-    --     case lsmClient lstats of
-    --       Just clientConfig -> trace "FINALIZING MPTCP connection" lstats {
-    --           lsmServer = Just mptcpServerCfg
-    --         , lsmMaster = Just $ MptcpConnection {
-    --             mpconStreamId = fromJust $ mympconStreamId
-    --           -- fromJust $ synAckPacket ^. mptcpSendKey
-    --           , mptcpServerConfig = mptcpServerCfg
-    --           , mptcpClientConfig = clientConfig
-    --           , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
-    --         }
-    --       }
-    --       Nothing -> trace " still waiting for client config" lstats {
-    --         lsmServer = Just mptcpServerCfg
-    --       }
-
-    -- fetch client mptcp key/token from the client answer to the syn/ack, in mptcp version 1
-    -- updateStats lstats@(LiveStatsMptcp Nothing Nothing (Just serverConfig) _ stats) row = lstats

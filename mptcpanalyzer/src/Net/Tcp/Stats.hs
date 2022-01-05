@@ -3,7 +3,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-
 Module:  Net.Tcp.Stats
-Description : Uni/bidirectional statistics for subflows
+Description : Compute basic TCP statistics
 Maintainer  : matt
 Portability : Linux
 -}
