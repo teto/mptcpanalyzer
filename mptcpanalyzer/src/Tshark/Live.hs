@@ -175,7 +175,7 @@ data LiveStats stats packet = LiveStats {
   , lsHasFinished :: Bool
   -- ^ True once it sees a FIN
   -- , lsFrame :: FrameRec HostCols
-  }
+  } 
 
 instance Semigroup stats => Semigroup (LiveStats stats packets) where
   (<>) a b = LiveStats {
@@ -220,6 +220,7 @@ data LiveStatsMptcp = LiveStatsMptcp {
         -- (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
   -- ^ TODO these should be subflow stats (dss/dsn)
   , _lsmStats :: LiveStats MptcpUnidirectionalStats Packet
+  , _lsmFinished :: Bool
   }
 
 makeLenses ''LiveStatsMptcp
@@ -239,6 +240,7 @@ mkLiveStatsMptcp = LiveStatsMptcp {
         , _lsmServer = Nothing
         , _lsmSubflows = mempty
         , _lsmStats = mempty
+        , _lsmFinished = False
         }
 -- type CaptureSettingsMptcp = LiveStatsMptcp
 
@@ -251,7 +253,7 @@ genLiveStatsTcp frameWithDest@(FrameTcp _ frame) = let
       lsPackets = frameLength frame
     -- , lsFrame = frame
     , lsForwardStats = let
-        merged = 
+        merged =
           -- trace ("FRAMEWITH DEST\n" ++ showFrame [csvDelimiter defaultTsharkPrefs] (ffFrame frameWithDest) ++ "\n " ++ show forwardFrameWithDest)
           forwardFrameWithDest
         in merged
@@ -259,6 +261,7 @@ genLiveStatsTcp frameWithDest@(FrameTcp _ frame) = let
     }
 
 
+-- | Generate mptcp statistics from a frame
 genLiveStatsMptcp :: FrameFiltered MptcpConnection Packet -> LiveStats MptcpUnidirectionalStats Packet
 genLiveStatsMptcp mptcpAframe =  (mempty :: LiveStats MptcpUnidirectionalStats Packet) {
     lsPackets = frameLength $ ffFrame mptcpAframe

@@ -235,7 +235,7 @@ tcpstream 6 transferred 0.0 Bytes out of 469.0 Bytes, accounting for 0.00%
 -}
 showMptcpStats :: MptcpUnidirectionalStats -> String
 showMptcpStats s = unlines [
-    " Mptcp stats towards " ++ show (musDirection s) ++ " :"
+    " Mptcp stats towards "  ++ " :"
     , "- Duration " ++ show (getMptcpStatsDuration s)
     , "- Goodput " ++ show (getMptcpGoodput s)
     , "<TODO>\n"
