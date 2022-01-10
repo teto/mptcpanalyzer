@@ -110,16 +110,18 @@
         mptcp = mkPackage "mptcp";
         mptcp-pm = mkPackage "mptcp-pm";
 
-        mptcpanalyzer = hsPkgs.developPackage {
-          root = pkgs.lib.cleanSource ./mptcpanalyzer;
-          name = "mptcpanalyzer";
-          returnShellEnv = true;
-          withHoogle = true;
-          overrides = hold: hnew: (haskellOverlay hold hnew) // {
-            mptcp-pm = self.packages."${system}".mptcp-pm;
-          };
-          modifier = myModifier;
-        };
+        mptcpanalyzer = mkPackage "mptcpanalyzer";
+        # {
+        # mptcpanalyzer = hsPkgs.developPackage {
+        #   root = pkgs.lib.cleanSource ./mptcpanalyzer;
+        #   name = "mptcpanalyzer";
+        #   returnShellEnv = true;
+        #   withHoogle = true;
+        #   overrides = hold: hnew: (haskellOverlay hold hnew) // {
+        #     mptcp-pm = self.packages."${system}".mptcp-pm;
+        #   };
+        #   modifier = myModifier;
+        # };
       };
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
