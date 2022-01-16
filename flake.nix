@@ -75,6 +75,7 @@
           cabal-install
           replica.packages.${system}.build
           hls.packages.${system}."haskell-language-server-${compilerVersion}"
+          # not available
           # hls.packages.${system}."hie-bios-${compilerVersion}"
           cairo # for chart-cairo
           dhall  # for the repl
@@ -88,10 +89,9 @@
           pkgs.stylish-haskell
 
           # we need the mptcp.h in mptcp-pm
-          pkgs.linuxHeaders
+          # pkgs.linuxHeaders
           # alternatively we could do makeLinuxHeaders pkgs.linux_latest.dev
-
-        #   threadscope
+          #   threadscope
         ]);
 
       mkPackage = name:
@@ -110,7 +110,12 @@
         mptcp = mkPackage "mptcp";
         mptcp-pm = mkPackage "mptcp-pm";
 
-        mptcpanalyzer = mkPackage "mptcpanalyzer";
+        mptcpanalyzer = let 
+          pkg = mkPackage "mptcpanalyzer";
+        in
+          pkg.overrideAttrs(oa: {
+            nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [ pkgs.installShellFiles ];
+          });
         # {
         # mptcpanalyzer = hsPkgs.developPackage {
         #   root = pkgs.lib.cleanSource ./mptcpanalyzer;

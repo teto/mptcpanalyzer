@@ -37,7 +37,6 @@ import Net.Mptcp
 -- import Net.Mptcp.Fork.Constants as CONST
 import qualified Net.Mptcp.Upstream.Constants as C
 import qualified Net.Mptcp.Upstream.Commands as CMD
--- import Net.Mptcp.Constants_v1 as CONST
 import Net.Mptcp.PathManager
 import Net.Mptcp.PathManager.Upstream.NdiffPorts
 import Net.SockDiag
