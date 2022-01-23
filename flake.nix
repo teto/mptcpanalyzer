@@ -110,23 +110,12 @@
         mptcp = mkPackage "mptcp";
         mptcp-pm = mkPackage "mptcp-pm";
 
-        mptcpanalyzer = let 
+        mptcpanalyzer = let
           pkg = mkPackage "mptcpanalyzer";
         in
           pkg.overrideAttrs(oa: {
             nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [ pkgs.installShellFiles ];
           });
-        # {
-        # mptcpanalyzer = hsPkgs.developPackage {
-        #   root = pkgs.lib.cleanSource ./mptcpanalyzer;
-        #   name = "mptcpanalyzer";
-        #   returnShellEnv = true;
-        #   withHoogle = true;
-        #   overrides = hold: hnew: (haskellOverlay hold hnew) // {
-        #     mptcp-pm = self.packages."${system}".mptcp-pm;
-        #   };
-        #   modifier = myModifier;
-        # };
       };
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
@@ -135,7 +124,9 @@
         mptcp = self.packages.${system}.mptcp.envFunc {};
         mptcp-pm = self.packages.${system}.mptcp-pm.envFunc {};
 
-        mptcpanalyzer = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
+        mptcpanalyzer = let 
+          shell = self.packages.${system}.mptcpanalyzer.envFunc {};
+        in shell.overrideAttrs(oa: {
           postShellHook = ''
               cd mptcpanalyzer
               set -x

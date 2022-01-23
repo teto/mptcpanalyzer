@@ -49,7 +49,7 @@ import Control.Exception (assert)
 import Debug.Trace
 -- import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 
--- | Useful to show DSN
+-- | Data Sequence Numbers (DSN) min and max in one direction
 data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
   -- tssStats :: TcpUnidirectionalStats
     tssStats  :: TcpUnidirectionalStats
@@ -78,7 +78,7 @@ instance Monoid TcpSubflowUnidirectionalStats where
 -- | Holds MPTCP application level statistics for one direction
 data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
   -- TODO remove
-    musApplicativeBytes :: Word64
+    musApplicativeBytes :: Bytes
   -- TODO these should be maybes ?
   , musMaxDsn           :: Word64
   , musMinDsn           :: Word64
@@ -94,18 +94,19 @@ instance Semigroup MptcpUnidirectionalStats where
   -- TODO fix
   (<>) s1 s2 =
       s1 {
-            musMaxDsn = max (musMaxDsn s1) (musMaxDsn s2)
-          , musMinDsn = min (musMinDsn s1) (musMinDsn s2)
-          -- , musApplicativeBytes = musApplicativeBytes s1 ++ musApplicativeBytes s2
+            musMaxDsn = maxDsn
+          , musMinDsn = minDsn
+          , musApplicativeBytes = Bytes (maxDsn - minDsn)
         }
+      where
+        maxDsn = max (musMaxDsn s1) (musMaxDsn s2)
+        minDsn = min (musMinDsn s1) (musMinDsn s2)
 
 
 -- |Goodput is defined as the amount of effective data exchanged over time
 -- I.e., (maxDsn - minDsn) / (Mptcp communication Duration)
 getMptcpGoodput :: MptcpUnidirectionalStats -> Throughput
-getMptcpGoodput s = Throughput (Bytes $ musApplicativeBytes s) ((getMptcpStatsDuration s) ^. _1)
-
--- fromIntegral
+getMptcpGoodput s = Throughput (musApplicativeBytes s) ((getMptcpStatsDuration s) ^. _1)
 
 -- | return max - min across subflows
 getMptcpStatsDuration :: MptcpUnidirectionalStats -> (Duration, Timestamp, Timestamp)
@@ -125,7 +126,6 @@ getSubflowStats ::
   (TcpSeq F.∈ rs, F.RecVec rs, RelTime F.∈ rs, TcpLen F.∈ rs
   , PacketId F.∈ rs
     , IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
-  -- , TcpDest F.∈ rs
   )
   => FrameFiltered MptcpSubflow (F.Record rs) -> ConnectionRole -> TcpSubflowUnidirectionalStats
 getSubflowStats aframe role = TcpSubflowUnidirectionalStats {
@@ -155,11 +155,11 @@ getMptcpStats ::
 getMptcpStats (FrameTcp mptcpConn frame) dest =
   MptcpUnidirectionalStats {
       -- musDirection = trace ("setting dest to " ++ show dest ) dest
-      musApplicativeBytes = getSeqRange maxDsn minDsn
+      musApplicativeBytes = Bytes $ getSeqRange maxDsn minDsn
     , musMaxDsn = maxDsn
     , musMinDsn = minDsn
     -- assume packet order has not been messed with
-    , musTime = F.frameRow frame (F.frameLength frame) ^. relTime
+    , musTime = F.frameRow frame (F.frameLength frame - 1) ^. relTime
     -- we need the stream id / FrameFiltered MptcpSubflow (Record rs)
     , musSubflowStats = Map.fromList $ map (\sf -> (sf, getStats dest sf))  (toList $ _mpconSubflows mptcpConn)
   }
@@ -172,19 +172,8 @@ getMptcpStats (FrameTcp mptcpConn frame) dest =
       in
         getSubflowStats sfFrame role
 
-    -- frame = addTcpDestToFrame $ ffFrame aframe
-    -- these return Maybes
-    -- minSeq = minimum (F.toList $ view tcpSeq <$> frame)
-    -- maxSeq = maximum $ F.toList $ view tcpSeq <$> frame
-
     maxTime = maximum $ F.toList $ view relTime <$> frame
     minTime = minimum $ F.toList $ view relTime <$> frame
-
-    -- dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dsn")
-    -- mbRecs = map recMaybe mergedRes
-    -- justRecs = catMaybes mbRecs
-  -- in
-    -- (toFrame justRecs, [])
 
     dsns = catMaybes $ F.toList $ view mptcpDsn <$> frame
 
