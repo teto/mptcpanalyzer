@@ -75,6 +75,7 @@
           cabal-install
           replica.packages.${system}.build
           hls.packages.${system}."haskell-language-server-${compilerVersion}"
+          # not available
           # hls.packages.${system}."hie-bios-${compilerVersion}"
           cairo # for chart-cairo
           dhall  # for the repl
@@ -88,10 +89,9 @@
           pkgs.stylish-haskell
 
           # we need the mptcp.h in mptcp-pm
-          pkgs.linuxHeaders
+          # pkgs.linuxHeaders
           # alternatively we could do makeLinuxHeaders pkgs.linux_latest.dev
-
-        #   threadscope
+          #   threadscope
         ]);
 
       mkPackage = name:
@@ -110,16 +110,12 @@
         mptcp = mkPackage "mptcp";
         mptcp-pm = mkPackage "mptcp-pm";
 
-        mptcpanalyzer = hsPkgs.developPackage {
-          root = pkgs.lib.cleanSource ./mptcpanalyzer;
-          name = "mptcpanalyzer";
-          returnShellEnv = true;
-          withHoogle = true;
-          overrides = hold: hnew: (haskellOverlay hold hnew) // {
-            mptcp-pm = self.packages."${system}".mptcp-pm;
-          };
-          modifier = myModifier;
-        };
+        mptcpanalyzer = let
+          pkg = mkPackage "mptcpanalyzer";
+        in
+          pkg.overrideAttrs(oa: {
+            nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [ pkgs.installShellFiles ];
+          });
       };
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
@@ -128,7 +124,9 @@
         mptcp = self.packages.${system}.mptcp.envFunc {};
         mptcp-pm = self.packages.${system}.mptcp-pm.envFunc {};
 
-        mptcpanalyzer = self.packages.${system}.mptcpanalyzer.overrideAttrs(oa: {
+        mptcpanalyzer = let 
+          shell = self.packages.${system}.mptcpanalyzer.envFunc {};
+        in shell.overrideAttrs(oa: {
           postShellHook = ''
               cd mptcpanalyzer
               set -x

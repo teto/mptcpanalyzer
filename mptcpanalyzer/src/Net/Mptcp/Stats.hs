@@ -46,9 +46,10 @@ import qualified Frames.InCore as F
 import MptcpAnalyzer.Types
 import MptcpAnalyzer.Utils.Text
 import Control.Exception (assert)
+import Debug.Trace
 -- import MptcpAnalyzer.Pcap (addTcpDestinationsToAFrame)
 
--- | Useful to show DSN
+-- | Data Sequence Numbers (DSN) min and max in one direction
 data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
   -- tssStats :: TcpUnidirectionalStats
     tssStats  :: TcpUnidirectionalStats
@@ -60,11 +61,15 @@ data TcpSubflowUnidirectionalStats = TcpSubflowUnidirectionalStats {
 instance Semigroup TcpSubflowUnidirectionalStats where
    -- (<>) :: a -> a -> a
    -- TODO this does nothing
-   (<>) a b = a
+   (<>) a b = TcpSubflowUnidirectionalStats {
+            tssStats = tssStats a <> tssStats b
+          , tssMinDsn = min (tssMinDsn a) (tssMinDsn b)
+          , tssMaxDsn = max (tssMaxDsn a) (tssMaxDsn b)
+          }
 
 instance Monoid TcpSubflowUnidirectionalStats where
   mempty = TcpSubflowUnidirectionalStats {
-      tssStats = mempty 
+      tssStats = mempty
     , tssMinDsn = 0
     , tssMaxDsn = 0
     }
@@ -72,45 +77,36 @@ instance Monoid TcpSubflowUnidirectionalStats where
 
 -- | Holds MPTCP application level statistics for one direction
 data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
-    musDirection        :: ConnectionRole
-  , musApplicativeBytes :: Word64
+  -- TODO remove
+    musApplicativeBytes :: Bytes
+  -- TODO these should be maybes ?
   , musMaxDsn           :: Word64
   , musMinDsn           :: Word64
+  , musTime             :: Double
+  -- TODO add times
   , musSubflowStats     :: Map MptcpSubflow TcpSubflowUnidirectionalStats
   } deriving Show
 
 instance Monoid MptcpUnidirectionalStats where
-  mempty = MptcpUnidirectionalStats RoleServer 0 0 0 mempty
+  mempty = MptcpUnidirectionalStats 0 0 0 0 mempty
 
 instance Semigroup MptcpUnidirectionalStats where
   -- TODO fix
-  (<>) s1 s2 = assert (musDirection s1 == musDirection s2)
+  (<>) s1 s2 =
       s1 {
-            musMaxDsn = max (musMaxDsn s1) (musMaxDsn s2)
-          , musMinDsn = min (musMinDsn s1) (musMinDsn s2)
-          -- , musApplicativeBytes = musApplicativeBytes s1 ++ musApplicativeBytes s2
+            musMaxDsn = maxDsn
+          , musMinDsn = minDsn
+          , musApplicativeBytes = Bytes (maxDsn - minDsn)
         }
+      where
+        maxDsn = max (musMaxDsn s1) (musMaxDsn s2)
+        minDsn = min (musMinDsn s1) (musMinDsn s2)
 
-
-    -- ''' application data = goodput = useful bytes '''
-    -- ''' max(dsn)- min(dsn) - 1'''
-    -- mptcp_application_bytes: Byte
-
-    -- '''Total duration of the mptcp connection'''
-    -- mptcp_duration: datetime.timedelta
-    -- subflow_stats: List[TcpUnidirectionalStats]
-
-    -- @property
-    -- def mptcp_throughput_bytes(self) -> Byte:
-    --     ''' sum of total bytes transferred '''
-    --     return Byte(sum(map(lambda x: x.throughput_bytes, self.subflow_stats)))
 
 -- |Goodput is defined as the amount of effective data exchanged over time
 -- I.e., (maxDsn - minDsn) / (Mptcp communication Duration)
 getMptcpGoodput :: MptcpUnidirectionalStats -> Throughput
-getMptcpGoodput s = Throughput (Bytes $ musApplicativeBytes s) ((getMptcpStatsDuration s) ^. _1)
-
--- fromIntegral
+getMptcpGoodput s = Throughput (musApplicativeBytes s) ((getMptcpStatsDuration s) ^. _1)
 
 -- | return max - min across subflows
 getMptcpStatsDuration :: MptcpUnidirectionalStats -> (Duration, Timestamp, Timestamp)
@@ -130,7 +126,6 @@ getSubflowStats ::
   (TcpSeq F.∈ rs, F.RecVec rs, RelTime F.∈ rs, TcpLen F.∈ rs
   , PacketId F.∈ rs
     , IpSource ∈ rs, IpDest ∈ rs, TcpSrcPort ∈ rs, TcpDestPort ∈ rs, TcpStream ∈ rs
-  -- , TcpDest F.∈ rs
   )
   => FrameFiltered MptcpSubflow (F.Record rs) -> ConnectionRole -> TcpSubflowUnidirectionalStats
 getSubflowStats aframe role = TcpSubflowUnidirectionalStats {
@@ -142,7 +137,6 @@ getSubflowStats aframe role = TcpSubflowUnidirectionalStats {
       aframe' = FrameTcp (sfConn $ ffCon aframe) (ffFrame aframe)
 
 
--- mptcp_compute_throughput est bourrin il calcule tout d'un coup, je veux avoir une version qui marche iterativement
 -- | Generates Stats for one direction only
 getMptcpStats ::
   (
@@ -160,10 +154,12 @@ getMptcpStats ::
   -> MptcpUnidirectionalStats
 getMptcpStats (FrameTcp mptcpConn frame) dest =
   MptcpUnidirectionalStats {
-      musDirection = dest
-    , musApplicativeBytes = getSeqRange maxDsn minDsn
+      -- musDirection = trace ("setting dest to " ++ show dest ) dest
+      musApplicativeBytes = Bytes $ getSeqRange maxDsn minDsn
     , musMaxDsn = maxDsn
     , musMinDsn = minDsn
+    -- assume packet order has not been messed with
+    , musTime = F.frameRow frame (F.frameLength frame - 1) ^. relTime
     -- we need the stream id / FrameFiltered MptcpSubflow (Record rs)
     , musSubflowStats = Map.fromList $ map (\sf -> (sf, getStats dest sf))  (toList $ _mpconSubflows mptcpConn)
   }
@@ -176,29 +172,19 @@ getMptcpStats (FrameTcp mptcpConn frame) dest =
       in
         getSubflowStats sfFrame role
 
-    -- frame = addTcpDestToFrame $ ffFrame aframe
-    -- these return Maybes
-    -- minSeq = minimum (F.toList $ view tcpSeq <$> frame)
-    -- maxSeq = maximum $ F.toList $ view tcpSeq <$> frame
-
     maxTime = maximum $ F.toList $ view relTime <$> frame
     minTime = minimum $ F.toList $ view relTime <$> frame
-
-    -- dsn_range, dsn_max, dsn_min = transmitted_seq_range(df, "dsn")
-    -- mbRecs = map recMaybe mergedRes
-    -- justRecs = catMaybes mbRecs
-  -- in
-    -- (toFrame justRecs, [])
 
     dsns = catMaybes $ F.toList $ view mptcpDsn <$> frame
 
     -- mergedPcapToFrame
     maxDsn, minDsn :: Word64
     maxDsn = maximum dsns
-
     minDsn = minimum dsns
+
 
 showMptcpUnidirectionalStats :: MptcpUnidirectionalStats -> Text
 showMptcpUnidirectionalStats stats = T.unlines [
-  "Max/min dsn: " <> tshow (musMinDsn stats) <> "/" <> tshow (musMaxDsn stats) <> " towards " <> tshow (musDirection stats)
+  -- <> " towards " <> tshow (musDirection stats)
+  "Min/max dsn: " <> tshow (musMinDsn stats) <> "/" <> tshow (musMaxDsn stats) 
   ]

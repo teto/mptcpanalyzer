@@ -126,8 +126,8 @@ common shared-properties
     --     ghc-options: -DMPTCP_EXTRA_CHECKS
 
     if flag(Dev)
-        cpp-options:
-          -DDEBUG_CAPTURE=1
+        -- cpp-options:
+        --   -DDEBUG_CAPTURE=1
         ghc-options:
           -- -ddump-splices
           -- -ddump-to-file

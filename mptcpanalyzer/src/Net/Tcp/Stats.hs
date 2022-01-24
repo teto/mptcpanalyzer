@@ -38,7 +38,7 @@ import Frames
 import qualified Frames as F
 import qualified Frames.InCore as F
 
-type Byte = Int
+newtype Byte = Byte Word64
 
 -- tus = tcp Unidrectional Stats
 data TcpUnidirectionalStats = TcpUnidirectionalStats {
@@ -66,6 +66,8 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     , tusSndUna :: Word32
     , tusSndNext :: Word32
     -- , tusReinjectedBytes :: Map Word64 Word16
+
+    -- TODO use Bytes instead
     , tusReinjectedBytes :: Word32 -- ^Amount of reinjected bytes
     -- , tusUniqueBytes :: Word64
 
@@ -83,9 +85,6 @@ data TcpUnidirectionalStats = TcpUnidirectionalStats {
     -- , tusGoodput :: Byte
     }  deriving (Show, Eq)
     -- deriving Semigroup via WrappedMonoid TcpUnidirectionalStats
-
--- deriving instance Semigroup TcpUnidirectionalStats
--- deriving instance Monoid TcpUnidirectionalStats
 
 instance Semigroup TcpUnidirectionalStats where
    -- (<>) :: a -> a -> a

@@ -55,7 +55,7 @@ type MbWord64 = Maybe Word64
 
 
 data TsharkFieldDesc = TsharkFieldDesc {
-        tfieldFullname :: Text
+          tfieldFullname :: Text
         -- ^Full wireshark name of the field
         , tfieldColType :: Name
         -- ^Haskell type so that we can generate the proper raw type via templateHaskell

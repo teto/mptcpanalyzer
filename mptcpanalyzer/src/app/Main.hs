@@ -287,7 +287,7 @@ opts = info (startupParser <**> helper)
   <> progDesc "Tool to provide insight in MPTCP (Multipath Transmission Control Protocol)\
               \performance via the generation of stats & plots"
   <> header "Type 'help' or '?' to list the available commands"
-  -- <> footer "You can report issues/contribute at https://github.com/teto/mptcpanalyzer"
+  <> footer "Report issues/contribute at https://github.com/teto/mptcpanalyzer"
   )
 
 

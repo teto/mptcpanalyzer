@@ -50,6 +50,8 @@ import qualified Polysemy.Log as Log
 import qualified Polysemy.State as P
 import Polysemy.Trace as P
 import Prelude hiding (log)
+import Text.Printf
+import qualified Data.Text as Text
 
 piListTcpOpts ::  ParserInfo CommandArgs
 piListTcpOpts = info (
@@ -235,16 +237,16 @@ tcpstream 6 transferred 0.0 Bytes out of 469.0 Bytes, accounting for 0.00%
 -}
 showMptcpStats :: MptcpUnidirectionalStats -> String
 showMptcpStats s = unlines [
-    " Mptcp stats towards " ++ show (musDirection s) ++ " :"
-    , "- Duration " ++ show (getMptcpStatsDuration s)
-    , "- Goodput " ++ show (getMptcpGoodput s)
-    , "<TODO>\n"
-    , "Applicative Bytes : " ++ show (musApplicativeBytes s)
+    " Mptcp stats towards "  ++ " :"
+    , "- Duration: " ++ show duration ++ " (from " ++ show start ++ " to " ++ show end ++ ")"
+    , "- Goodput " ++ show (getMptcpGoodput s) ++ "B/s"
+    , "- Applicative Bytes : " ++ show (musApplicativeBytes s) ++ "B"
     , "Subflow stats:"
     , intercalate "\n" (map showSubflowStats (Map.toList $ musSubflowStats s))
     ]
     where
       -- ++ show (tusStreamId)
+      (duration, start, end) = getMptcpStatsDuration s
       showSubflowStats (sf, sfStats) = let
           tcpStats = tssStats sfStats
           seqRange = getTcpSeqRange tcpStats
@@ -253,7 +255,7 @@ showMptcpStats s = unlines [
           ++ ": transferred " ++ show seqRange ++ " out of " ++ show totalApplicationBytes
           ++ " between "
           ++ show (tusStartTime tcpStats) ++ " end time: " ++ show (tusEndTime $ tssStats sfStats)
-          ++ " , accouting for " ++ show (seqRange / fromIntegral totalApplicationBytes) ++ " %"
+          ++ " , accounting for " ++ (printf "%.2f" (seqRange / fromIntegral totalApplicationBytes)) ++ " %"
 
 {-
 Returns:

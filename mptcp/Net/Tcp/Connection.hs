@@ -32,7 +32,8 @@ data TcpConnection = TcpConnection {
   } deriving (Show, Eq, Ord)
 
 
--- |
+-- | Used when you can't identify the server or client yet.
+-- See "tcpConnectionFromOriented"/"tcpConnectionToOriented"
 data TcpConnectionOriented = TcpConnectionOriented {
     conTcpSourceIp :: IP -- ^Source ip
   , conTcpDestinationIp :: IP -- ^Destination ip
@@ -56,7 +57,6 @@ tcpConnectionFromOriented ::
   -- ^ Source is the client
   -> TcpConnection
 tcpConnectionFromOriented tup = TcpConnection {
-
     conTcpClientIp = conTcpSourceIp tup
   , conTcpServerIp = conTcpDestinationIp tup
   , conTcpClientPort = conTcpSourcePort tup

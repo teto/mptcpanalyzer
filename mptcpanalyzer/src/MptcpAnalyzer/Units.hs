@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-
 Module:  MptcpAnalyzer.Units
 Description :  Make it easier to work with units
@@ -25,7 +27,9 @@ import Data.Word (Word32, Word64)
 -- import Data.Time.Units
 
 -- https://github.com/chrissound/byteunits#readme
-data Bytes = Bytes Word64
+newtype Bytes = Bytes Word64
+  deriving stock  Show
+  deriving newtype (Num, Ord, Eq, Real, Enum, Integral)
 
 data TimeUnit = Second | MilliSecond | NanoSecond
 -- TimeUnit
