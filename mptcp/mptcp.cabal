@@ -40,7 +40,6 @@ library
       , containers
       , enumset
       , ip >= 1.7.3
-      , bytestring-conversion
       , text
       , unordered-containers
     hs-source-dirs:

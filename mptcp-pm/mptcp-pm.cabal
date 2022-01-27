@@ -124,7 +124,6 @@ library
       , cereal
       , enumset
       , ip >= 1.7.3
-      , bytestring-conversion
       , text
       -- todo get rid of it
       -- for liftIO

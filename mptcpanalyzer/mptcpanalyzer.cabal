@@ -70,14 +70,12 @@ common shared-properties
       , aeson-extra
       , Cabal
       , Chart >= 1.5
-      , Chart-cairo
+      -- , Chart-cairo
+      , Chart-diagrams
       , Frames
       , bytestring
-      -- , ghc >= 8.10.7
       , bitwise-enum
       -- , enumset
-      -- , byteunits
-      -- , time-units
       , cereal
       , containers
       , mptcp
