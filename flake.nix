@@ -57,8 +57,9 @@
             sha256 = "sha256-qopa1ED4Bqk185b1AXZ32BG2s80SHDSkCODyoZfnft0=";
           };
         });
-        mptcp = self.packages."${system}".mptcp;
 
+        # self-reference to build mptcpanalyzer/mptcp-pm
+        mptcp = self.packages."${system}".mptcp;
       };
 
       pkgs = import nixpkgs {
@@ -107,9 +108,13 @@
     in {
       packages = {
 
+        # basic library
         mptcp = mkPackage "mptcp";
+
+        # path manager
         mptcp-pm = mkPackage "mptcp-pm";
 
+        # pcap analysis
         mptcpanalyzer = let
           pkg = mkPackage "mptcpanalyzer";
         in

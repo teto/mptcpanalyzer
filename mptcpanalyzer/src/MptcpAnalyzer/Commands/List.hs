@@ -237,12 +237,12 @@ tcpstream 6 transferred 0.0 Bytes out of 469.0 Bytes, accounting for 0.00%
 -}
 showMptcpStats :: MptcpUnidirectionalStats -> String
 showMptcpStats s = unlines [
-    " Mptcp stats towards "  ++ " :"
+      " Mptcp stats towards "  ++ " :"
     , "- Duration: " ++ show duration ++ " (from " ++ show start ++ " to " ++ show end ++ ")"
     , "- Goodput " ++ show (getMptcpGoodput s) ++ "B/s"
     , "- Applicative Bytes : " ++ show (musApplicativeBytes s) ++ "B"
     , "Subflow stats:"
-    , intercalate "\n" (map showSubflowStats (Map.toList $ musSubflowStats s))
+    , intercalate "\n" (map showSubflowStats (Map.toAscList $ musSubflowStats s))
     ]
     where
       -- ++ show (tusStreamId)
@@ -251,7 +251,7 @@ showMptcpStats s = unlines [
           tcpStats = tssStats sfStats
           seqRange = getTcpSeqRange tcpStats
           totalApplicationBytes = musApplicativeBytes s
-        in "stream " ++ show (conTcpStreamId (sfConn sf))
+        in "stream " ++ showStream (conTcpStreamId (sfConn sf))
           ++ ": transferred " ++ show seqRange ++ " out of " ++ show totalApplicationBytes
           ++ " between "
           ++ show (tusStartTime tcpStats) ++ " end time: " ++ show (tusEndTime $ tssStats sfStats)

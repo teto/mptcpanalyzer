@@ -25,19 +25,9 @@ import GHC.TypeLits (KnownSymbol)
 import Language.Haskell.TH (Name, Q)
 import Net.IP
 import Net.IPv6 (IPv6(..))
-import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
+import Net.Tcp.Constants (TcpFlag(..))
 
 import Data.Map (Map, fromList, mapKeys)
--- Phantom types
--- data Mptcp
--- data Tcp
--- -- data Protocol = Tcp | Mptcp
-
--- -- TODO use Word instead
--- newtype StreamId a = StreamId Word32 deriving (Show, Read, Eq, Ord )
-
--- type StreamIdTcp = StreamId
--- type StreamIdMptcp = StreamId
 
 type TcpFlagList = [TcpFlag]
 type MbPacketIdList = Maybe [Word64]
@@ -54,16 +44,17 @@ type MbMptcpDack = Maybe Word64
 type MbWord64 = Maybe Word64
 
 
+-- |Describe a field in tshark
 data TsharkFieldDesc = TsharkFieldDesc {
-          tfieldFullname :: Text
-        -- ^Full wireshark name of the field
-        , tfieldColType :: Name
-        -- ^Haskell type so that we can generate the proper raw type via templateHaskell
-        , tfieldLabel :: Maybe String
-        -- ^Pretty field name used as label in plots
-        , tfieldHashable :: Bool
-        -- ^Wether to take into account this field when creating the hash of a packet
-        -- see hash
+      tfieldFullname :: Text
+    -- ^Full wireshark name of the field
+    , tfieldColType :: Name
+    -- ^Haskell type so that we can generate the proper raw type via templateHaskell
+    , tfieldLabel :: Maybe String
+    -- ^Pretty field name used as label in plots
+    , tfieldHashable :: Bool
+    -- ^Wether to take into account this field when creating the hash of a packet
+    -- see hash
     }
 
 

@@ -87,4 +87,3 @@ showTcpConnectionText con =
       <> " (tcp.stream: " <> showStream (conTcpStreamId con) <> ")"
   where
     showIp = Net.IP.encode
-    showStream (StreamId a) = tshow a

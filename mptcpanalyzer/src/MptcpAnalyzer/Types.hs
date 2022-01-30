@@ -23,13 +23,16 @@ where
 -- Inspired by Frames/demo/missingData
 import MptcpAnalyzer.Stream
 import Net.Stream
-import Net.Bitset (fromBitMask, toBitMask, ToBitMask)
+-- import Net.Bitset (fromBitMask, toBitMask, ToBitMask)
 import Net.IP
 import Net.IPv6 (IPv6(..))
-import "mptcp-pm" Net.Tcp.Constants (TcpFlag(..))
+import Net.Tcp.Constants (TcpFlag(..))
 import Tshark.Fields
 import Tshark.TH
 
+-- hackage
+import Prelude hiding (fromEnum)
+import Data.EnumBitSet
 import Data.Hashable
 import qualified Data.Hashable as Hash
 import Data.Monoid (First(..))
@@ -68,8 +71,6 @@ import MptcpAnalyzer.ArtificialFields
 import Options.Applicative
 import System.Process (ProcessHandle)
 
-
-instance ToBitMask TcpFlag
 
 {- Describe a TCP connection, possibly an Mptcp subflow
   The equality implementation ignores several fields
@@ -176,7 +177,6 @@ type PcapFrame a = Frame Packet
 -- GADT ?
 data FrameFiltered a rs = FrameTcp {
     ffCon :: a
-    -- StreamConnection b => b
     -- Frame of sthg maybe even bigger with TcpDest / MptcpDest
     , ffFrame :: Frame rs
   } deriving Functor
@@ -267,13 +267,15 @@ instance Frames.ColumnTypeable.Parseable [Word64] where
   -- expected type parse :: MonadPlus m => T.Text -> m (Parsed [a])
   parse = parseList
 
+instance T TcpFlag Word8
 
 -- could not parse 0x00000002
 -- strip leading 0x
 instance Frames.ColumnTypeable.Parseable [TcpFlag] where
+  -- drop the leading '0x'
   parse text = case readHex (T.unpack $ T.drop 2 text) of
     -- TODO generate
-    [(n, "")] -> return $ Definitely $ fromBitMask n
+    [(n, "")] -> return $ Definitely $ toEnums n
     _ -> error $ "TcpFlags: could not parse " ++ T.unpack text
 
 -- TODO rewrite it as wireshark exposes it, eg, in hexa ?
@@ -288,8 +290,8 @@ instance ShowCSV [TcpFlag] where
   -- showCSV :: a -> Text
   showCSV flagList = T.concat texts
     where
-      texts = map (T.pack . show .fromEnum) flagList
-      res = toBitMask flagList
+      texts = map (T.pack . show . fromEnum) flagList
+      res = fromEnums flagList
 
 instance ShowCSV [Word64] where
   -- showCSV :: a -> Text

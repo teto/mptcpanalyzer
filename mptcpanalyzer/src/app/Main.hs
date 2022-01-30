@@ -229,7 +229,7 @@ import Tshark.Fields (TsharkFieldDesc(tfieldFullname), baseFields)
 import MptcpAnalyzer.Plots.Live
 
 data CLIArguments = CLIArguments {
-  _input :: Maybe FilePath
+    _input :: Maybe FilePath
   , version    :: Bool  -- ^ to show version
   , cacheDir    :: Maybe FilePath -- ^ Folder where to log files
   , logLevel :: Log.Severity   -- ^ what level to use to parse
@@ -356,14 +356,14 @@ main = do
   print $ extraCommands options
 
   let haskelineSettings = (Settings {
-      complete = generateHaskelineCompleterFromParserInfo defaultParserPrefs mainParserInfo
+        complete = generateHaskelineCompleterFromParserInfo defaultParserPrefs mainParserInfo
       , historyFile = Just $ cacheFolderXdg </> "history"
       , autoAddHistory = True
       })
   let
     cacheConfig :: CacheConfig
     cacheConfig = CacheConfig {
-      cacheFolder = cacheFolderXdg
+        cacheFolder = cacheFolderXdg
       , cacheEnabled = True
     }
 
@@ -373,7 +373,7 @@ main = do
           $ P.traceToStdout
           $ P.runState myState
           $ runCache cacheConfig
-          $ interpretLogStdout
+          $ interpretLogStdoutWithLevel (logLevel options)
             (inputLoop (extraCommands options))
 
 

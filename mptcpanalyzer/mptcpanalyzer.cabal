@@ -73,6 +73,7 @@ common shared-properties
       , Chart-cairo
       , Frames
       , bytestring
+      , enumset
       -- , byteunits
       -- , time-units
       , cereal
@@ -86,7 +87,7 @@ common shared-properties
       , haskeline >= 0.8.0.0
       , ip
       , lens
-      , mptcp-pm >= 0.0.4
+      -- , mptcp-pm >= 0.0.4
       , mtl
       -- to talk with sharkd
       , network
@@ -109,9 +110,9 @@ common shared-properties
       , vinyl
       , wide-word
       -- Debug Adapter Plugins (DAP)
-      , haskell-dap
-      , ghci-dap
-      , haskell-debug-adapter
+      -- , haskell-dap
+      -- , ghci-dap
+      -- , haskell-debug-adapter
       -- , Chart-diagrams >= 1.5
       -- for plotting that's what is used in Frames
       -- polysemybased logger
