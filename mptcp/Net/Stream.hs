@@ -9,13 +9,11 @@ import Data.Text
 data Mptcp
 data Tcp
 -- data Protocol = Tcp | Mptcp
--- type TcpFlagList = [TcpFlag]
 
--- TODO use Word instead
 newtype StreamId a = StreamId Word32 deriving (Show, Read, Eq, Ord)
 type StreamIdTcp = StreamId Tcp
 type StreamIdMptcp = StreamId Mptcp
 
-showStream :: StreamId a -> Text
-showStream (StreamId a) = (pack . show) a
+showStream :: StreamId a -> String
+showStream (StreamId a) = show a
 

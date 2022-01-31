@@ -69,6 +69,7 @@ Test-Suite test
   other-modules:
       Net.Mptcp.ConnectionSpec
     , Net.Tcp.ConnectionSpec
+    , Net.Tcp.ConstantsSpec
   build-depends:
       base >=4.12
     , hspec

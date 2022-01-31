@@ -31,8 +31,9 @@ import Tshark.Fields
 import Tshark.TH
 
 -- hackage
-import Prelude hiding (fromEnum)
-import Data.EnumBitSet
+import Prelude 
+import Data.Enum.Set as E
+-- import Data.EnumBitSet as EnumSet
 import Data.Hashable
 import qualified Data.Hashable as Hash
 import Data.Monoid (First(..))
@@ -267,7 +268,10 @@ instance Frames.ColumnTypeable.Parseable [Word64] where
   -- expected type parse :: MonadPlus m => T.Text -> m (Parsed [a])
   parse = parseList
 
-instance T TcpFlag Word8
+
+instance E.AsEnumSet TcpFlag
+-- type FlagT = EnumSet.T Word8
+-- instance T TcpFlag Word8
 
 -- could not parse 0x00000002
 -- strip leading 0x
@@ -275,7 +279,7 @@ instance Frames.ColumnTypeable.Parseable [TcpFlag] where
   -- drop the leading '0x'
   parse text = case readHex (T.unpack $ T.drop 2 text) of
     -- TODO generate
-    [(n, "")] -> return $ Definitely $ toEnums n
+    [(n, "")] -> return $ Definitely $ toList $ fromRaw n
     _ -> error $ "TcpFlags: could not parse " ++ T.unpack text
 
 -- TODO rewrite it as wireshark exposes it, eg, in hexa ?
@@ -290,14 +294,14 @@ instance ShowCSV [TcpFlag] where
   -- showCSV :: a -> Text
   showCSV flagList = T.concat texts
     where
-      texts = map (T.pack . show . fromEnum) flagList
-      res = fromEnums flagList
+      texts = Prelude.map (T.pack . show . fromEnum) flagList
+      res = toRaw $ fromFoldable flagList
 
 instance ShowCSV [Word64] where
   -- showCSV :: a -> Text
   showCSV seqs = T.intercalate "," texts
     where
-      texts = map (T.pack . show .fromEnum) seqs
+      texts = Prelude.map (T.pack . show .fromEnum) seqs
 
 instance ShowCSV IP where
   showCSV = encode

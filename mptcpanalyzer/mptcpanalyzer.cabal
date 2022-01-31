@@ -73,7 +73,9 @@ common shared-properties
       , Chart-cairo
       , Frames
       , bytestring
-      , enumset
+      -- , ghc >= 8.10.7
+      , bitwise-enum
+      -- , enumset
       -- , byteunits
       -- , time-units
       , cereal

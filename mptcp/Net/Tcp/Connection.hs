@@ -84,6 +84,6 @@ showTcpConnectionText :: TcpConnection -> Text
 showTcpConnectionText con =
   showIp (conTcpClientIp con) <> ":" <> tshow (conTcpClientPort con) <> " -> "
       <> showIp (conTcpServerIp con) <> ":" <> tshow (conTcpServerPort con)
-      <> " (tcp.stream: " <> showStream (conTcpStreamId con) <> ")"
+      <> " (tcp.stream: " <> (TS.pack . showStream) (conTcpStreamId con) <> ")"
   where
     showIp = Net.IP.encode
