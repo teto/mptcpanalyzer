@@ -26,6 +26,6 @@ benchmarks: True
 
 -- -- Frames for colDecExplicit
 packages:
-  ../mptcp-pm/
+  -- ../mptcp-pm/
   ../mptcp/
    ./*.cabal

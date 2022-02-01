@@ -77,13 +77,11 @@ instance Monoid TcpSubflowUnidirectionalStats where
 
 -- | Holds MPTCP application level statistics for one direction
 data MptcpUnidirectionalStats = MptcpUnidirectionalStats {
-  -- TODO remove
     musApplicativeBytes :: Bytes
   -- TODO these should be maybes ?
   , musMaxDsn           :: Word64
   , musMinDsn           :: Word64
   , musTime             :: Double
-  -- TODO add times
   , musSubflowStats     :: Map MptcpSubflow TcpSubflowUnidirectionalStats
   } deriving Show
 

@@ -23,7 +23,9 @@ extra-source-files:
 
 
 
-tested-with:         GHC == 8.10.7
+tested-with:
+  GHC == 8.10.7
+  GHC == 9.2.1
 
 Source-repository head
   type:       git
@@ -111,10 +113,6 @@ library
     -- TODO try to pass it from CLI instead , Net.TcpInfo
     default-extensions:
       DeriveGeneric
-    -- autogen-modules:
-    --     Net.Tcp.Constants
-    --   , Net.Mptcp.Constants
-    --   , Net.SockDiag.Constants
     build-depends:
         base >= 4.12
       , containers

@@ -50,9 +50,6 @@ import Net.Stream
 import Net.Tcp.Constants
 import Net.Mptcp
 
---
--- import Data.BitSet.Word
-
 -- requires cabal as a dep
 -- import Distribution.Utils.ShortText (decodeStringUtf8)
 import GHC.Generics

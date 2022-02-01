@@ -33,7 +33,7 @@ import Polysemy.Log.Colog (interpretLogStdout)
 import System.Exit
 cacheDisabledConfig :: CacheConfig
 cacheDisabledConfig = CacheConfig {
-  cacheFolder = "/tmp"
+    cacheFolder = "/tmp"
   , cacheEnabled = False
 }
 

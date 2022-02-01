@@ -26,6 +26,7 @@ import MptcpAnalyzer.Stats
 import MptcpAnalyzer.Stream
 import MptcpAnalyzer.Types
 import MptcpAnalyzer.Utils.Text
+import MptcpAnalyzer.Units
 import Net.Mptcp
 import Net.Mptcp.Stats
 import Net.Tcp
@@ -237,12 +238,13 @@ tcpstream 6 transferred 0.0 Bytes out of 469.0 Bytes, accounting for 0.00%
 -}
 showMptcpStats :: MptcpUnidirectionalStats -> String
 showMptcpStats s = unlines [
-    " Mptcp stats towards "  ++ " :"
+      "Mptcp stats towards" ++ " :"
     , "- Duration: " ++ show duration ++ " (from " ++ show start ++ " to " ++ show end ++ ")"
+    , "- Applicative Bytes : " ++ showBytes (musApplicativeBytes s) ++ "B"
     , "- Goodput " ++ show (getMptcpGoodput s) ++ "B/s"
-    , "- Applicative Bytes : " ++ show (musApplicativeBytes s) ++ "B"
+    , "-  bytes " ++ show (getMptcpGoodput s) ++ "B/s"
     , "Subflow stats:"
-    , intercalate "\n" (map showSubflowStats (Map.toList $ musSubflowStats s))
+    , intercalate "\n" (map showSubflowStats (Map.toAscList $ musSubflowStats s))
     ]
     where
       -- ++ show (tusStreamId)
@@ -251,8 +253,8 @@ showMptcpStats s = unlines [
           tcpStats = tssStats sfStats
           seqRange = getTcpSeqRange tcpStats
           totalApplicationBytes = musApplicativeBytes s
-        in "stream " ++ show (conTcpStreamId (sfConn sf))
-          ++ ": transferred " ++ show seqRange ++ " out of " ++ show totalApplicationBytes
+        in "stream " ++ showStream (conTcpStreamId (sfConn sf))
+          ++ ": transferred " ++ show seqRange ++ " out of " ++ showBytes totalApplicationBytes
           ++ " between "
           ++ show (tusStartTime tcpStats) ++ " end time: " ++ show (tusEndTime $ tssStats sfStats)
           ++ " , accounting for " ++ (printf "%.2f" (seqRange / fromIntegral totalApplicationBytes)) ++ " %"

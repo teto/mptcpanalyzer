@@ -587,21 +587,18 @@ buildMptcpConnectionFromStreamId frame streamId = do
 -- filterFrame / buildFrameFromStreamId
 {- Common interface to work with TCP and MPTCP connections
 -}
-class StreamConnection a b | a -> b where
-  -- | How
-  -- type ConnectionType :: Type
+class StreamConnection a where
+  -- TODO add related wireshark fields ?
+  type StreamType a :: Type
+  type StreamFilter a :: Symbol
   showConnectionText :: a -> Text
   -- describeConnection :: a -> Text
-  buildFrameFromStreamId :: Frame Packet -> StreamId b -> Either String (FrameFiltered a Packet)
-  -- type Needs a :: Constraint
-
-  -- type toto = Int
+  buildFrameFromStreamId :: Frame Packet -> StreamType a -> Either String (FrameFiltered a Packet)
 
   -- | Compare two conection and give a similarityScore
   similarityScore :: a -> a -> Int
   -- listConnections :: FrameFiltered () [a]
   -- summarize :: a -> Text
-  -- GetLabel ?
 
 
 -- | Compares 2 TCP connections and gives a score
@@ -612,14 +609,16 @@ scoreTcpCon con1 con2 =
   -- TODO also match on isn in case ports got reused
 
   foldl (\acc toAdd -> acc + 10 * fromEnum toAdd) (0 :: Int) [
-    conTcpClientIp con1 == conTcpClientIp con2
+      conTcpClientIp con1 == conTcpClientIp con2
     , conTcpClientPort con1 == conTcpClientPort con2
     , conTcpServerIp con1 == conTcpServerIp con2
     , conTcpServerPort con1 == conTcpServerPort con2
   ]
 
 
-instance StreamConnection TcpConnection Tcp where
+instance StreamConnection TcpConnection where
+  type StreamType TcpConnection = StreamIdTcp
+  type StreamFilter TcpConnection = "tcp.stream"
   showConnectionText = showTcpConnectionText
   buildFrameFromStreamId = buildTcpConnectionFromStreamId
   similarityScore = scoreTcpCon
@@ -636,12 +635,16 @@ scoreMptcpCon con1 con2 =
     keyScore
 
 
-instance StreamConnection MptcpConnection Mptcp where
+instance StreamConnection MptcpConnection where
+  type StreamType MptcpConnection = StreamIdMptcp
+  type StreamFilter MptcpConnection = "mptcp.stream"
   showConnectionText = showMptcpConnectionText
   buildFrameFromStreamId = buildMptcpConnectionFromStreamId
   similarityScore = scoreMptcpCon
 
-instance StreamConnection MptcpSubflow Tcp where
+instance StreamConnection MptcpSubflow where
+  type StreamType MptcpSubflow = StreamIdTcp
+  type StreamFilter MptcpSubflow = "tcp.stream"
   showConnectionText = showMptcpSubflowText
   buildFrameFromStreamId = buildSubflowFromTcpStreamId
   -- TODO use score as well
@@ -655,5 +658,5 @@ showMptcpSubflowText sf =
       <> "/" <> tshow (sfRemoteId sf) <> ", token " <> tshow (sfJoinToken sf) <> ")"
 
 -- TODO add sthg in case it's the master subflow ?
-showConnection :: StreamConnection a b => a -> String
+showConnection :: StreamConnection a => a -> String
 showConnection = T.unpack . showConnectionText

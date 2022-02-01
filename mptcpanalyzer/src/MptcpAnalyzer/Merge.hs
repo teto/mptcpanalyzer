@@ -158,7 +158,7 @@ toHashablePacket = rcast
 --     addHash' row = Col (hashWithSalt 0 row) :& row
 
 -- generate a column and add it back to HostCols
-addHash :: StreamConnection a b => FrameFiltered a Packet -> Frame (Record '[PacketHash] )
+addHash :: StreamConnection a => FrameFiltered a Packet -> Frame (Record '[PacketHash] )
 addHash aframe =
   -- addHashToFrame (ffFrame aframe)
   fmap addHash'  frame

@@ -12,13 +12,14 @@ basic code.
 -}
 module MptcpAnalyzer.Units (
   -- Types
-  Bytes(..)
+    Bytes(..)
   , Timestamp (..)
   , Throughput(..)
   , Duration(..)
 
   -- functions
   , diffTime
+  , showBytes
   )
 where
 import Data.Word (Word32, Word64)
@@ -46,6 +47,8 @@ diffTime :: Timestamp -> Timestamp -> Duration
 diffTime (Timestamp t1) (Timestamp t2) = Duration (t1 Prelude.- t2)
 
 
+showBytes :: Bytes -> String
+showBytes (Bytes b) = show b ++ "b"
 
 data Throughput = Throughput Bytes Duration
 
