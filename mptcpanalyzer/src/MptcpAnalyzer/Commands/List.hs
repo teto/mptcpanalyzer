@@ -240,8 +240,9 @@ showMptcpStats :: MptcpUnidirectionalStats -> String
 showMptcpStats s = unlines [
       "Mptcp stats towards" ++ " :"
     , "- Duration: " ++ show duration ++ " (from " ++ show start ++ " to " ++ show end ++ ")"
-    , "- Goodput " ++ show (getMptcpGoodput s) ++ "B/s"
     , "- Applicative Bytes : " ++ showBytes (musApplicativeBytes s) ++ "B"
+    , "- Goodput " ++ show (getMptcpGoodput s) ++ "B/s"
+    , "-  bytes " ++ show (getMptcpGoodput s) ++ "B/s"
     , "Subflow stats:"
     , intercalate "\n" (map showSubflowStats (Map.toAscList $ musSubflowStats s))
     ]

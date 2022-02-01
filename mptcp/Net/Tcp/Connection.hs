@@ -29,8 +29,10 @@ data TcpConnection = TcpConnection {
   , conTcpClientPort :: Word16  -- ^Client port
   , conTcpServerPort :: Word16  -- ^Server port
   , conTcpStreamId :: StreamIdTcp -- ^ @tcp.stream@ in wireshark
-  } deriving (Show, Eq, Ord)
+  } deriving (Show, Eq)
 
+instance Ord TcpConnection where
+  con1 `compare` con2 = (conTcpStreamId con1) `compare` (conTcpStreamId con2)
 
 -- | Used when you can't identify the server or client yet.
 -- See "tcpConnectionFromOriented"/"tcpConnectionToOriented"

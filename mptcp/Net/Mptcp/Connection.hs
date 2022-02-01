@@ -82,8 +82,11 @@ data MptcpSubflow = MptcpSubflow {
       -- allow
       , sfInterface :: Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
       -- Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
-    } deriving (Show, Eq, Ord)
+    } deriving (Show, Eq)
     -- deriving Ord via TcpConnection
+
+instance Ord MptcpSubflow where
+  con1 `compare` con2 = (sfConn con1) `compare` (sfConn con2)
 
 makeLenses ''MptcpConnection
 
