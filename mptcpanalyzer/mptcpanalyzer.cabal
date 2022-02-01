@@ -192,23 +192,23 @@ library
         -- , Net.Mptcp.Connection
         -- reexport the rest
         , MptcpAnalyzer
-        , MptcpAnalyzer.Prelude
         , MptcpAnalyzer.ArtificialFields
-        , MptcpAnalyzer.Stream
-        , MptcpAnalyzer.Stats
-        , MptcpAnalyzer.Loader
-        , MptcpAnalyzer.Frame
-        , MptcpAnalyzer.Types
-        , MptcpAnalyzer.Plots.Types
-        , MptcpAnalyzer.Debug
-        , MptcpAnalyzer.Pcap
         , MptcpAnalyzer.Cache
+        , MptcpAnalyzer.Debug
+        , MptcpAnalyzer.Frame
+        , MptcpAnalyzer.Loader
         , MptcpAnalyzer.Map
         , MptcpAnalyzer.Merge
-        , MptcpAnalyzer.Units
+        , MptcpAnalyzer.Pcap
         , MptcpAnalyzer.Plots
         , MptcpAnalyzer.Plots.Live
         , MptcpAnalyzer.Plots.Stream
+        , MptcpAnalyzer.Plots.Types
+        , MptcpAnalyzer.Prelude
+        , MptcpAnalyzer.Stats
+        , MptcpAnalyzer.Stream
+        , MptcpAnalyzer.Types
+        , MptcpAnalyzer.Units
         -- TODO remove les commandes ?
         -- , MptcpAnalyzer.Commands
         -- , MptcpAnalyzer.Commands.Load
@@ -238,48 +238,49 @@ executable mptcpanalyzer
         , ansi-terminal
         , transformers
         , lens
+        , polysemy-time
     Other-modules:
-          Tshark.Live
-        , Tshark.Interfaces
-        , Tshark.Fields
-        , Tshark.Main
-        , Tshark.Sharkd
-        -- , Net.Mptcp.Types
-        -- reexport the rest
-        , MptcpAnalyzer
-        , MptcpAnalyzer.Frame
-        , MptcpAnalyzer.Map
-        , MptcpAnalyzer.Loader
-        , MptcpAnalyzer.Types
-        , MptcpAnalyzer.Plots.Types
-        , MptcpAnalyzer.Debug
-        , MptcpAnalyzer.Pcap
-        , MptcpAnalyzer.Cache
-        , MptcpAnalyzer.Stats
-        , MptcpAnalyzer.Stream
-        , MptcpAnalyzer.Merge
+          MptcpAnalyzer
         , MptcpAnalyzer.ArtificialFields
+        , MptcpAnalyzer.Cache
         , MptcpAnalyzer.Commands
         , MptcpAnalyzer.Commands.Definitions
-        , MptcpAnalyzer.Commands.Load
-        , MptcpAnalyzer.Commands.Reinjections
         , MptcpAnalyzer.Commands.Export
-        , MptcpAnalyzer.Commands.Plot
-        , MptcpAnalyzer.Commands.PlotOWD
-        , MptcpAnalyzer.Commands.Map
         , MptcpAnalyzer.Commands.List
         , MptcpAnalyzer.Commands.ListMptcp
+        , MptcpAnalyzer.Commands.Load
+        , MptcpAnalyzer.Commands.Map
         , MptcpAnalyzer.Commands.Plot
-        , MptcpAnalyzer.Plots.Stream
+        , MptcpAnalyzer.Commands.Plot
+        , MptcpAnalyzer.Commands.PlotOWD
+        , MptcpAnalyzer.Commands.Reinjections
+        , MptcpAnalyzer.Debug
+        , MptcpAnalyzer.Frame
+        , MptcpAnalyzer.Loader
+        , MptcpAnalyzer.Map
+        , MptcpAnalyzer.Merge
+        , MptcpAnalyzer.Pcap
         , MptcpAnalyzer.Plots.Live
+        , MptcpAnalyzer.Plots.Stream
+        , MptcpAnalyzer.Plots.Types
         , MptcpAnalyzer.Prelude
+        , MptcpAnalyzer.Stats
+        , MptcpAnalyzer.Stream
+        , MptcpAnalyzer.Types
         , MptcpAnalyzer.Units
         , MptcpAnalyzer.Utils.Completion
         , MptcpAnalyzer.Utils.Text
         , Net.Mptcp.Stats
         , Net.Tcp.Stats
         , Tshark.Capture
+        , Tshark.Live
+        , Tshark.Fields
+        , Tshark.Interfaces
+        , Tshark.Main
+        , Tshark.Sharkd
         , Tshark.TH
+        -- , Net.Mptcp.Types
+        -- reexport the rest
     -- for now reference mptcp-pm but later move part to a core
     -- build-depends: mptcp-pm >= 0.0.3
     main-is: app/Main.hs

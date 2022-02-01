@@ -231,7 +231,7 @@ getTcpStatsFromAFrame aframe dest =
 -- byteValue
 getTcpSeqRange :: TcpUnidirectionalStats -> Double
 getTcpSeqRange s =
-  fromIntegral (tusSndUna s - tusMinSeq s - 1)
+  fromIntegral (tusSndUna s - tusMinSeq s + 1)
 
 -- | Computes throughput
 -- TODO should return a quantity with number

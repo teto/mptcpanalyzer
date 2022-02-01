@@ -4,7 +4,7 @@ Description : Basic MPTCP connection description
 Maintainer  : matt
 License     : GPL-3
 -}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, DerivingStrategies, DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Net.Mptcp.Connection (
   -- * Types
@@ -79,10 +79,11 @@ data MptcpSubflow = MptcpSubflow {
       , sfLocalId :: Word8  -- ^ Convert to AddressFamily
       , sfRemoteId :: Word8
       --conTcp TODO remove could be deduced from srcIp / dstIp ?
-      -- allow 
+      -- allow
       , sfInterface :: Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
       -- Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
     } deriving (Show, Eq, Ord)
+    -- deriving Ord via TcpConnection
 
 makeLenses ''MptcpConnection
 
@@ -118,7 +119,7 @@ getSubflowFromStreamId con streamId =
 
 -- TODO test
 tokenBelongToConnection :: Word32 -> MptcpConnection -> Bool
-tokenBelongToConnection rcvToken con = 
+tokenBelongToConnection rcvToken con =
   if rcvToken == con ^. mpconClientConfig ^. mecToken then
     True
   else if rcvToken == con ^. mpconServerConfig ^. mecToken then

@@ -182,7 +182,8 @@ import qualified Polysemy.IO as P
 import qualified Polysemy.Internal as P
 import Polysemy.Log (Log)
 import qualified Polysemy.Log as Log
-import Polysemy.Log.Colog (interpretLogStdout)
+import Polysemy.Log (interpretLogStdoutLevel)
+import Polysemy.Time (interpretTimeGhc)
 import qualified Polysemy.State as P
 import Polysemy.Trace (trace)
 import qualified Polysemy.Trace as P
@@ -373,7 +374,8 @@ main = do
           $ P.traceToStdout
           $ P.runState myState
           $ runCache cacheConfig
-          $ interpretLogStdoutWithLevel (logLevel options)
+          $ interpretTimeGhc
+          $ Log.interpretLogStdoutLevel (Just $ logLevel options)
             (inputLoop (extraCommands options))
 
 
