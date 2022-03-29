@@ -11,22 +11,48 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/haskell-updates";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     replica.url = "github:ReplicaTest/REPLica";
     ihaskell.url = "github:gibiansky/IHaskell";
 
     flake-utils.url = "github:numtide/flake-utils";
 
-    hls.url = "github:haskell/haskell-language-server/96ea854debd92f9a54e2270b9b9a080c0ce6f3d1";
+    hls.url = "github:haskell/haskell-language-server";
 
     frames.url = "github:acowley/Frames";
+
     gtk2hs = {
       url = "github:teto/gtk2hs/ghc92";
-      # pkgs.fetchzip {
-      #   url = "https://github.com/teto/gtk2hs/archive/298e46920d850b450d10ceddd432fdcc106a7df4.tar.gz";
-      #   sha256 = "sha256-bWnP7MpV10N/TqQVvS3cfRr7RG7pAR0FqPgerpwfzX4=";
       flake = false;
     };
+
+    haskell-chart = {
+      url = "github:teto/haskell-chart/ghc92";
+      flake = false;
+    };
+
+    bytebuild = {
+      url = "github:teto/bytebuild";
+      flake = false;
+    };
+    bytesmith = {
+      url = "github:teto/bytesmith/ghc92";
+      flake = false;
+    };
+    haskell-ip = {
+      url = "github:andrewthad/haskell-ip/ghc-9-2-3";
+      flake = false;
+    };
+    word-compat = {
+      # bf20ee95b82414d96eb83863f50212e6c31b8930
+      url = "github:fumieval/word-compat/bf20ee95b82414d96eb83863f50212e6c31b8930";
+      flake = false;
+    };
+    readable = {
+      url = "github:teto/readable/ghc921";
+      flake = false;
+    };
+
 
     # cabal hashes contains all the version for different haskell packages, to update:
     # nix flake lock --update-input all-cabal-hashes-unpacked
@@ -41,51 +67,91 @@
     };
   };
 
-  outputs = { self, all-cabal-hashes-unpacked, nixpkgs, flake-utils, poetry, replica, hls, frames, ... }:
+  outputs = { self, haskell-chart, all-cabal-hashes-unpacked, nixpkgs, flake-utils, poetry, replica, hls, frames, ... }:
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
 
-      # compilerVersion = "8107";
-      compilerVersion = "922";
+      compilerVersion = "923";
 
+      # 
       haskellOverlay = hnew: hold: with pkgs.haskell.lib;
         let
           gtk2hs-src = self.inputs.gtk2hs;
-          # gtk2hs-src = pkgs.fetchzip {
-          #     url = "https://github.com/teto/gtk2hs/archive/298e46920d850b450d10ceddd432fdcc106a7df4.tar.gz";
-          #     sha256 = "sha256-bWnP7MpV10N/TqQVvS3cfRr7RG7pAR0FqPgerpwfzX4=";
-          # };
           gtk2hs-buildtools = hnew.callCabal2nix "gtk2hs-buildtools" "${gtk2hs-src}/tools" {};
+          chart-src = self.inputs.haskell-chart;
 
         in
         (pkgs.frameHaskellOverlay-921 hnew hold) //
         {
 
         # TODO override Frames
-        ip = unmarkBroken (dontCheck hold.ip);
-        bytebuild = unmarkBroken (dontCheck hold.bytebuild);
-        size-based = overrideSrc (hold.size-based.overrideAttrs (oa: {
-          patches = [];
-        })) {
+        ip = let
+            newIp = (overrideSrc hold.ip { src = self.inputs.haskell-ip; });
+          in doJailbreak (dontCheck (addBuildDepend newIp hnew.word-compat) );
+        # circuithub:master
+        # bytebuild = unmarkBroken (dontCheck hold.bytebuild);
+        bytebuild = overrideSrc hold.bytebuild { src = self.inputs.bytebuild; };
+        bytesmith = overrideSrc hold.bytesmith { src = self.inputs.bytesmith; };
+
+        chronos = overrideSrc hold.chronos {
           src = pkgs.fetchFromGitHub {
             # owner = "byorgey";
             # rev = "fe6bf78a1b97ff7429630d0e8974c9bc40945dcf";
-            owner = "teto";
-            repo = "sized-functors";
-            rev = "98f884032c1830f0b7046fac5e8e5e73ebf5facf";
-            sha256 = "sha256-rQzO67AMP0Q95/aTKk76lalrV44RKqOs9g+W+Xd4W/M=";
+            owner = "andrewthad";
+            repo = "chronos";
+            rev = "13b46574f2d811f27c693c78d92aed71c82f39d5";
+            sha256 = "sha256-YZ4/5yfeUx+8jZp5nuEXjOkUvO4EWsvXrY+uX4e+VnI=";
           };
         };
+
+        # discussed at https://github.com/JonasDuregard/sized-functors/pull/10
+        # 0.1.3.0 should be fine
+        size-based = hold.callHackage "size-based" "0.1.3.0" {};
+
+        # size-based = overrideSrc (hold.size-based.overrideAttrs (oa: {
+        #   patches = [];
+        # # })) {
+        #   src = pkgs.fetchFromGitHub {
+        #     # owner = "byorgey";
+        #     # rev = "fe6bf78a1b97ff7429630d0e8974c9bc40945dcf";
+        #     owner = "teto";
+        #     repo = "sized-functors";
+        #     rev = "98f884032c1830f0b7046fac5e8e5e73ebf5facf";
+        #     sha256 = "sha256-rQzO67AMP0Q95/aTKk76lalrV44RKqOs9g+W+Xd4W/M=";
+        #   };
+        # };
           # https://github.com/byorgey/sized-functors.git
 
         relude = hold.relude_1_0_0_1;
+
+        # TODO double check
+        Chart-cairo = hnew.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
+
 
         wide-word = hold.callCabal2nix "wide-word" (pkgs.fetchzip {
             url = "https://github.com/erikd/wide-word/archive/f2e17fc8fd6a9cea327ab0a72ca8b3c0367a2871.tar.gz";
             sha256 = "sha256-k91zTn1okIkvKQwOmZ+GFE3MfI6uSrPLPEhx0oDEONc=";
         }) {};
 
+        htoml = dontCheck (overrideSrc hold.htoml {
+          # src = builtins.fetchGit {
+          #   # url = https://github.com/ongy/netlink-hs;
+          #   url = https://github.com/teto/netlink-hs;
+          # };
+          # version = "1.1.2.0";
+          src = pkgs.fetchFromGitHub {
+            owner = "mirokuratczyk";
+            repo = "htoml";
+            rev = "33971287445c5e2531d9605a287486dfc3cbe1da";
+            sha256 = "sha256-BcHu+hzwSdf/11HEziCnNZ6lRrf5kEokfOU51XI9Rm0=";
+          };
+        });
+
+        readable = overrideSrc hold.readable {
+            src = self.inputs.readable;
+        };
+
         polysemy = dontCheck hnew.polysemy_1_7_1_0;
-        polysemy-plugin = hnew.polysemy-plugin_0_4_3_0;
+        polysemy-plugin = hnew.polysemy-plugin_0_4_3_1;
         # polysemy-conc = hold.polysemy-conc_0_5_1_1;
         co-log-polysemy = doJailbreak (hold.co-log-polysemy);
         # co-log-core = doJailbreak hold.co-log-core_0_3_0_0;
@@ -106,7 +172,7 @@
         mkDerivation {
           pname = "cairo";
           version = "0.13.8.2";
-          src = /home/teto/mptcp/gtk2hs;
+          src = "${gtk2hs-src}";
           postUnpack = "sourceRoot+=/cairo; echo source root reset to $sourceRoot";
           enableSeparateDataOutput = true;
           setupHaskellDepends = [ pkgs.gcc base Cabal gtk2hs-buildtools ];
@@ -133,7 +199,7 @@
         # }) {};
 
         # chronos = hold.chronos_1_1_3;
-        polysemy-test = hold.callHackage "polysemy-test" "0.5.0.0" {};
+        # polysemy-test = hold.callHackage "polysemy-test" "0.5.0.0" {};
 
         netlink = overrideSrc hold.netlink {
           # src = builtins.fetchGit {
@@ -166,6 +232,9 @@
             sha256 = "sha256-S3V0jSjXkAQxV0Zppgf6bkewf4mlQa5rkIWFbJ0eTBo=";
         }) {};
 
+        # 
+        word-compat = (doJailbreak (dontCheck (overrideSrc hold.word-compat { src = self.inputs.word-compat; })));
+
         mptcp = self.packages.${system}.mptcp;
       };
 
@@ -173,6 +242,7 @@
           inherit system;
           overlays = [
             frames.overlay
+            # self.overlay
             (final: prev: {
               all-cabal-hashes = prev.runCommand "all-cabal-hashes.tar.gz"
                 { }
@@ -186,14 +256,14 @@
           config = { allowUnfree = false; allowBroken = true;};
         };
 
-      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}";
+      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}".extend( haskellOverlay );
 
       # modifier used in haskellPackages.developPackage
       myModifier = drv:
         pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
           cabal-install
           replica.packages.${system}.build
-          hls.packages.${system}."haskell-language-server-921"
+          hls.packages.${system}."haskell-language-server-${compilerVersion}"
           # ihaskell.packages.${system}."ihaskell-${compilerVersion}"
           # not available
           # hls.packages.${system}."hie-bios-${compilerVersion}"
@@ -224,6 +294,22 @@
             modifier = myModifier;
           };
 
+      mkDevShell = name: self.packages.${system}."${name}".envFunc {};
+
+      # provides a dev shell with libraries built by nix
+      mkDevShellWithNix = name:
+        # self.packages.${system}."${name}".envFunc {};
+        # Returns a derivation whose environment contains a GHC with only
+        hsPkgs.shellFor {
+            packages = p:
+              [p."${name}"];
+              # map (name: p.${name}) (attrNames
+              # # Disable dependencies should not be part of the shell.
+              # (removeAttrs hlsSources ));
+
+            # src = null;
+          };
+
     in {
       packages = {
 
@@ -244,22 +330,34 @@
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
 
+      # TODO add a shellFor (for all 3 packages)
       devShells = {
-        mptcp = self.packages.${system}.mptcp.envFunc {};
-        mptcp-pm = self.packages.${system}.mptcp-pm.envFunc {};
+        # cabal will provide the libraries
+        # envFunc { withHoogle }
+        mptcp = mkDevShell "mptcp";
+        mptcp-pm = mkDevShell "mptcp-pm";
 
-        mptcpanalyzer = let
-          shell = self.packages.${system}.mptcpanalyzer.envFunc {};
-        in shell.overrideAttrs(oa: {
-          postShellHook = ''
-              cd mptcpanalyzer
-              set -x
-              result=$(cabal list-bin exe:mptcpanalyzer)
-              if [ $? -eq 0 ]; then
-                export PATH="$(dirname $result):$PATH"
-              fi
-            '';
-          });
+        # nix provides libraries in its environment
+        mptcp-nix = mkDevShellWithNix "mptcp"; # self.packages.${system}.mptcp.envFunc {};
+        mptcp-pm-nix = mkDevShellWithNix "mptcp-pm";
+
+        mptcpanalyzer-nix = mkDevShellWithNix "mptcpanalyzer";
+        # mptcpanalyzer = let
+        #   shell = self.packages.${system}.mptcpanalyzer.envFunc {};
+        # in shell.overrideAttrs(oa: {
+        #   postShellHook = ''
+        #       cd mptcpanalyzer
+        #       set -x
+        #       result=$(cabal list-bin exe:mptcpanalyzer)
+        #       if [ $? -eq 0 ]; then
+        #         export PATH="$(dirname $result):$PATH"
+        #       fi
+        #     '';
+        #   });
       };
-    });
+    }) // {
+
+      overlay = final: prev: {
+      };
+    };
 }
