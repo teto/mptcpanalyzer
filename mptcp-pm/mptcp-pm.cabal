@@ -129,7 +129,7 @@ library
     Exposed-Modules:
         Net.SockDiag
       , Net.Bitset
-      , Net.Tcp.Constants
+      -- , Net.Tcp.Constants
       , Net.Mptcp.Types
       , Net.Mptcp.Utils
       , Net.Mptcp.Constants
