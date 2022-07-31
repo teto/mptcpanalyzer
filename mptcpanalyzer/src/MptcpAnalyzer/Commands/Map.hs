@@ -36,7 +36,6 @@ import qualified Polysemy as P
 import Polysemy.State as P
 import Polysemy.Trace as P
 import Prelude hiding (log)
--- import Colog.Polysemy (Log, log)
 import Data.Either (lefts, rights)
 import Data.Function (on)
 import Data.List (sortBy, sortOn)

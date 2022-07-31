@@ -67,7 +67,6 @@ import Polysemy
 import qualified Polysemy as P
 import Polysemy.State as P
 import Polysemy.Trace as P
--- import Colog.Polysemy (Log, log)
 import System.Exit
 import System.Process hiding (runCommand)
 -- import Data.Time.LocalTime

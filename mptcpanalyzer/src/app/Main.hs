@@ -190,7 +190,6 @@ import qualified Polysemy.Trace as P
 import Prelude hiding (concat, init, log)
 import System.Directory
 import System.FilePath
--- import Colog.Actions
 import Graphics.Rendering.Chart.Backend.Cairo
        (FileFormat(..), FileOptions(..), renderableToFile, toFile)
 import Graphics.Rendering.Chart.Renderable (toRenderable)

@@ -162,10 +162,6 @@ instance (V.KnownField t, Hashable (V.Snd t), Hashable (F.Record rs), rs F.⊆ (
 
 deriving instance Hashable IP
 
--- IPv6 is Word128
-deriving instance Generic IPv6
-
-deriving instance Hashable Word128
 deriving instance Hashable IPv6
 
 -- shadow param

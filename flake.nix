@@ -146,14 +146,31 @@
           };
         });
 
-        readable = overrideSrc hold.readable {
-            src = self.inputs.readable;
-        };
+        readable = doJailbreak hold.readable;
+        # readable = throw "error";
+        # readable = overrideSrc hold.readable {
+        #   version = "matt-ghc923";
+        #     src = self.inputs.readable;
+        # } ;
 
         polysemy = dontCheck hnew.polysemy_1_7_1_0;
         polysemy-plugin = hnew.polysemy-plugin_0_4_3_1;
         # polysemy-conc = hold.polysemy-conc_0_5_1_1;
-        co-log-polysemy = doJailbreak (hold.co-log-polysemy);
+        # co-log-polysemy = doJailbreak (hold.co-log-polysemy);
+        co-log-polysemy = doJailbreak  (overrideSrc hold.co-log-polysemy {
+          # src = builtins.fetchGit {
+          #   # url = https://github.com/ongy/netlink-hs;
+          #   url = https://github.com/teto/netlink-hs;
+          # };
+          # version = "1.1.2.0";
+          src = pkgs.fetchFromGitHub {
+            # //tree/ghc-9.2
+            owner = "alaendle";
+            repo = "co-log-polysemy";
+            rev = "b4f96240179b486047ff4d80c978e8efcac8ac7e";
+            sha256 = "sha256-QFjNzRSr/pb1nw4UBsg8uWBOkO+7ffpuYrUfLUuashM=";
+          };
+        });
         # co-log-core = doJailbreak hold.co-log-core_0_3_0_0;
 
         colourista = hold.callCabal2nix "colourista" (pkgs.fetchzip {
@@ -235,7 +252,10 @@
         # 
         word-compat = (doJailbreak (dontCheck (overrideSrc hold.word-compat { src = self.inputs.word-compat; })));
 
+        # this repo software
         mptcp = self.packages.${system}.mptcp;
+        mptcp-pm = self.packages.${system}.mptcp-pm;
+        mptcpanalyzer = self.packages.${system}.mptcpanalyzer;
       };
 
       pkgs = import nixpkgs {
