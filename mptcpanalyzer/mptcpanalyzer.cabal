@@ -152,18 +152,13 @@ common shared-properties
         -- -fexternal-interpreter
         -- -fplugin=Polysemy.Plugin
     default-extensions:
-        -- , OverloadedStrings
-        -- FlexibleContexts
           -- StrictData
          DataKinds
-        -- , FlexibleContexts
-        -- , GADTs
         , LambdaCase
-        , OverloadedStrings
-        -- , PolyKinds
+        -- , OverloadedStrings
         , RankNTypes
-        , ScopedTypeVariables
-        , TemplateHaskell
+        -- , ScopedTypeVariables
+        -- , TemplateHaskell
         , TypeApplications
         , TypeOperators
         , TypeFamilies

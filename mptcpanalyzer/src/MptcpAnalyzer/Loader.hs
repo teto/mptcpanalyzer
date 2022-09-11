@@ -5,7 +5,9 @@ Maintainer  : matt
 License     : GPL-3
 -}
 {-# LANGUAGE FlexibleContexts #-}
-module MptcpAnalyzer.Loader (
+{-# LANGUAGE OverloadedStrings #-}
+module MptcpAnalyzer.Loader
+(
     loadPcapIntoFrame
   , loadPcapIntoFrameNoCache
   , buildAFrameFromStreamIdTcp

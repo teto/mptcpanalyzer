@@ -11,6 +11,7 @@ generated in a postprocess step
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 module MptcpAnalyzer.ArtificialFields
 where
 import MptcpAnalyzer.Stream

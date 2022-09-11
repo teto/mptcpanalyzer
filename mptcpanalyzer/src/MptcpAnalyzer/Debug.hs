@@ -5,6 +5,7 @@ Maintainer  : matt
 License     : GPL-3
 -}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module MptcpAnalyzer.Debug
 where
 

@@ -13,6 +13,8 @@ License     : GPL-3
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module MptcpAnalyzer.Cache (
     CacheId(..)
   , Cache(..)

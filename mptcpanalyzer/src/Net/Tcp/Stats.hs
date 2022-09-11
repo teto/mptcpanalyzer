@@ -2,6 +2,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-
 Module:  Net.Tcp.Stats
 Description : Compute basic TCP statistics
