@@ -4,6 +4,7 @@ Description : Load pcap/csv into a @Frame@
 Maintainer  : matt
 License     : GPL-3
 -}
+{-# LANGUAGE FlexibleContexts #-}
 module MptcpAnalyzer.Loader (
     loadPcapIntoFrame
   , loadPcapIntoFrameNoCache

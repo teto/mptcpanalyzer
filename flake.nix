@@ -28,6 +28,7 @@
 
     haskell-chart = {
       url = "github:teto/haskell-chart/ghc92";
+      # url = "github:timbod7/haskell-chart";
       flake = false;
     };
 
@@ -70,9 +71,8 @@
   outputs = { self, haskell-chart, all-cabal-hashes-unpacked, nixpkgs, flake-utils, poetry, replica, hls, frames, ... }:
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
 
-      compilerVersion = "923";
+      compilerVersion = "924";
 
-      # 
       haskellOverlay = hnew: hold: with pkgs.haskell.lib;
         let
           gtk2hs-src = self.inputs.gtk2hs;
@@ -91,6 +91,9 @@
         # bytebuild = unmarkBroken (dontCheck hold.bytebuild);
         bytebuild = overrideSrc hold.bytebuild { src = self.inputs.bytebuild; };
         bytesmith = overrideSrc hold.bytesmith { src = self.inputs.bytesmith; };
+
+        vinyl  = hold.vinyl_0_14_3;
+          active = doJailbreak hold.active;
 
         chronos = overrideSrc hold.chronos {
           src = pkgs.fetchFromGitHub {
@@ -124,8 +127,29 @@
         relude = hold.relude_1_0_0_1;
 
         # TODO double check
-        Chart-cairo = hnew.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
+        Chart = pkgs.lib.pipe hold.Chart [ 
+          (doJailbreak)
+          (addBuildDepend hnew.lens)
+          # (overrideCabal (old: {
+          #   libraryHaskellDepends = old.libraryHaskellDepends ++ [
+          #     hnew.lens
+          #   ];
+          # }))
+        ];
+        Chart-diagrams = doJailbreak hold.Chart-diagrams;
+        Chart-cairo = let 
+          newCairo = hnew.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
+        in
+          # newCairo;
+          # doJailbreak (newCairo.overrideAttrs(oa: { propagatedBuildInputs = [ hnew.Chart ]; }));
+        # overrideCabal newCairo (old: { libraryHaskellDepends  = old.libraryHaskellDepends  ++ [ hnew.Chart ]; }) ;
+          # newCairo;
+          pkgs.lib.pipe (newCairo) [ 
+            # (addExtraLibrary hnew.cairo )
+            (addSetupDepend hnew.cairo)
+            ];
 
+        # Chart-cairo = doJailbreak (hnew.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {}) ;
 
         wide-word = hold.callCabal2nix "wide-word" (pkgs.fetchzip {
             url = "https://github.com/erikd/wide-word/archive/f2e17fc8fd6a9cea327ab0a72ca8b3c0367a2871.tar.gz";
@@ -283,7 +307,7 @@
         pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
           cabal-install
           replica.packages.${system}.build
-          hls.packages.${system}."haskell-language-server-${compilerVersion}"
+          # hls.packages.${system}."haskell-language-server-${compilerVersion}"
           # ihaskell.packages.${system}."ihaskell-${compilerVersion}"
           # not available
           # hls.packages.${system}."hie-bios-${compilerVersion}"
@@ -332,6 +356,16 @@
 
     in {
       packages = {
+
+        # pkgs.haskell.lib.doJailbreak
+        Chart-cairo = hsPkgs.Chart-cairo;
+        # .overrideAttrs(oa: {
+        #   # nativeBuildInputs = [ hsPkgs.Chart ];
+        #   # propagatedBuildInputs = [ hsPkgs.Chart ];
+        #   # buildInputs = [];
+        #   # buildInputs = oa.buildInputs ++ [ hsPkgs.Chart ];
+
+        # }));
 
         # basic library
         mptcp = mkPackage "mptcp";

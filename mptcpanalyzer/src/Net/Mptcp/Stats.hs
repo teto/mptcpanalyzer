@@ -6,6 +6,7 @@ License     : GPL-3
 -}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Net.Mptcp.Stats (
     TcpSubflowUnidirectionalStats(..)
   , MptcpUnidirectionalStats(..)

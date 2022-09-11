@@ -37,7 +37,8 @@ extra-source-files:
   tests/integration/list-tcp.test
   -- benchmarks/*
 tested-with:
-  GHC == 8.10.7
+  -- GHC == 8.10.7
+  GHC == 9.2.4
 
 Source-repository head
   type:       git
@@ -120,7 +121,7 @@ common shared-properties
     -- -fno-warn-unused-imports
     -- -fforce-recomp  makes it build twice
     if flag(WithPolysemy)
-        ghc-options: -fplugin=Polysemy.Plugin
+        -- ghc-options: -fplugin=Polysemy.Plugin
         build-depends: polysemy-plugin
 
     -- if flag(ExtraChecks)
@@ -135,8 +136,8 @@ common shared-properties
           -- -ddump-timings
           -Wno-unused-imports
         -- build-depends: polysemy-plugin
-          -fno-warn-unused-binds
-          -fno-warn-unused-matches
+          -- -fno-warn-unused-binds
+          -- -fno-warn-unused-matches
 
     -- -ddump-splices to dump TH code
     ghc-options:
@@ -145,21 +146,21 @@ common shared-properties
         -- -Werror=warn-missing-methods
         -Wpartial-fields
         -- -dth-dec-file
-        -fwrite-ide-info
-        -hiedir=.hie
-        -haddock
+        -- -fwrite-ide-info
+        -- -hiedir=.hie
+        -- -haddock
         -- -fexternal-interpreter
         -- -fplugin=Polysemy.Plugin
     default-extensions:
         -- , OverloadedStrings
-        FlexibleContexts
-        , StrictData
-        , DataKinds
-        , FlexibleContexts
-        , GADTs
+        -- FlexibleContexts
+          -- StrictData
+         DataKinds
+        -- , FlexibleContexts
+        -- , GADTs
         , LambdaCase
         , OverloadedStrings
-        , PolyKinds
+        -- , PolyKinds
         , RankNTypes
         , ScopedTypeVariables
         , TemplateHaskell
@@ -225,8 +226,9 @@ library
         , Chart-cairo
         , transformers
     hs-source-dirs: src/
-    ghc-options:
-      -haddock
+    -- ghc-options:
+    --   -dshow-passes
+    --   -haddock
 
 -- TODO add data-files
 executable mptcpanalyzer
@@ -312,7 +314,6 @@ Test-Suite test
   hs-source-dirs:     tests
   default-language: Haskell2010
   default-extensions:
-      -- , OverloadedStrings
       FlexibleContexts
     , StrictData
     , DataKinds
@@ -339,23 +340,3 @@ Test-Suite test
   ghc-options:
     -Wall
     -threaded 
-
-
--- doctests are a pain
--- test-suite doctests
---   type:             exitcode-stdio-1.0
---   main-is:          doctests.hs
---   build-depends:
---       base
---     , base-compat       >=0.10.5 && <0.12
---     , doctest           >=0.15   && <0.18
---     , QuickCheck        >=2.12   && <2.15
---     , template-haskell
---     , mptcpanalyzer
---   -- there are several custom packages
---   -- exe:example
---   -- x-doctest-components:
---   --   lib:mptcpanalyzer
---   ghc-options:      -Wall -threaded
---   hs-source-dirs:   tests
---   default-language: Haskell2010

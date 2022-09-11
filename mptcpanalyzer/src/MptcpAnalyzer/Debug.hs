@@ -4,6 +4,7 @@ Description : Utilities to help debug
 Maintainer  : matt
 License     : GPL-3
 -}
+{-# LANGUAGE FlexibleContexts #-}
 module MptcpAnalyzer.Debug
 where
 
