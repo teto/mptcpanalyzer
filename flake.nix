@@ -46,7 +46,7 @@
     };
     word-compat = {
       # bf20ee95b82414d96eb83863f50212e6c31b8930
-      url = "github:fumieval/word-compat/bf20ee95b82414d96eb83863f50212e6c31b8930";
+      url = "github:fumieval/word-compat";
       flake = false;
     };
     readable = {
@@ -71,7 +71,7 @@
   outputs = { self, haskell-chart, all-cabal-hashes-unpacked, nixpkgs, flake-utils, poetry, replica, hls, frames, ... }:
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
 
-      compilerVersion = "924";
+      compilerVersion = "942";
 
       haskellOverlay = hnew: hold: with pkgs.haskell.lib;
         let
@@ -91,6 +91,11 @@
         # bytebuild = unmarkBroken (dontCheck hold.bytebuild);
         bytebuild = overrideSrc hold.bytebuild { src = self.inputs.bytebuild; };
         bytesmith = overrideSrc hold.bytesmith { src = self.inputs.bytesmith; };
+        # base-compat = doJailbreak hold.base-compat; 
+        primitive = doJailbreak hnew.primitive_0_7_4_0;
+        # dec = doJailbreak hold.dec;
+        # ed25519 = doJailbreak hold.ed25519;
+        # boring = doJailbreak hold.boring;
 
         vinyl  = hold.vinyl_0_14_3;
           active = doJailbreak hold.active;
@@ -109,6 +114,7 @@
         # discussed at https://github.com/JonasDuregard/sized-functors/pull/10
         # 0.1.3.0 should be fine
         size-based = hold.callHackage "size-based" "0.1.3.0" {};
+        ghc-tcplugins-extra = hold.callHackage "ghc-tcplugins-extra" "0.4.3" {};
 
         # size-based = overrideSrc (hold.size-based.overrideAttrs (oa: {
         #   patches = [];

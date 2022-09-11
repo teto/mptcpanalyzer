@@ -15,11 +15,11 @@
     "all-cabal-hashes-unpacked": {
       "flake": false,
       "locked": {
-        "lastModified": 1662844176,
-        "narHash": "sha256-hyq4Lc6N9WbHtGAhiU1ZN0kILo5K5PgIzXgc/D7qbws=",
+        "lastModified": 1662908354,
+        "narHash": "sha256-TX8PJvozB44ThOoeODLtezK4I4Gt9ejuiDqD/jKHICs=",
         "owner": "commercialhaskell",
         "repo": "all-cabal-hashes",
-        "rev": "e4a2dc4a59215c37cdc5574e36516d21831f6023",
+        "rev": "70da3f8aee7ee81358cedf238ff0f5b558b2709e",
         "type": "github"
       },
       "original": {
@@ -992,11 +992,11 @@
     },
     "nixpkgs_8": {
       "locked": {
-        "lastModified": 1662732537,
-        "narHash": "sha256-iqxa+38SRU+SwNsKDyP8rZt79yPFGSgTe+K4Ujbb/uw=",
+        "lastModified": 1662821606,
+        "narHash": "sha256-Z9z9iSH+tgJ0iyRcBfEQRwELgjnhpVXsktiWiFe3SuY=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "74a1793c659d09d7cf738005308b1f86c90cb59b",
+        "rev": "93a0067a9c85c17764f7755947e6ecf52dc47d8a",
         "type": "github"
       },
       "original": {
@@ -1008,11 +1008,11 @@
     },
     "nixpkgs_9": {
       "locked": {
-        "lastModified": 1662849294,
-        "narHash": "sha256-+ELSQjBVSzS2/itxZO2ZVuwESfjdQb9oulQuAhJwpGU=",
+        "lastModified": 1662928558,
+        "narHash": "sha256-QcufirP8a+i4HkR6hMzmJQcThUA+lEbi7sLw04OR77Y=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "f0f614616f2bd0e6bcf562b0fdf3a9d72ad96830",
+        "rev": "3582beec60c6f03a767b4d9539c44454cbd8c191",
         "type": "github"
       },
       "original": {
@@ -1027,11 +1027,11 @@
         "nixpkgs": "nixpkgs_9"
       },
       "locked": {
-        "lastModified": 1662763707,
-        "narHash": "sha256-Qx0Y9aFFYCMC//eb9DiF8hxBgIja+CkSrqUGVfXNFAA=",
+        "lastModified": 1662879385,
+        "narHash": "sha256-ZmiyHn0uPH4xHYcOhY0e0sPtfyM6jCF/shmVq2aTOLc=",
         "owner": "nix-community",
         "repo": "poetry2nix",
-        "rev": "ecbc4cbd06be88d1f9884ff6f53bf09fc466855f",
+        "rev": "4f8d61cd936f853242a4ce1fd476f5488c288c26",
         "type": "github"
       },
       "original": {
@@ -1230,17 +1230,16 @@
     "word-compat": {
       "flake": false,
       "locked": {
-        "lastModified": 1658367309,
-        "narHash": "sha256-4uI+nrj+D8YLllUuLoThyAUYMtm1eU7oUYRk/yBYyXY=",
+        "lastModified": 1661608668,
+        "narHash": "sha256-8Xp6vg3OTwcgUusRmBEOoaBDBPs3Xw10GeBw+BkUCF0=",
         "owner": "fumieval",
         "repo": "word-compat",
-        "rev": "bf20ee95b82414d96eb83863f50212e6c31b8930",
+        "rev": "912b26f1adc04592d4cc0808b200c64aeb8b1159",
         "type": "github"
       },
       "original": {
         "owner": "fumieval",
         "repo": "word-compat",
-        "rev": "bf20ee95b82414d96eb83863f50212e6c31b8930",
         "type": "github"
       }
     }
