@@ -15,11 +15,11 @@
     "all-cabal-hashes-unpacked": {
       "flake": false,
       "locked": {
-        "lastModified": 1662908354,
-        "narHash": "sha256-TX8PJvozB44ThOoeODLtezK4I4Gt9ejuiDqD/jKHICs=",
+        "lastModified": 1662977334,
+        "narHash": "sha256-uNJps3KADHClt9Ug5I10mCSaA25stQ3pkxPjxTYgW78=",
         "owner": "commercialhaskell",
         "repo": "all-cabal-hashes",
-        "rev": "70da3f8aee7ee81358cedf238ff0f5b558b2709e",
+        "rev": "c218109e052ff5139483ded18a9beef926a523cc",
         "type": "github"
       },
       "original": {
@@ -96,6 +96,22 @@
       "original": {
         "type": "tarball",
         "url": "https://hackage.haskell.org/package/constraints-extras-0.3.2.1/constraints-extras-0.3.2.1.tar.gz"
+      }
+    },
+    "double-conversion": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1661030012,
+        "narHash": "sha256-K+UJK5ek5ufplqY7to9lfVnSKoa+rZUjNL95b0P7R3w=",
+        "owner": "haskell",
+        "repo": "double-conversion",
+        "rev": "5d092e0664442eaac8ae1d101dba57ce9b1c9b03",
+        "type": "github"
+      },
+      "original": {
+        "owner": "haskell",
+        "repo": "double-conversion",
+        "type": "github"
       }
     },
     "flake-compat": {
@@ -1183,6 +1199,7 @@
         "all-cabal-hashes-unpacked": "all-cabal-hashes-unpacked",
         "bytebuild": "bytebuild",
         "bytesmith": "bytesmith",
+        "double-conversion": "double-conversion",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "frames": "frames",

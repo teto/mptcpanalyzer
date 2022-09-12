@@ -26,6 +26,11 @@
       flake = false;
     };
 
+    double-conversion = {
+      url = "github:haskell/double-conversion";
+      flake = false;
+    };
+
     haskell-chart = {
       url = "github:teto/haskell-chart/ghc92";
       # url = "github:timbod7/haskell-chart";
@@ -91,14 +96,22 @@
         # bytebuild = unmarkBroken (dontCheck hold.bytebuild);
         bytebuild = overrideSrc hold.bytebuild { src = self.inputs.bytebuild; };
         bytesmith = overrideSrc hold.bytesmith { src = self.inputs.bytesmith; };
-        # base-compat = doJailbreak hold.base-compat; 
-        primitive = doJailbreak hnew.primitive_0_7_4_0;
-        # dec = doJailbreak hold.dec;
-        # ed25519 = doJailbreak hold.ed25519;
-        # boring = doJailbreak hold.boring;
+        #  doJailbreak hold.base-compat; 
+        base-compat = hold.callHackage "base-compat" "0.12.2" {};
+        base-compat-batteries = hold.callHackage "base-compat" "0.12.2" {};
+        primitive = hold.primitive_0_7_4_0;
+        singleton-bool =  doJailbreak hold.singleton-bool;
+        # tests create an infinite recursion with hspec -> primitive
+        base-orphans = dontCheck hold.base-orphans;
+        dec = doJailbreak hold.dec;
+        ed25519 = doJailbreak hold.ed25519;
+        boring = doJailbreak hold.boring;
+        hashable = hold.callHackage "hashable" "1.4.1.0" {};
 
         vinyl  = hold.vinyl_0_14_3;
-          active = doJailbreak hold.active;
+        active = doJailbreak hold.active;
+        some = doJailbreak hold.some;
+        incipit-base = doJailbreak hold.incipit-base;
 
         chronos = overrideSrc hold.chronos {
           src = pkgs.fetchFromGitHub {
@@ -111,9 +124,13 @@
           };
         };
 
+        hspec-meta = hold.callHackage "hspec-meta" "2.10.5" {};
+
+        double-conversion = overrideSrc hold.double-conversion { src = self.inputs.double-conversion; };
+
         # discussed at https://github.com/JonasDuregard/sized-functors/pull/10
         # 0.1.3.0 should be fine
-        size-based = hold.callHackage "size-based" "0.1.3.0" {};
+        size-based = hold.callHackage "size-based" "0.1.3.1" {};
         ghc-tcplugins-extra = hold.callHackage "ghc-tcplugins-extra" "0.4.3" {};
 
         # size-based = overrideSrc (hold.size-based.overrideAttrs (oa: {
