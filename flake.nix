@@ -132,6 +132,10 @@
         # 0.1.3.0 should be fine
         size-based = hold.callHackage "size-based" "0.1.3.1" {};
         ghc-tcplugins-extra = hold.callHackage "ghc-tcplugins-extra" "0.4.3" {};
+        # ghc-typelits-natnormalise = hold.callHackage "ghc-typelits-natnormalise" "0.7.6" {};
+        ghc-typelits-natnormalise = doJailbreak hold.ghc-typelits-natnormalise;
+          # (addBuildDepend hold.ghc-bignum hold.ghc-typelits-natnormalise);
+        # ghc-bignum = hnew.ghc-bignum_1_3;
 
         # size-based = overrideSrc (hold.size-based.overrideAttrs (oa: {
         #   patches = [];
@@ -381,7 +385,9 @@
       packages = {
 
         # pkgs.haskell.lib.doJailbreak
-        Chart-cairo = hsPkgs.Chart-cairo;
+        # Chart-cairo = hsPkgs.Chart-cairo;
+        # ghc-type = hsPkgs.Chart-cairo;
+        inherit hsPkgs;
         # .overrideAttrs(oa: {
         #   # nativeBuildInputs = [ hsPkgs.Chart ];
         #   # propagatedBuildInputs = [ hsPkgs.Chart ];
