@@ -26,6 +26,11 @@
       flake = false;
     };
 
+    ghc-typelits-natnormalise = {
+      url = "github:clash-lang/ghc-typelits-natnormalise/941-support";
+      flake = false;
+
+    };
     double-conversion = {
       url = "github:haskell/double-conversion";
       flake = false;
@@ -100,9 +105,13 @@
         base-compat = hold.callHackage "base-compat" "0.12.2" {};
         base-compat-batteries = hold.callHackage "base-compat" "0.12.2" {};
         primitive = hold.primitive_0_7_4_0;
+        zigzag = doJailbreak hold.zigzag;
+        doctest = doJailbreak hold.doctest_0_20_0;
+        ChasingBottoms = dontCheck (doJailbreak hold.ChasingBottoms);
         singleton-bool =  doJailbreak hold.singleton-bool;
         # tests create an infinite recursion with hspec -> primitive
         base-orphans = dontCheck hold.base-orphans;
+        unordered-containers = doJailbreak hold.unordered-containers;
         dec = doJailbreak hold.dec;
         ed25519 = doJailbreak hold.ed25519;
         boring = doJailbreak hold.boring;
@@ -126,6 +135,9 @@
 
         hspec-meta = hold.callHackage "hspec-meta" "2.10.5" {};
 
+        syb = dontCheck hold.syb;
+
+        cabal-install-solver = doJailbreak hold.cabal-install-solver;
         double-conversion = overrideSrc hold.double-conversion { src = self.inputs.double-conversion; };
 
         # discussed at https://github.com/JonasDuregard/sized-functors/pull/10
@@ -133,7 +145,15 @@
         size-based = hold.callHackage "size-based" "0.1.3.1" {};
         ghc-tcplugins-extra = hold.callHackage "ghc-tcplugins-extra" "0.4.3" {};
         # ghc-typelits-natnormalise = hold.callHackage "ghc-typelits-natnormalise" "0.7.6" {};
-        ghc-typelits-natnormalise = doJailbreak hold.ghc-typelits-natnormalise;
+
+        # see https://github.com/clash-lang/ghc-typelits-natnormalise/pull/64 for ghc 9.4
+        ghc-typelits-natnormalise = doJailbreak (overrideSrc hold.ghc-typelits-natnormalise { src = self.inputs.ghc-typelits-natnormalise; });
+          # doJailbreak (hold.ghc-typelits-natnormalise.overrideAttrs(oa: {
+
+          # patches = [ ./toto.patch ];
+
+        # }));
+
           # (addBuildDepend hold.ghc-bignum hold.ghc-typelits-natnormalise);
         # ghc-bignum = hnew.ghc-bignum_1_3;
 

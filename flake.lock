@@ -436,6 +436,23 @@
         "url": "https://hackage.haskell.org/package/ghc-exactprint-1.4.1/ghc-exactprint-1.4.1.tar.gz"
       }
     },
+    "ghc-typelits-natnormalise": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1658649360,
+        "narHash": "sha256-mGoN2pmYe0/8lYt/YrkwHiobWNj9PyjkHKwwumDFg7Y=",
+        "owner": "clash-lang",
+        "repo": "ghc-typelits-natnormalise",
+        "rev": "d5c54fd59a258b566a8e885aef82cb69fa99c9e2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "clash-lang",
+        "ref": "941-support",
+        "repo": "ghc-typelits-natnormalise",
+        "type": "github"
+      }
+    },
     "gitignore": {
       "flake": false,
       "locked": {
@@ -1203,6 +1220,7 @@
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "frames": "frames",
+        "ghc-typelits-natnormalise": "ghc-typelits-natnormalise",
         "gtk2hs": "gtk2hs",
         "haskell-chart": "haskell-chart",
         "haskell-ip": "haskell-ip",
