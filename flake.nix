@@ -29,8 +29,13 @@
     ghc-typelits-natnormalise = {
       url = "github:clash-lang/ghc-typelits-natnormalise/941-support";
       flake = false;
-
     };
+
+    ghc-typelits-knownnat = {
+      url = "github:clash-lang/ghc-typelits-knownnat/941-support";
+      flake = false;
+    };
+
     double-conversion = {
       url = "github:haskell/double-conversion";
       flake = false;
@@ -148,7 +153,12 @@
 
         # see https://github.com/clash-lang/ghc-typelits-natnormalise/pull/64 for ghc 9.4
         ghc-typelits-natnormalise = doJailbreak (overrideSrc hold.ghc-typelits-natnormalise { src = self.inputs.ghc-typelits-natnormalise; });
+        ghc-typelits-knownnat = doJailbreak (overrideSrc hold.ghc-typelits-knownnat { src = self.inputs.ghc-typelits-knownnat; });
           # doJailbreak (hold.ghc-typelits-natnormalise.overrideAttrs(oa: {
+        pipes-safe = doJailbreak hold.pipes-safe;
+
+        #
+        primitive-unaligned = hold.callHackage "primitive-unaligned" "0.1.1.2" {};
 
           # patches = [ ./toto.patch ];
 
