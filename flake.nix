@@ -159,6 +159,9 @@
 
         #
         primitive-unaligned = hold.callHackage "primitive-unaligned" "0.1.1.2" {};
+        hspec-discover = hold.callHackage "hspec-discover" "2.10.6" {};
+        hspec-core = hold.callHackage "hspec-core" "2.10.6" {};
+        incipit-core = doJailbreak hold.incipit-core;
 
           # patches = [ ./toto.patch ];
 
