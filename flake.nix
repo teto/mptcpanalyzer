@@ -27,7 +27,7 @@
     };
 
     ghc-typelits-natnormalise = {
-      url = "github:clash-lang/ghc-typelits-natnormalise/941-support";
+      url = "github:clash-lang/ghc-typelits-natnormalise";
       flake = false;
     };
 
@@ -66,6 +66,10 @@
     };
     readable = {
       url = "github:teto/readable/ghc921";
+      flake = false;
+    };
+    doctest = {
+      url = "github:sol/doctest/ghc-9.4";
       flake = false;
     };
 
@@ -108,7 +112,7 @@
         bytesmith = overrideSrc hold.bytesmith { src = self.inputs.bytesmith; };
         #  doJailbreak hold.base-compat; 
         base-compat = hold.callHackage "base-compat" "0.12.2" {};
-        base-compat-batteries = hold.callHackage "base-compat" "0.12.2" {};
+        base-compat-batteries = hold.callHackage "base-compat-batteries" "0.12.2" {};
         primitive = hold.primitive_0_7_4_0;
         zigzag = doJailbreak hold.zigzag;
         doctest = doJailbreak hold.doctest_0_20_0;
@@ -161,6 +165,8 @@
         primitive-unaligned = hold.callHackage "primitive-unaligned" "0.1.1.2" {};
         hspec-discover = hold.callHackage "hspec-discover" "2.10.6" {};
         hspec-core = hold.callHackage "hspec-core" "2.10.6" {};
+        hspec-contrib = dontCheck (hold.callHackage "hspec-contrib" "0.5.1" {});
+        hspec = hold.callHackage "hspec" "2.10.6" {};
         incipit-core = doJailbreak hold.incipit-core;
 
           # patches = [ ./toto.patch ];
@@ -183,6 +189,7 @@
         #   };
         # };
           # https://github.com/byorgey/sized-functors.git
+        semirings = doJailbreak (hold.semirings.overrideAttrs(oa: { propagatedBuildInputs = [ hnew.base-compat-batteries ]; }));
 
         relude = hold.relude_1_0_0_1;
 
@@ -196,6 +203,7 @@
           #   ];
           # }))
         ];
+
         Chart-diagrams = doJailbreak hold.Chart-diagrams;
         Chart-cairo = let 
           newCairo = hnew.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
