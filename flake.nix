@@ -111,15 +111,17 @@
         bytebuild = overrideSrc hold.bytebuild { src = self.inputs.bytebuild; };
         bytesmith = overrideSrc hold.bytesmith { src = self.inputs.bytesmith; };
         #  doJailbreak hold.base-compat; 
+        hedgehog = doJailbreak hold.hedgehog; 
         base-compat = hold.callHackage "base-compat" "0.12.2" {};
         base-compat-batteries = hold.callHackage "base-compat-batteries" "0.12.2" {};
         primitive = hold.primitive_0_7_4_0;
         zigzag = doJailbreak hold.zigzag;
-        doctest = doJailbreak hold.doctest_0_20_0;
+        doctest = (overrideSrc hold.doctest_0_20_0 { src = self.inputs.doctest; }); # doJailbreak hold.doctest_0_20_0;
         ChasingBottoms = dontCheck (doJailbreak hold.ChasingBottoms);
         singleton-bool =  doJailbreak hold.singleton-bool;
         # tests create an infinite recursion with hspec -> primitive
         base-orphans = dontCheck hold.base-orphans;
+        HTTP = doJailbreak hold.HTTP;
         unordered-containers = doJailbreak hold.unordered-containers;
         dec = doJailbreak hold.dec;
         ed25519 = doJailbreak hold.ed25519;
@@ -189,7 +191,7 @@
         #   };
         # };
           # https://github.com/byorgey/sized-functors.git
-        semirings = doJailbreak (hold.semirings.overrideAttrs(oa: { propagatedBuildInputs = [ hnew.base-compat-batteries ]; }));
+        # semirings = doJailbreak (hold.semirings.overrideAttrs(oa: { propagatedBuildInputs = [ hnew.base-compat-batteries ]; }));
 
         relude = hold.relude_1_0_0_1;
 

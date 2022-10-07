@@ -115,6 +115,23 @@
         "url": "https://hackage.haskell.org/package/constraints-extras-0.3.2.1/constraints-extras-0.3.2.1.tar.gz"
       }
     },
+    "doctest": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1664345633,
+        "narHash": "sha256-gRgmBtSjD8EXyVwpoIh/B9HPiBJ4D7Ist8Ueha/VIiM=",
+        "owner": "sol",
+        "repo": "doctest",
+        "rev": "00ef4b1c8135a2397b63bbe9786a006878c88a43",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sol",
+        "ref": "ghc-9.4",
+        "repo": "doctest",
+        "type": "github"
+      }
+    },
     "double-conversion": {
       "flake": false,
       "locked": {
@@ -1172,6 +1189,7 @@
         "all-cabal-hashes-unpacked": "all-cabal-hashes-unpacked",
         "bytebuild": "bytebuild",
         "bytesmith": "bytesmith",
+        "doctest": "doctest",
         "double-conversion": "double-conversion",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
