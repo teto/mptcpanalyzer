@@ -81,6 +81,11 @@
       flake = false;
     };
 
+    polysemy = {
+      url = "github:polysemy-research/polysemy";
+      flake = false;
+    };
+
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -116,7 +121,7 @@
         base-compat-batteries = hold.callHackage "base-compat-batteries" "0.12.2" {};
         primitive = hold.primitive_0_7_4_0;
         zigzag = doJailbreak hold.zigzag;
-        doctest = (overrideSrc hold.doctest_0_20_0 { src = self.inputs.doctest; }); # doJailbreak hold.doctest_0_20_0;
+        doctest = dontCheck (overrideSrc hold.doctest_0_20_0 { src = self.inputs.doctest; }); # doJailbreak hold.doctest_0_20_0;
         ChasingBottoms = dontCheck (doJailbreak hold.ChasingBottoms);
         singleton-bool =  doJailbreak hold.singleton-bool;
         # tests create an infinite recursion with hspec -> primitive
@@ -148,6 +153,7 @@
 
         syb = dontCheck hold.syb;
 
+        cabal-install = doJailbreak hold.cabal-install;
         cabal-install-solver = doJailbreak hold.cabal-install-solver;
         double-conversion = overrideSrc hold.double-conversion { src = self.inputs.double-conversion; };
 
@@ -226,6 +232,7 @@
             sha256 = "sha256-k91zTn1okIkvKQwOmZ+GFE3MfI6uSrPLPEhx0oDEONc=";
         }) {};
 
+        # use flake
         htoml = dontCheck (overrideSrc hold.htoml {
           # src = builtins.fetchGit {
           #   # url = https://github.com/ongy/netlink-hs;
@@ -247,8 +254,11 @@
         #     src = self.inputs.readable;
         # } ;
 
-        polysemy = dontCheck hnew.polysemy_1_7_1_0;
-        polysemy-plugin = hnew.polysemy-plugin_0_4_3_1;
+        # callCabal2nix
+        invariant = doJailbreak  (hold.invariant);
+        polysemy-plugin = doJailbreak  (hnew.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}/polysemy-plugin" {});
+        polysemy = doJailbreak  (hnew.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}" {});
+        # polysemy-plugin = hnew.polysemy-plugin_0_4_3_1;
         # polysemy-conc = hold.polysemy-conc_0_5_1_1;
         # co-log-polysemy = doJailbreak (hold.co-log-polysemy);
         co-log-polysemy = doJailbreak  (overrideSrc hold.co-log-polysemy {
@@ -265,8 +275,9 @@
             sha256 = "sha256-QFjNzRSr/pb1nw4UBsg8uWBOkO+7ffpuYrUfLUuashM=";
           };
         });
-        # co-log-core = doJailbreak hold.co-log-core_0_3_0_0;
+        co-log-core = doJailbreak hold.co-log-core;
 
+        # I think this can go away
         colourista = hold.callCabal2nix "colourista" (pkgs.fetchzip {
             url = "https://github.com/teto/colourista/archive/bf56469f7c2d9f226879831ed3a280f8f23be842.tar.gz";
             sha256 = "sha256-k91zTn1okIkvKQwOmZ+GFE0MfI6uSrPLPEhx0oDEONc=";

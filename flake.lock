@@ -1065,6 +1065,22 @@
         "type": "indirect"
       }
     },
+    "polysemy": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1664729357,
+        "narHash": "sha256-p84QxHto5Z0T26GbEu1gHE0o6Mev+REF7s+FQv0LEms=",
+        "owner": "polysemy-research",
+        "repo": "polysemy",
+        "rev": "76af343a96741525fb5eee8642d32c65e3ccd7af",
+        "type": "github"
+      },
+      "original": {
+        "owner": "polysemy-research",
+        "repo": "polysemy",
+        "type": "github"
+      }
+    },
     "pre-commit-hooks": {
       "inputs": {
         "flake-utils": "flake-utils_4",
@@ -1203,6 +1219,7 @@
         "ihaskell": "ihaskell",
         "nixpkgs": "nixpkgs_7",
         "poetry": "poetry",
+        "polysemy": "polysemy",
         "readable": "readable",
         "replica": "replica",
         "word-compat": "word-compat"
