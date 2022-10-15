@@ -33,7 +33,7 @@ Source-repository head
 
 Flag WithPolysemy {
   Description: Add polysemy plugin
-  Default:     True
+  Default:     False
 }
 
 

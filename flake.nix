@@ -256,7 +256,7 @@
 
         # callCabal2nix
         invariant = doJailbreak  (hold.invariant);
-        polysemy-plugin = doJailbreak  (hnew.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}/polysemy-plugin" {});
+        # polysemy-plugin = doJailbreak  (hnew.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}/polysemy-plugin" {});
         polysemy = doJailbreak  (hnew.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}" {});
         # polysemy-plugin = hnew.polysemy-plugin_0_4_3_1;
         # polysemy-conc = hold.polysemy-conc_0_5_1_1;
@@ -307,7 +307,6 @@
           license = lib.licenses.bsd3;
             }) {inherit (pkgs) cairo;};
 
-        # polysemy-plugin = hnew.polysemy-plugin_0_4_3_0;
         # polysemy-conc = hold.polysemy-conc_0_5_1_1;
         # polysemy-test = hold.callCabal2nix "polysemy-test" (let src = pkgs.fetchzip {
         #     url = "https://github.com/tek/polysemy-test/archive/c83eb2a719e457e514d642a9d90651e69781c1d6.tar.gz";
