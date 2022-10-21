@@ -1068,15 +1068,16 @@
     "polysemy": {
       "flake": false,
       "locked": {
-        "lastModified": 1664729357,
-        "narHash": "sha256-p84QxHto5Z0T26GbEu1gHE0o6Mev+REF7s+FQv0LEms=",
-        "owner": "polysemy-research",
+        "lastModified": 1665957983,
+        "narHash": "sha256-ks3hmKbD/Q9/X9sj45OrxcJbvUre/jOH27kRILifLQc=",
+        "owner": "teto",
         "repo": "polysemy",
-        "rev": "76af343a96741525fb5eee8642d32c65e3ccd7af",
+        "rev": "afcc72e19b58779715569f3c5105360532ff5c90",
         "type": "github"
       },
       "original": {
-        "owner": "polysemy-research",
+        "owner": "teto",
+        "ref": "ghc94",
         "repo": "polysemy",
         "type": "github"
       }

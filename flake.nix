@@ -82,7 +82,8 @@
     };
 
     polysemy = {
-      url = "github:polysemy-research/polysemy";
+      # url = "github:polysemy-research/polysemy";
+      url = "github:teto/polysemy/ghc94";
       flake = false;
     };
 
@@ -97,48 +98,81 @@
 
       compilerVersion = "942";
 
-      haskellOverlay = hnew: hold: with pkgs.haskell.lib;
+      haskellOverlay = hfinal: hprev: with pkgs.haskell.lib;
         let
           gtk2hs-src = self.inputs.gtk2hs;
-          gtk2hs-buildtools = hnew.callCabal2nix "gtk2hs-buildtools" "${gtk2hs-src}/tools" {};
+          gtk2hs-buildtools = hfinal.callCabal2nix "gtk2hs-buildtools" "${gtk2hs-src}/tools" {};
           chart-src = self.inputs.haskell-chart;
 
+          # Change this to get debugging informations about Haskell packages.
+          # thanks guibou
+          debug = false;
+          traceDebug = s: e: if debug then (builtins.trace s e) else e;
+
         in
-        (pkgs.frameHaskellOverlay-921 hnew hold) //
+        # (pkgs.frameHaskellOverlay-921 hfinal hprev) //
         {
+        # Override for all derivation
+        # If they are considered as broken, we just disable jailbreak and hope for the best
+        # mkDerivation = args:
+        #   hprev.mkDerivation (args // (if args.broken or false then
+        #     traceDebug ("Jailbreaking " + args.pname)
+        #       {
+        #         jailbreak = true;
+        #         broken = false;
+        #         # doCheck = false;
+        #       } else { }));
+
+        # This version of callHackage compare the version we want to override
+        # with the one available in nixpkgs and prints a debug (if debug is
+        # enabled) if we force to an older version that what is inside nixpkgs.
+        # Most of the time it means that we may use the nixpkgs version.
+        callHackage = pname: newVersion: args:
+          let
+            oldVersion = hprev.${pname}.version;
+            pkg = hprev.callHackage pname newVersion args;
+          in
+          if builtins.compareVersions oldVersion newVersion == 1
+          then traceDebug (pname + ": version " + newVersion + " is older than " + oldVersion) pkg
+          else pkg;
 
         # TODO override Frames
         ip = let
-            newIp = (overrideSrc hold.ip { src = self.inputs.haskell-ip; });
-          in doJailbreak (dontCheck (addBuildDepend newIp hnew.word-compat) );
+            newIp = (overrideSrc hprev.ip { src = self.inputs.haskell-ip; });
+          in doJailbreak (dontCheck (addBuildDepend newIp hfinal.word-compat) );
         # circuithub:master
-        # bytebuild = unmarkBroken (dontCheck hold.bytebuild);
-        bytebuild = overrideSrc hold.bytebuild { src = self.inputs.bytebuild; };
-        bytesmith = overrideSrc hold.bytesmith { src = self.inputs.bytesmith; };
-        #  doJailbreak hold.base-compat; 
-        hedgehog = doJailbreak hold.hedgehog; 
-        base-compat = hold.callHackage "base-compat" "0.12.2" {};
-        base-compat-batteries = hold.callHackage "base-compat-batteries" "0.12.2" {};
-        primitive = hold.primitive_0_7_4_0;
-        zigzag = doJailbreak hold.zigzag;
-        doctest = dontCheck (overrideSrc hold.doctest_0_20_0 { src = self.inputs.doctest; }); # doJailbreak hold.doctest_0_20_0;
-        ChasingBottoms = dontCheck (doJailbreak hold.ChasingBottoms);
-        singleton-bool =  doJailbreak hold.singleton-bool;
+        # bytebuild = unmarkBroken (dontCheck hprev.bytebuild);
+        bytebuild = overrideSrc hprev.bytebuild { src = self.inputs.bytebuild; };
+        bytesmith = overrideSrc hprev.bytesmith { src = self.inputs.bytesmith; };
+        #  doJailbreak hprev.base-compat; 
+        tasty-hedgehog = dontHaddock (doJailbreak hprev.tasty-hedgehog); 
+        hedgehog = dontHaddock (doJailbreak hprev.hedgehog); 
+        base-compat = hfinal.callHackage "base-compat" "0.12.2" {};
+        base-compat-batteries = hfinal.callHackage "base-compat-batteries" "0.12.2" {};
+        primitive = hprev.primitive_0_7_4_0;
+        zigzag = doJailbreak hprev.zigzag;
+        doctest = dontCheck (overrideSrc hprev.doctest_0_20_0 { src = self.inputs.doctest; }); # doJailbreak hprev.doctest_0_20_0;
+        ChasingBottoms = dontCheck (doJailbreak hprev.ChasingBottoms);
+        singleton-bool =  doJailbreak hprev.singleton-bool;
         # tests create an infinite recursion with hspec -> primitive
-        base-orphans = dontCheck hold.base-orphans;
-        HTTP = doJailbreak hold.HTTP;
-        unordered-containers = doJailbreak hold.unordered-containers;
-        dec = doJailbreak hold.dec;
-        ed25519 = doJailbreak hold.ed25519;
-        boring = doJailbreak hold.boring;
-        hashable = hold.callHackage "hashable" "1.4.1.0" {};
+        base-orphans = dontCheck hprev.base-orphans;
+        HTTP = doJailbreak hprev.HTTP;
+        unordered-containers = doJailbreak hprev.unordered-containers;
+        dec = doJailbreak hprev.dec;
+        ed25519 = doJailbreak hprev.ed25519;
+        boring = doJailbreak hprev.boring;
+        hashable = hfinal.callHackage "hashable" "1.4.1.0" {};
+        vector-binary-instance = doJailbreak hprev.vector-binary-instance;
+        microlens-platform = doJailbreak hprev.microlens-platform;
+        microlens  = doJailbreak hprev.microlens;
+        vector  = dontCheck hprev.vector;
+        vinyl  = hprev.vinyl_0_14_3;
+        active = doJailbreak hprev.active;
+        some = doJailbreak hprev.some;
+        incipit-base = doJailbreak hprev.incipit-base;
+        typerep-map = hfinal.callHackage "typerep-map" "0.5.0.0" {};
 
-        vinyl  = hold.vinyl_0_14_3;
-        active = doJailbreak hold.active;
-        some = doJailbreak hold.some;
-        incipit-base = doJailbreak hold.incipit-base;
-
-        chronos = overrideSrc hold.chronos {
+        chronos = overrideSrc hprev.chronos {
           src = pkgs.fetchFromGitHub {
             # owner = "byorgey";
             # rev = "fe6bf78a1b97ff7429630d0e8974c9bc40945dcf";
@@ -149,42 +183,42 @@
           };
         };
 
-        hspec-meta = hold.callHackage "hspec-meta" "2.10.5" {};
+        hspec-meta = hprev.callHackage "hspec-meta" "2.10.5" {};
 
-        syb = dontCheck hold.syb;
+        syb = dontCheck hprev.syb;
 
-        cabal-install = doJailbreak hold.cabal-install;
-        cabal-install-solver = doJailbreak hold.cabal-install-solver;
-        double-conversion = overrideSrc hold.double-conversion { src = self.inputs.double-conversion; };
+        cabal-install = doJailbreak hprev.cabal-install;
+        cabal-install-solver = doJailbreak hprev.cabal-install-solver;
+        double-conversion = overrideSrc hprev.double-conversion { src = self.inputs.double-conversion; };
 
         # discussed at https://github.com/JonasDuregard/sized-functors/pull/10
         # 0.1.3.0 should be fine
-        size-based = hold.callHackage "size-based" "0.1.3.1" {};
-        ghc-tcplugins-extra = hold.callHackage "ghc-tcplugins-extra" "0.4.3" {};
-        # ghc-typelits-natnormalise = hold.callHackage "ghc-typelits-natnormalise" "0.7.6" {};
+        size-based = hprev.callHackage "size-based" "0.1.3.1" {};
+        ghc-tcplugins-extra = hprev.callHackage "ghc-tcplugins-extra" "0.4.3" {};
+        # ghc-typelits-natnormalise = hprev.callHackage "ghc-typelits-natnormalise" "0.7.6" {};
 
         # see https://github.com/clash-lang/ghc-typelits-natnormalise/pull/64 for ghc 9.4
-        ghc-typelits-natnormalise = doJailbreak (overrideSrc hold.ghc-typelits-natnormalise { src = self.inputs.ghc-typelits-natnormalise; });
-        ghc-typelits-knownnat = doJailbreak (overrideSrc hold.ghc-typelits-knownnat { src = self.inputs.ghc-typelits-knownnat; });
-          # doJailbreak (hold.ghc-typelits-natnormalise.overrideAttrs(oa: {
-        pipes-safe = doJailbreak hold.pipes-safe;
+        ghc-typelits-natnormalise = doJailbreak (overrideSrc hprev.ghc-typelits-natnormalise { src = self.inputs.ghc-typelits-natnormalise; });
+        ghc-typelits-knownnat = doJailbreak (overrideSrc hprev.ghc-typelits-knownnat { src = self.inputs.ghc-typelits-knownnat; });
+          # doJailbreak (hprev.ghc-typelits-natnormalise.overrideAttrs(oa: {
+        pipes-safe = doJailbreak hprev.pipes-safe;
 
         #
-        primitive-unaligned = hold.callHackage "primitive-unaligned" "0.1.1.2" {};
-        hspec-discover = hold.callHackage "hspec-discover" "2.10.6" {};
-        hspec-core = hold.callHackage "hspec-core" "2.10.6" {};
-        hspec-contrib = dontCheck (hold.callHackage "hspec-contrib" "0.5.1" {});
-        hspec = hold.callHackage "hspec" "2.10.6" {};
-        incipit-core = doJailbreak hold.incipit-core;
+        primitive-unaligned = hprev.callHackage "primitive-unaligned" "0.1.1.2" {};
+        hspec-discover = hprev.callHackage "hspec-discover" "2.10.6" {};
+        hspec-core = hprev.callHackage "hspec-core" "2.10.6" {};
+        hspec-contrib = dontCheck (hprev.callHackage "hspec-contrib" "0.5.1" {});
+        hspec = hprev.callHackage "hspec" "2.10.6" {};
+        incipit-core = doJailbreak hprev.incipit-core;
 
           # patches = [ ./toto.patch ];
 
         # }));
 
-          # (addBuildDepend hold.ghc-bignum hold.ghc-typelits-natnormalise);
-        # ghc-bignum = hnew.ghc-bignum_1_3;
+          # (addBuildDepend hprev.ghc-bignum hprev.ghc-typelits-natnormalise);
+        # ghc-bignum = hfinal.ghc-bignum_1_3;
 
-        # size-based = overrideSrc (hold.size-based.overrideAttrs (oa: {
+        # size-based = overrideSrc (hprev.size-based.overrideAttrs (oa: {
         #   patches = [];
         # # })) {
         #   src = pkgs.fetchFromGitHub {
@@ -197,43 +231,43 @@
         #   };
         # };
           # https://github.com/byorgey/sized-functors.git
-        # semirings = doJailbreak (hold.semirings.overrideAttrs(oa: { propagatedBuildInputs = [ hnew.base-compat-batteries ]; }));
+        # semirings = doJailbreak (hprev.semirings.overrideAttrs(oa: { propagatedBuildInputs = [ hfinal.base-compat-batteries ]; }));
 
-        relude = hold.relude_1_0_0_1;
+        relude = hprev.relude_1_0_0_1;
 
         # TODO double check
-        Chart = pkgs.lib.pipe hold.Chart [ 
+        Chart = pkgs.lib.pipe hprev.Chart [ 
           (doJailbreak)
-          (addBuildDepend hnew.lens)
+          (addBuildDepend hfinal.lens)
           # (overrideCabal (old: {
           #   libraryHaskellDepends = old.libraryHaskellDepends ++ [
-          #     hnew.lens
+          #     hfinal.lens
           #   ];
           # }))
         ];
 
-        Chart-diagrams = doJailbreak hold.Chart-diagrams;
+        Chart-diagrams = doJailbreak hprev.Chart-diagrams;
         Chart-cairo = let 
-          newCairo = hnew.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
+          newCairo = hfinal.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
         in
           # newCairo;
-          # doJailbreak (newCairo.overrideAttrs(oa: { propagatedBuildInputs = [ hnew.Chart ]; }));
-        # overrideCabal newCairo (old: { libraryHaskellDepends  = old.libraryHaskellDepends  ++ [ hnew.Chart ]; }) ;
+          # doJailbreak (newCairo.overrideAttrs(oa: { propagatedBuildInputs = [ hfinal.Chart ]; }));
+        # overrideCabal newCairo (old: { libraryHaskellDepends  = old.libraryHaskellDepends  ++ [ hfinal.Chart ]; }) ;
           # newCairo;
           pkgs.lib.pipe (newCairo) [ 
-            # (addExtraLibrary hnew.cairo )
-            (addSetupDepend hnew.cairo)
+            # (addExtraLibrary hfinal.cairo )
+            (addSetupDepend hfinal.cairo)
             ];
 
-        # Chart-cairo = doJailbreak (hnew.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {}) ;
+        # Chart-cairo = doJailbreak (hfinal.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {}) ;
 
-        wide-word = hold.callCabal2nix "wide-word" (pkgs.fetchzip {
+        wide-word = hprev.callCabal2nix "wide-word" (pkgs.fetchzip {
             url = "https://github.com/erikd/wide-word/archive/f2e17fc8fd6a9cea327ab0a72ca8b3c0367a2871.tar.gz";
             sha256 = "sha256-k91zTn1okIkvKQwOmZ+GFE3MfI6uSrPLPEhx0oDEONc=";
         }) {};
 
         # use flake
-        htoml = dontCheck (overrideSrc hold.htoml {
+        htoml = dontCheck (overrideSrc hprev.htoml {
           # src = builtins.fetchGit {
           #   # url = https://github.com/ongy/netlink-hs;
           #   url = https://github.com/teto/netlink-hs;
@@ -247,21 +281,21 @@
           };
         });
 
-        readable = doJailbreak hold.readable;
+        readable = doJailbreak hprev.readable;
         # readable = throw "error";
-        # readable = overrideSrc hold.readable {
+        # readable = overrideSrc hprev.readable {
         #   version = "matt-ghc923";
         #     src = self.inputs.readable;
         # } ;
 
         # callCabal2nix
-        invariant = doJailbreak  (hold.invariant);
-        # polysemy-plugin = doJailbreak  (hnew.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}/polysemy-plugin" {});
-        polysemy = doJailbreak  (hnew.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}" {});
-        # polysemy-plugin = hnew.polysemy-plugin_0_4_3_1;
-        # polysemy-conc = hold.polysemy-conc_0_5_1_1;
-        # co-log-polysemy = doJailbreak (hold.co-log-polysemy);
-        co-log-polysemy = doJailbreak  (overrideSrc hold.co-log-polysemy {
+        invariant = doJailbreak  (hprev.invariant);
+        polysemy-plugin = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}/polysemy-plugin" {});
+        polysemy = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}" {});
+        # polysemy-plugin = hfinal.polysemy-plugin_0_4_3_1;
+        polysemy-conc = doJailbreak hprev.polysemy-conc; # hprev.polysemy-conc_0_5_1_1;
+        # co-log-polysemy = doJailbreak (hprev.co-log-polysemy);
+        co-log-polysemy = doJailbreak  (overrideSrc hprev.co-log-polysemy {
           # src = builtins.fetchGit {
           #   # url = https://github.com/ongy/netlink-hs;
           #   url = https://github.com/teto/netlink-hs;
@@ -275,10 +309,10 @@
             sha256 = "sha256-QFjNzRSr/pb1nw4UBsg8uWBOkO+7ffpuYrUfLUuashM=";
           };
         });
-        co-log-core = doJailbreak hold.co-log-core;
+        co-log-core = doJailbreak hprev.co-log-core;
 
         # I think this can go away
-        colourista = hold.callCabal2nix "colourista" (pkgs.fetchzip {
+        colourista = hprev.callCabal2nix "colourista" (pkgs.fetchzip {
             url = "https://github.com/teto/colourista/archive/bf56469f7c2d9f226879831ed3a280f8f23be842.tar.gz";
             sha256 = "sha256-k91zTn1okIkvKQwOmZ+GFE0MfI6uSrPLPEhx0oDEONc=";
         }) {};
@@ -287,8 +321,8 @@
 
         # TODO see https://github.com/gtk2hs/gtk2hs/pull/310  and his fix at k0001/fix-cabal-3.6.0.0
         # use my fork instead
-        # cairo = hnew.callCabal2nix "cairo" "${gtk2hs-src}/cairo"  {};
-        cairo = hnew.callPackage ({ mkDerivation, array, base, bytestring, Cabal, cairo
+        # cairo = hfinal.callCabal2nix "cairo" "${gtk2hs-src}/cairo"  {};
+        cairo = hfinal.callPackage ({ mkDerivation, array, base, bytestring, Cabal, cairo
         , gtk2hs-buildtools, lib, mtl, text, utf8-string
         }:
         mkDerivation {
@@ -307,22 +341,22 @@
           license = lib.licenses.bsd3;
             }) {inherit (pkgs) cairo;};
 
-        # polysemy-conc = hold.polysemy-conc_0_5_1_1;
-        # polysemy-test = hold.callCabal2nix "polysemy-test" (let src = pkgs.fetchzip {
+        # polysemy-conc = hprev.polysemy-conc_0_5_1_1;
+        # polysemy-test = hprev.callCabal2nix "polysemy-test" (let src = pkgs.fetchzip {
         #     url = "https://github.com/tek/polysemy-test/archive/c83eb2a719e457e514d642a9d90651e69781c1d6.tar.gz";
         #     sha256 = "sha256-EB5r45FKOejQa9WMXYGePmayBCeRygE0mEGatCot3mM=";
         # }; in "${src}/packages/polysemy-test") {};
 
-        type-errors = dontCheck hold.type-errors;
-        # type-errors = hold.callCabal2nix "type-errors" (pkgs.fetchzip {
+        type-errors = dontCheck hprev.type-errors;
+        # type-errors = hprev.callCabal2nix "type-errors" (pkgs.fetchzip {
         #     url = "https://github.com/isovector/type-errors/archive/c73bd09eb7d1a7a6b5c61bd640c983496d0a9f8.tar.gz";
         #     sha256 = "sha256-Q5SxA+fazW/e60uPqJ3krBt2optFK37OoAxy00lEbw8=";
         # }) {};
 
-        # chronos = hold.chronos_1_1_3;
-        # polysemy-test = hold.callHackage "polysemy-test" "0.5.0.0" {};
+        # chronos = hprev.chronos_1_1_3;
+        # polysemy-test = hprev.callHackage "polysemy-test" "0.5.0.0" {};
 
-        netlink = overrideSrc hold.netlink {
+        netlink = overrideSrc hprev.netlink {
           # src = builtins.fetchGit {
           #   # url = https://github.com/ongy/netlink-hs;
           #   url = https://github.com/teto/netlink-hs;
@@ -335,26 +369,26 @@
             sha256 = "sha256-qopa1ED4Bqk185b1AXZ32BG2s80SHDSkCODyoZfnft0=";
           };
         };
-        haskell-src-meta = hold.haskell-src-meta.overrideAttrs (oa: {
+        haskell-src-meta = hprev.haskell-src-meta.overrideAttrs (oa: {
           patches = [];
         });
 
-        contiguous = hold.callCabal2nix "hashtables" (pkgs.fetchzip {
+        contiguous = hprev.callCabal2nix "hashtables" (pkgs.fetchzip {
             url = "https://github.com/andrewthad/contiguous/archive/7771fc90e4a587b2c425b7c61a7a838c3b3d5fae.tar.gz";
             sha256 = "sha256-JahJAVxZM3xJUHTndl80mb4E8qMgqplMzSXCuYLKeOc=";
         }) {};
-        hashtables = hold.callCabal2nix "hashtables" (pkgs.fetchzip {
+        hashtables = hprev.callCabal2nix "hashtables" (pkgs.fetchzip {
             url = "https://github.com/gregorycollins/hashtables/archive/e07a3d73dee80b5c75d2e3bcc2023927b354ea7c.tar.gz";
             sha256 = "sha256-jjqm+o1viM28iWYf6ZuIu3fvQn/wcwwdbTWE6kP7QZE=";
         }) {};
         # we need >= 0.2.7.0
-        byteslice = hold.callCabal2nix "byteslice" (pkgs.fetchzip {
+        byteslice = hprev.callCabal2nix "byteslice" (pkgs.fetchzip {
             url = "https://github.com/byteverse/byteslice/archive/965e70d08c012b335104a6572ada68c6289482de.tar.gz";
             sha256 = "sha256-S3V0jSjXkAQxV0Zppgf6bkewf4mlQa5rkIWFbJ0eTBo=";
         }) {};
 
         # 
-        word-compat = (doJailbreak (dontCheck (overrideSrc hold.word-compat { src = self.inputs.word-compat; })));
+        word-compat = (doJailbreak (dontCheck (overrideSrc hprev.word-compat { src = self.inputs.word-compat; })));
 
         # this repo software
         mptcp = self.packages.${system}.mptcp;
@@ -446,7 +480,6 @@
         #   # propagatedBuildInputs = [ hsPkgs.Chart ];
         #   # buildInputs = [];
         #   # buildInputs = oa.buildInputs ++ [ hsPkgs.Chart ];
-
         # }));
 
         # basic library
