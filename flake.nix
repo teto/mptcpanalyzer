@@ -32,7 +32,7 @@
     };
 
     ghc-typelits-knownnat = {
-      url = "github:clash-lang/ghc-typelits-knownnat/941-support";
+      url = "github:clash-lang/ghc-typelits-knownnat";
       flake = false;
     };
 
@@ -73,6 +73,10 @@
       flake = false;
     };
 
+    wide-word = {
+      url = "github:parsonsmatt/wide-word?ref=matt/support-ghc94";
+      flake = false;
+    };
 
     # cabal hashes contains all the version for different haskell packages, to update:
     # nix flake lock --update-input all-cabal-hashes-unpacked
@@ -91,6 +95,12 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
+
+    typerep-map = {
+      url = "github:parsonsmatt/typerep-map/?ref=matt/support-ghc-94";
+      flake = false;
+    };
+    
   };
 
   outputs = { self, haskell-chart, all-cabal-hashes-unpacked, nixpkgs, flake-utils, poetry, replica, hls, frames, ... }:
@@ -106,7 +116,7 @@
 
           # Change this to get debugging informations about Haskell packages.
           # thanks guibou
-          debug = false;
+          debug = true;
           traceDebug = s: e: if debug then (builtins.trace s e) else e;
 
         in
@@ -114,14 +124,16 @@
         {
         # Override for all derivation
         # If they are considered as broken, we just disable jailbreak and hope for the best
-        # mkDerivation = args:
-        #   hprev.mkDerivation (args // (if args.broken or false then
-        #     traceDebug ("Jailbreaking " + args.pname)
-        #       {
-        #         jailbreak = true;
-        #         broken = false;
-        #         # doCheck = false;
-        #       } else { }));
+        mkDerivation = args:
+          hprev.mkDerivation (args // (if args.broken or false then
+            traceDebug ("Jailbreaking " + args.pname)
+              {
+                jailbreak = true;
+                broken = false;
+                # doCheck = false;
+              } else {
+                # jailbreak = true;
+            }));
 
         # This version of callHackage compare the version we want to override
         # with the one available in nixpkgs and prints a debug (if debug is
@@ -137,6 +149,7 @@
           else pkg;
 
         # TODO override Frames
+        aeson = hfinal.callHackage "aeson" "2.1.1.0" {};
         ip = let
             newIp = (overrideSrc hprev.ip { src = self.inputs.haskell-ip; });
           in doJailbreak (dontCheck (addBuildDepend newIp hfinal.word-compat) );
@@ -147,9 +160,13 @@
         #  doJailbreak hprev.base-compat; 
         tasty-hedgehog = dontHaddock (doJailbreak hprev.tasty-hedgehog); 
         hedgehog = dontHaddock (doJailbreak hprev.hedgehog); 
-        base-compat = hfinal.callHackage "base-compat" "0.12.2" {};
-        base-compat-batteries = hfinal.callHackage "base-compat-batteries" "0.12.2" {};
-        primitive = hprev.primitive_0_7_4_0;
+        base-compat = doJailbreak (hfinal.callHackage "base-compat" "0.12.2" {});
+        base-compat-batteries = doJailbreak (hfinal.callHackage "base-compat-batteries" "0.12.2" {});
+
+        # primitive = builtins.trace "toto" hprev.primitive_0_7_4_0;
+        # primitive = builtins.trace "toto" (doJailbreak hprev.primitive);
+        primitive = hfinal.callHackage "primitive" "0.7.4.0" {};
+
         zigzag = doJailbreak hprev.zigzag;
         doctest = dontCheck (overrideSrc hprev.doctest_0_20_0 { src = self.inputs.doctest; }); # doJailbreak hprev.doctest_0_20_0;
         ChasingBottoms = dontCheck (doJailbreak hprev.ChasingBottoms);
@@ -162,15 +179,18 @@
         ed25519 = doJailbreak hprev.ed25519;
         boring = doJailbreak hprev.boring;
         hashable = hfinal.callHackage "hashable" "1.4.1.0" {};
-        vector-binary-instance = doJailbreak hprev.vector-binary-instance;
+        vector-binary-instances = doJailbreak hprev.vector-binary-instances;
         microlens-platform = doJailbreak hprev.microlens-platform;
         microlens  = doJailbreak hprev.microlens;
+        lens = hfinal.callHackage "lens" "5.2" {};
+        lens-aeson = doJailbreak hprev.lens-aeson;
         vector  = dontCheck hprev.vector;
         vinyl  = hprev.vinyl_0_14_3;
         active = doJailbreak hprev.active;
         some = doJailbreak hprev.some;
         incipit-base = doJailbreak hprev.incipit-base;
-        typerep-map = hfinal.callHackage "typerep-map" "0.5.0.0" {};
+        #  hfinal.callHackage "typerep-map" "0.5.0.0" {}
+        typerep-map = doJailbreak (overrideSrc hprev.ip { src = self.inputs.typerep-map; });
 
         chronos = overrideSrc hprev.chronos {
           src = pkgs.fetchFromGitHub {
@@ -261,10 +281,10 @@
 
         # Chart-cairo = doJailbreak (hfinal.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {}) ;
 
-        wide-word = hprev.callCabal2nix "wide-word" (pkgs.fetchzip {
-            url = "https://github.com/erikd/wide-word/archive/f2e17fc8fd6a9cea327ab0a72ca8b3c0367a2871.tar.gz";
-            sha256 = "sha256-k91zTn1okIkvKQwOmZ+GFE3MfI6uSrPLPEhx0oDEONc=";
-        }) {};
+        # overrideSrc hprev.wide-word { src = self.inputs.wide-word; }
+        wide-word = doJailbreak (
+          hprev.callCabal2nix "wide-word" ( self.inputs.wide-word) {}
+          );
 
         # use flake
         htoml = dontCheck (overrideSrc hprev.htoml {
@@ -322,24 +342,24 @@
         # TODO see https://github.com/gtk2hs/gtk2hs/pull/310  and his fix at k0001/fix-cabal-3.6.0.0
         # use my fork instead
         # cairo = hfinal.callCabal2nix "cairo" "${gtk2hs-src}/cairo"  {};
-        cairo = hfinal.callPackage ({ mkDerivation, array, base, bytestring, Cabal, cairo
-        , gtk2hs-buildtools, lib, mtl, text, utf8-string
-        }:
-        mkDerivation {
-          pname = "cairo";
-          version = "0.13.8.2";
-          src = "${gtk2hs-src}";
-          postUnpack = "sourceRoot+=/cairo; echo source root reset to $sourceRoot";
-          enableSeparateDataOutput = true;
-          setupHaskellDepends = [ pkgs.gcc base Cabal gtk2hs-buildtools ];
-          libraryHaskellDepends = [
-            array base bytestring Cabal mtl text utf8-string
-          ];
-          libraryPkgconfigDepends = [ cairo ];
-          homepage = "http://projects.haskell.org/gtk2hs/";
-          description = "Binding to the Cairo library";
-          license = lib.licenses.bsd3;
-            }) {inherit (pkgs) cairo;};
+        # cairo = doJailbreak (hfinal.callPackage ({ mkDerivation, array, base, bytestring, Cabal, cairo
+        # , gtk2hs-buildtools, lib, mtl, text, utf8-string
+        # }:
+        # mkDerivation {
+        #   pname = "cairo";
+        #   version = "0.13.8.2";
+        #   src = "${gtk2hs-src}";
+        #   postUnpack = "sourceRoot+=/cairo; echo source root reset to $sourceRoot";
+        #   enableSeparateDataOutput = true;
+        #   setupHaskellDepends = [ pkgs.gcc base Cabal gtk2hs-buildtools ];
+        #   libraryHaskellDepends = [
+        #     array base bytestring Cabal mtl text utf8-string
+        #   ];
+        #   libraryPkgconfigDepends = [ cairo ];
+        #   homepage = "http://projects.haskell.org/gtk2hs/";
+        #   description = "Binding to the Cairo library";
+        #   license = lib.licenses.bsd3;
+        #     }) {inherit (pkgs) cairo;});
 
         # polysemy-conc = hprev.polysemy-conc_0_5_1_1;
         # polysemy-test = hprev.callCabal2nix "polysemy-test" (let src = pkgs.fetchzip {
@@ -399,7 +419,7 @@
       pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            frames.overlay
+            # frames.overlay
             # self.overlay
             (final: prev: {
               all-cabal-hashes = prev.runCommand "all-cabal-hashes.tar.gz"
@@ -414,7 +434,7 @@
           config = { allowUnfree = false; allowBroken = true;};
         };
 
-      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}".extend( haskellOverlay );
+      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}".extend(haskellOverlay);
 
       # modifier used in haskellPackages.developPackage
       myModifier = drv:
@@ -452,7 +472,7 @@
             modifier = myModifier;
           };
 
-      mkDevShell = name: self.packages.${system}."${name}".envFunc {};
+      mkDevShell = name: self.packages.${system}.${name}.envFunc {};
 
       # provides a dev shell with libraries built by nix
       mkDevShellWithNix = name:
@@ -501,6 +521,7 @@
 
       # TODO add a shellFor (for all 3 packages)
       devShells = {
+        default = mkDevShellWithNix "mptcp"; 
         # cabal will provide the libraries
         # envFunc { withHoogle }
         mptcp = mkDevShell "mptcp";

@@ -458,16 +458,15 @@
     "ghc-typelits-knownnat": {
       "flake": false,
       "locked": {
-        "lastModified": 1658650195,
-        "narHash": "sha256-9ITC1f0wGvOH1VrFXegwSUugjR777FknFcfOsNxXhMY=",
+        "lastModified": 1665418310,
+        "narHash": "sha256-b4/lGNBDNmVLYeT6sIOwGIj0pyq3j1fjHu3+EvKsDl8=",
         "owner": "clash-lang",
         "repo": "ghc-typelits-knownnat",
-        "rev": "634b0c076e5cf6ce24d80fa845121b38ec9efe01",
+        "rev": "1bc4ee33e005e96d1f7785c715588a289707cd48",
         "type": "github"
       },
       "original": {
         "owner": "clash-lang",
-        "ref": "941-support",
         "repo": "ghc-typelits-knownnat",
         "type": "github"
       }
@@ -1223,6 +1222,8 @@
         "polysemy": "polysemy",
         "readable": "readable",
         "replica": "replica",
+        "typerep-map": "typerep-map",
+        "wide-word": "wide-word",
         "word-compat": "word-compat"
       }
     },
@@ -1236,6 +1237,40 @@
       "original": {
         "type": "tarball",
         "url": "https://hackage.haskell.org/package/stylish-haskell-0.14.2.0/stylish-haskell-0.14.2.0.tar.gz"
+      }
+    },
+    "typerep-map": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1661208811,
+        "narHash": "sha256-3ATQgkB0dIyA3q/VzsTUk9KwVtmNudu7u3WeqXIWbgg=",
+        "owner": "parsonsmatt",
+        "repo": "typerep-map",
+        "rev": "75b7cd5d45986be07420a6821d352ad2adc0b697",
+        "type": "github"
+      },
+      "original": {
+        "owner": "parsonsmatt",
+        "ref": "matt/support-ghc-94",
+        "repo": "typerep-map",
+        "type": "github"
+      }
+    },
+    "wide-word": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1661439699,
+        "narHash": "sha256-XNhGjzAXeNHEQtwAbAHFhSe1U0bsF4iO8FCbNPPZz6E=",
+        "owner": "parsonsmatt",
+        "repo": "wide-word",
+        "rev": "4189a6419287c4249f1d6772889065f0908e4630",
+        "type": "github"
+      },
+      "original": {
+        "owner": "parsonsmatt",
+        "ref": "matt/support-ghc94",
+        "repo": "wide-word",
+        "type": "github"
       }
     },
     "word-compat": {
