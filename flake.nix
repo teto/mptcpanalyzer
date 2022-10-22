@@ -48,15 +48,17 @@
     };
 
     bytebuild = {
-      url = "github:teto/bytebuild";
+      url = "github:parsonsmatt/bytebuild?ref=matt/support-ghc94";
+      # url = "github:teto/bytebuild";
       flake = false;
     };
     bytesmith = {
-      url = "github:teto/bytesmith/ghc92";
+      url = "github:parsonsmatt/bytesmith?ref=matt/support-ghc94";
+      # url = "github:teto/bytesmith/ghc92";
       flake = false;
     };
     haskell-ip = {
-      url = "github:andrewthad/haskell-ip/ghc-9-2-3";
+      url = "github:andrewthad/haskell-ip";
       flake = false;
     };
     word-compat = {
@@ -149,16 +151,22 @@
           else pkg;
 
         # TODO override Frames
+        Frames = doJailbreak hprev.Frames;
         aeson = hfinal.callHackage "aeson" "2.1.1.0" {};
-        ip = let
-            newIp = (overrideSrc hprev.ip { src = self.inputs.haskell-ip; });
-          in doJailbreak (dontCheck (addBuildDepend newIp hfinal.word-compat) );
+        ip = hfinal.callHackage "ip" "1.7.6" {};
+         # 1.7.6
+        # ip = let
+         #    newIp = (overrideSrc hprev.ip { src = self.inputs.haskell-ip; });
+        # in 
+         #  # addBuildDepend newIp hfinal.word-compat
+         #  doJailbreak (dontCheck (newIp) );
         # circuithub:master
         # bytebuild = unmarkBroken (dontCheck hprev.bytebuild);
-        bytebuild = overrideSrc hprev.bytebuild { src = self.inputs.bytebuild; };
+        bytebuild = doJailbreak (overrideSrc hprev.bytebuild { src = self.inputs.bytebuild; });
         bytesmith = overrideSrc hprev.bytesmith { src = self.inputs.bytesmith; };
         #  doJailbreak hprev.base-compat; 
-        tasty-hedgehog = dontHaddock (doJailbreak hprev.tasty-hedgehog); 
+        tasty-hedgehog = doJailbreak (hfinal.callHackage "tasty-hedgehog" "1.3.1.0" {});
+        # hedgehog 1.2
         hedgehog = dontHaddock (doJailbreak hprev.hedgehog); 
         base-compat = doJailbreak (hfinal.callHackage "base-compat" "0.12.2" {});
         base-compat-batteries = doJailbreak (hfinal.callHackage "base-compat-batteries" "0.12.2" {});
@@ -173,6 +181,7 @@
         singleton-bool =  doJailbreak hprev.singleton-bool;
         # tests create an infinite recursion with hspec -> primitive
         base-orphans = dontCheck hprev.base-orphans;
+        discrimination = hfinal.callHackage "discrimination" "0.5" {};
         HTTP = doJailbreak hprev.HTTP;
         unordered-containers = doJailbreak hprev.unordered-containers;
         dec = doJailbreak hprev.dec;
@@ -190,7 +199,7 @@
         some = doJailbreak hprev.some;
         incipit-base = doJailbreak hprev.incipit-base;
         #  hfinal.callHackage "typerep-map" "0.5.0.0" {}
-        typerep-map = doJailbreak (overrideSrc hprev.ip { src = self.inputs.typerep-map; });
+        typerep-map = doJailbreak (overrideSrc hprev.typerep-map { src = self.inputs.typerep-map; });
 
         chronos = overrideSrc hprev.chronos {
           src = pkgs.fetchFromGitHub {

@@ -162,7 +162,7 @@ executable mptcp-pm
         aeson
       , aeson-pretty
       , aeson-extra
-      , base >= 4.12 && < 4.17
+      , base >= 4.12 && < 5.0
       , bytestring
       , containers
       , lens
