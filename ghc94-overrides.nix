@@ -8,14 +8,14 @@ with pkgs.haskell.lib;
         ip = hfinal.callHackage "ip" "1.7.6" {};
          # 1.7.6
         # ip = let
-         #    newIp = (overrideSrc hprev.ip { src = self.inputs.haskell-ip; });
+         #    newIp = (overrideSrc hprev.ip { src = inputs.haskell-ip; });
         # in 
          #  # addBuildDepend newIp hfinal.word-compat
          #  doJailbreak (dontCheck (newIp) );
         # circuithub:master
         # bytebuild = unmarkBroken (dontCheck hprev.bytebuild);
-        bytebuild = doJailbreak (overrideSrc hprev.bytebuild { src = self.inputs.bytebuild; });
-        bytesmith = overrideSrc hprev.bytesmith { src = self.inputs.bytesmith; };
+        bytebuild = doJailbreak (overrideSrc hprev.bytebuild { src = inputs.bytebuild; });
+        bytesmith = overrideSrc hprev.bytesmith { src = inputs.bytesmith; };
         #  doJailbreak hprev.base-compat; 
         tasty-hedgehog = doJailbreak (hfinal.callHackage "tasty-hedgehog" "1.3.1.0" {});
         # hedgehog 1.2
@@ -28,7 +28,7 @@ with pkgs.haskell.lib;
         primitive = hfinal.callHackage "primitive" "0.7.4.0" {};
 
         zigzag = doJailbreak hprev.zigzag;
-        doctest = dontCheck (overrideSrc hprev.doctest_0_20_0 { src = self.inputs.doctest; }); # doJailbreak hprev.doctest_0_20_0;
+        doctest = dontCheck (overrideSrc hprev.doctest_0_20_0 { src = inputs.doctest; }); # doJailbreak hprev.doctest_0_20_0;
         ChasingBottoms = dontCheck (doJailbreak hprev.ChasingBottoms);
         singleton-bool =  doJailbreak hprev.singleton-bool;
         # tests create an infinite recursion with hspec -> primitive
@@ -51,7 +51,7 @@ with pkgs.haskell.lib;
         some = doJailbreak hprev.some;
         incipit-base = doJailbreak hprev.incipit-base;
         #  hfinal.callHackage "typerep-map" "0.5.0.0" {}
-        typerep-map = doJailbreak (overrideSrc hprev.typerep-map { src = self.inputs.typerep-map; });
+        typerep-map = doJailbreak (overrideSrc hprev.typerep-map { src = inputs.typerep-map; });
 
         chronos = overrideSrc hprev.chronos {
           src = pkgs.fetchFromGitHub {
@@ -70,7 +70,7 @@ with pkgs.haskell.lib;
 
         cabal-install = doJailbreak hprev.cabal-install;
         cabal-install-solver = doJailbreak hprev.cabal-install-solver;
-        double-conversion = overrideSrc hprev.double-conversion { src = self.inputs.double-conversion; };
+        double-conversion = overrideSrc hprev.double-conversion { src = inputs.double-conversion; };
 
         # discussed at https://github.com/JonasDuregard/sized-functors/pull/10
         # 0.1.3.0 should be fine
@@ -79,8 +79,8 @@ with pkgs.haskell.lib;
         # ghc-typelits-natnormalise = hprev.callHackage "ghc-typelits-natnormalise" "0.7.6" {};
 
         # see https://github.com/clash-lang/ghc-typelits-natnormalise/pull/64 for ghc 9.4
-        ghc-typelits-natnormalise = doJailbreak (overrideSrc hprev.ghc-typelits-natnormalise { src = self.inputs.ghc-typelits-natnormalise; });
-        ghc-typelits-knownnat = doJailbreak (overrideSrc hprev.ghc-typelits-knownnat { src = self.inputs.ghc-typelits-knownnat; });
+        ghc-typelits-natnormalise = doJailbreak (overrideSrc hprev.ghc-typelits-natnormalise { src = inputs.ghc-typelits-natnormalise; });
+        ghc-typelits-knownnat = doJailbreak (overrideSrc hprev.ghc-typelits-knownnat { src = inputs.ghc-typelits-knownnat; });
           # doJailbreak (hprev.ghc-typelits-natnormalise.overrideAttrs(oa: {
         pipes-safe = doJailbreak hprev.pipes-safe;
 
@@ -142,13 +142,13 @@ with pkgs.haskell.lib;
 
         # Chart-cairo = doJailbreak (hfinal.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {}) ;
 
-        # overrideSrc hprev.wide-word { src = self.inputs.wide-word; }
+        # overrideSrc hprev.wide-word { src = inputs.wide-word; }
         wide-word = doJailbreak (
-          hprev.callCabal2nix "wide-word" ( self.inputs.wide-word) {}
+          hprev.callCabal2nix "wide-word" ( inputs.wide-word) {}
           );
 
         # use flake
-        htoml = dontCheck (overrideSrc hprev.htoml {
+        htoml = doJailbreak (dontCheck (overrideSrc hprev.htoml {
           # src = builtins.fetchGit {
           #   # url = https://github.com/ongy/netlink-hs;
           #   url = https://github.com/teto/netlink-hs;
@@ -160,19 +160,19 @@ with pkgs.haskell.lib;
             rev = "33971287445c5e2531d9605a287486dfc3cbe1da";
             sha256 = "sha256-BcHu+hzwSdf/11HEziCnNZ6lRrf5kEokfOU51XI9Rm0=";
           };
-        });
+        }));
 
-        readable = doJailbreak hprev.readable;
+        # readable = doJailbreak hprev.readable;
         # readable = throw "error";
-        # readable = overrideSrc hprev.readable {
-        #   version = "matt-ghc923";
-        #     src = self.inputs.readable;
-        # } ;
+        readable = overrideSrc hprev.readable {
+            version = "matt";
+            src = inputs.readable;
+        } ;
 
         # callCabal2nix
         invariant = doJailbreak  (hprev.invariant);
-        polysemy-plugin = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}/polysemy-plugin" {});
-        polysemy = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${self.inputs.polysemy}" {});
+        polysemy-plugin = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}/polysemy-plugin" {});
+        polysemy = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}" {});
         # polysemy-plugin = hfinal.polysemy-plugin_0_4_3_1;
         polysemy-conc = doJailbreak hprev.polysemy-conc; # hprev.polysemy-conc_0_5_1_1;
         # co-log-polysemy = doJailbreak (hprev.co-log-polysemy);
@@ -269,6 +269,6 @@ with pkgs.haskell.lib;
         }) {};
 
         # 
-        word-compat = (doJailbreak (dontCheck (overrideSrc hprev.word-compat { src = self.inputs.word-compat; })));
+        word-compat = (doJailbreak (dontCheck (overrideSrc hprev.word-compat { src = inputs.word-compat; })));
 
 }

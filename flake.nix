@@ -67,7 +67,8 @@
       flake = false;
     };
     readable = {
-      url = "github:teto/readable/ghc921";
+      # url = "github:teto/readable/ghc921";
+      url = "github:istathar/readable/bump";
       flake = false;
     };
     doctest = {
@@ -106,16 +107,19 @@
   };
 
   outputs = { self, haskell-chart, all-cabal-hashes-unpacked, nixpkgs, flake-utils, poetry, replica, hls, frames, ... }:
-    flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
-
-      compilerVersion = "942";
-
+    let
       srcPackages = {
         # TODO use gitignore
         mptcp = ./mptcp;
         mptcp-pm = ./mptcp-pm;
         mptcpanalyzer = ./mptcpanalyzer;
       };
+      compilerVersion = "942";
+    in
+
+    flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
+
+
 
       # extended = hpkgs:
         # (hpkgs.override (old: {
@@ -147,7 +151,7 @@
           config = { allowUnfree = false; allowBroken = true;};
         };
 
-      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}".extend(pkgs.haskellOverlay);
+      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}".extend(pkgs.mptcpHaskellOverlay);
 
       # modifier used in haskellPackages.developPackage
       myModifier = drv:
@@ -193,8 +197,12 @@
         # Returns a derivation whose environment contains a GHC with only
         hsPkgs.shellFor {
           inherit name;
-            packages = p:
-              [ ./${name}];
+          packages = p:
+            [
+              # ./${name}
+              p.${name}
+              # ./mptcp
+            ];
               # map (name: p.${name}) (attrNames
               # # Disable dependencies should not be part of the shell.
               # (removeAttrs hlsSources ));
@@ -284,54 +292,66 @@
               });
           };
           # gitignoreSource = (import gitignore { inherit lib; }).gitignoreSource;
-      haskellOverlay = hfinal: hprev: with final.haskell.lib;
+      mptcpHaskellOverlay = with final.haskell.lib;
         let
-          gtk2hs-src = self.inputs.gtk2hs;
-          gtk2hs-buildtools = hfinal.callCabal2nix "gtk2hs-buildtools" "${gtk2hs-src}/tools" {};
-          chart-src = self.inputs.haskell-chart;
+          # gtk2hs-src = self.inputs.gtk2hs;
+          # gtk2hs-buildtools = hfinal.callCabal2nix "gtk2hs-buildtools" "${gtk2hs-src}/tools" {};
+          # chart-src = self.inputs.haskell-chart;
 
           # Change this to get debugging informations about Haskell packages.
           # thanks guibou
           debug = true;
           traceDebug = s: e: if debug then (builtins.trace s e) else e;
 
+          # mptcpSources =
+          #   builtins.mapAttrs (_: dir: gitignoreSource dir) sourceDirs;
+
         in
+          # {};
+          # TODO disable checks for ou packages
+              (final.lib.composeManyExtensions [
+                (final.haskell.lib.packageSourceOverrides srcPackages ) 
+                (import ./ghc94-overrides.nix { pkgs = final; inputs = self.inputs; })
+                # ) // 
+                # ( hfinal hprev);
+
+
         # (pkgs.frameHaskellOverlay-921 hfinal hprev) //
-        (final.callPackage ./ghc94-overrides.nix { inputs = self.inputs; } ) //
-        (haskell.lib.packageSourceOverrides srcPackages hfinal hprev) //
-        {
-        # Override for all derivation
-        # If they are considered as broken, we just disable jailbreak and hope for the best
-        mkDerivation = args:
-          hprev.mkDerivation (args // (if args.broken or false then
-            traceDebug ("Jailbreaking " + args.pname)
-              {
-                jailbreak = true;
-                broken = false;
-                # doCheck = false;
-              } else {
-                # jailbreak = true;
-            }));
+        # ((final.haskell.lib.packageSourceOverrides srcPackages) hfinal hprev) //
+        # (hfinal: hprev:  {
+        # # Override for all derivation
+        # # If they are considered as broken, we just disable jailbreak and hope for the best
+        # mkDerivation = args:
+        #   hprev.mkDerivation (args // (if args.broken or false then
+        #     traceDebug ("Jailbreaking " + args.pname)
+        #       {
+        #         jailbreak = true;
+        #         broken = false;
+        #         # doCheck = false;
+        #       } else {
+        #         # jailbreak = true;
+        #     }));
 
-        # This version of callHackage compare the version we want to override
-        # with the one available in nixpkgs and prints a debug (if debug is
-        # enabled) if we force to an older version that what is inside nixpkgs.
-        # Most of the time it means that we may use the nixpkgs version.
-        callHackage = pname: newVersion: args:
-          let
-            oldVersion = hprev.${pname}.version;
-            pkg = hprev.callHackage pname newVersion args;
-          in
-          if builtins.compareVersions oldVersion newVersion == 1
-          then traceDebug (pname + ": version " + newVersion + " is older than " + oldVersion) pkg
-          else pkg;
+        # # This version of callHackage compare the version we want to override
+        # # with the one available in nixpkgs and prints a debug (if debug is
+        # # enabled) if we force to an older version that what is inside nixpkgs.
+        # # Most of the time it means that we may use the nixpkgs version.
+        # callHackage = pname: newVersion: args:
+        #   let
+        #     oldVersion = hprev.${pname}.version;
+        #     pkg = hprev.callHackage pname newVersion args;
+        #   in
+        #   if builtins.compareVersions oldVersion newVersion == 1
+        #   then traceDebug (pname + ": version " + newVersion + " is older than " + oldVersion) pkg
+        #   else pkg;
 
 
-        # this repo software
-        # mptcp = self.packages.${system}.mptcp;
-        # mptcp-pm = self.packages.${system}.mptcp-pm;
-        # mptcpanalyzer = self.packages.${system}.mptcpanalyzer;
-      };
+        # # # this repo software
+        # # # mptcp = self.packages.${system}.mptcp;
+        # # # mptcp-pm = self.packages.${system}.mptcp-pm;
+        # # # mptcpanalyzer = self.packages.${system}.mptcpanalyzer;
+        # })
+      ]);
 
       };
     };

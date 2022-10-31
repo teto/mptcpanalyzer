@@ -1202,16 +1202,16 @@
     "readable": {
       "flake": false,
       "locked": {
-        "lastModified": 1646524334,
-        "narHash": "sha256-IpGapFOTFZW2SXigGpo7BO20pnu4HnJpQhqXT7xSRNI=",
-        "owner": "teto",
+        "lastModified": 1665403511,
+        "narHash": "sha256-Ev6gHWBtOTR7y4mTo7mTEhn8DAbi7fzC99sT1ip129Q=",
+        "owner": "istathar",
         "repo": "readable",
-        "rev": "d235d2590d326d4a3c5736793993096f35d0ac76",
+        "rev": "f3e778c0823776611a6002bf554fdb28c683e9b8",
         "type": "github"
       },
       "original": {
-        "owner": "teto",
-        "ref": "ghc921",
+        "owner": "istathar",
+        "ref": "bump",
         "repo": "readable",
         "type": "github"
       }
