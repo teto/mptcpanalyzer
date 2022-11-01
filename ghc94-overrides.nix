@@ -17,7 +17,7 @@ with pkgs.haskell.lib;
         bytebuild = doJailbreak (overrideSrc hprev.bytebuild { src = inputs.bytebuild; });
         bytesmith = overrideSrc hprev.bytesmith { src = inputs.bytesmith; };
         #  doJailbreak hprev.base-compat; 
-        tasty-hedgehog = doJailbreak (hfinal.callHackage "tasty-hedgehog" "1.3.1.0" {});
+        tasty-hedgehog = doJailbreak (hfinal.callHackage "tasty-hedgehog" "1.4.0.0" {});
         # hedgehog 1.2
         hedgehog = dontHaddock (doJailbreak hprev.hedgehog); 
         base-compat = doJailbreak (hfinal.callHackage "base-compat" "0.12.2" {});

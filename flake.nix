@@ -197,11 +197,10 @@
         # Returns a derivation whose environment contains a GHC with only
         hsPkgs.shellFor {
           inherit name;
+          buildInputs = [ hsPkgs.cabal-install ];
           packages = p:
             [
-              # ./${name}
               p.${name}
-              # ./mptcp
             ];
               # map (name: p.${name}) (attrNames
               # # Disable dependencies should not be part of the shell.
