@@ -53,7 +53,7 @@ with pkgs.haskell.lib;
         #  hfinal.callHackage "typerep-map" "0.5.0.0" {}
         typerep-map = doJailbreak (overrideSrc hprev.typerep-map { src = inputs.typerep-map; });
 
-        chronos = overrideSrc hprev.chronos {
+        chronos = doJailbreak (overrideSrc hprev.chronos {
           src = pkgs.fetchFromGitHub {
             # owner = "byorgey";
             # rev = "fe6bf78a1b97ff7429630d0e8974c9bc40945dcf";
@@ -62,7 +62,7 @@ with pkgs.haskell.lib;
             rev = "13b46574f2d811f27c693c78d92aed71c82f39d5";
             sha256 = "sha256-YZ4/5yfeUx+8jZp5nuEXjOkUvO4EWsvXrY+uX4e+VnI=";
           };
-        };
+        });
 
         hspec-meta = hprev.callHackage "hspec-meta" "2.10.5" {};
 
@@ -174,8 +174,9 @@ with pkgs.haskell.lib;
         polysemy-plugin = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}/polysemy-plugin" {});
         polysemy = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}" {});
         # polysemy-plugin = hfinal.polysemy-plugin_0_4_3_1;
-        polysemy-conc = doJailbreak hprev.polysemy-conc; # hprev.polysemy-conc_0_5_1_1;
+        polysemy-conc = hprev.callHackage "polysemy-conc" "0.10.0.0" {};
         # co-log-polysemy = doJailbreak (hprev.co-log-polysemy);
+
         co-log-polysemy = doJailbreak  (overrideSrc hprev.co-log-polysemy {
           # src = builtins.fetchGit {
           #   # url = https://github.com/ongy/netlink-hs;
