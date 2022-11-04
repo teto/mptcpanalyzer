@@ -172,10 +172,12 @@ with pkgs.haskell.lib;
         # callCabal2nix
         invariant = doJailbreak  (hprev.invariant);
         polysemy-plugin = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}/polysemy-plugin" {});
-        polysemy = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}" {});
+        polysemy = doJailbreak  (hfinal.callCabal2nix "polysemy" "${inputs.polysemy}" {});
         # polysemy-plugin = hfinal.polysemy-plugin_0_4_3_1;
-        polysemy-conc = hprev.callHackage "polysemy-conc" "0.10.0.0" {};
+        polysemy-conc = dontHaddock (hfinal.callHackage "polysemy-conc" "0.10.0.0" {});
         # co-log-polysemy = doJailbreak (hprev.co-log-polysemy);
+
+        polysemy-log = dontHaddock hprev.polysemy-log;
 
         co-log-polysemy = doJailbreak  (overrideSrc hprev.co-log-polysemy {
           # src = builtins.fetchGit {

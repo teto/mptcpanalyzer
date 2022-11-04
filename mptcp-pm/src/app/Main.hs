@@ -916,7 +916,7 @@ program options = do
 
   mcastMptcpGroups <- embed $ getMulticastGroups sock fid
   -- TODO Log.debug
-  embed $ pPrint mcastMptcpGroups
+  -- embed $ pPrint mcastMptcpGroups
   let mcEventGroupId = fromMaybe (error "Could not find the mptcp event multicast group") (getMulticast C.mptcpGenlEvGrpName mcastMptcpGroups)
 
 

@@ -158,7 +158,7 @@
         pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
           cabal-install
           replica.packages.${system}.build
-          # hls.packages.${system}."haskell-language-server-${compilerVersion}"
+          hls.packages.${system}."haskell-language-server-${compilerVersion}"
           # ihaskell.packages.${system}."ihaskell-${compilerVersion}"
           # not available
           # hls.packages.${system}."hie-bios-${compilerVersion}"
@@ -197,7 +197,11 @@
         # Returns a derivation whose environment contains a GHC with only
         hsPkgs.shellFor {
           inherit name;
-          buildInputs = [ hsPkgs.cabal-install ];
+          nativeBuildInputs = [
+            hsPkgs.cabal-install
+            hls.packages.${system}."haskell-language-server-${compilerVersion}"
+
+          ];
           packages = p:
             [
               p.${name}
@@ -207,6 +211,8 @@
               # (removeAttrs hlsSources ));
 
             # src = null;
+            doBenchmark = false;
+            withHoogle = false;
           };
 
     in {
@@ -268,7 +274,15 @@
       };
     }) // {
 
-      overlays.default = final: prev: {
+      overlays.default = final: prev: with final.haskell.lib;
+        let
+          # chart-src = self.inputs.haskell-chart;
+
+          # Change this to get debugging informations about Haskell packages.
+          # thanks guibou
+          debug = true;
+          traceDebug = s: e: if debug then (builtins.trace s e) else e;
+        in {
           haskellOverrides = hself: hsuper: {
             # we override mkDerivation here to apply the following
             # tweak to each haskell package:
@@ -289,60 +303,21 @@
                 enableLibraryProfiling = false;
                 doHaddock = false;
               });
-          };
-          # gitignoreSource = (import gitignore { inherit lib; }).gitignoreSource;
-      mptcpHaskellOverlay = with final.haskell.lib;
-        let
-          # gtk2hs-src = self.inputs.gtk2hs;
-          # gtk2hs-buildtools = hfinal.callCabal2nix "gtk2hs-buildtools" "${gtk2hs-src}/tools" {};
-          # chart-src = self.inputs.haskell-chart;
-
-          # Change this to get debugging informations about Haskell packages.
-          # thanks guibou
-          debug = true;
-          traceDebug = s: e: if debug then (builtins.trace s e) else e;
-
-          # mptcpSources =
-          #   builtins.mapAttrs (_: dir: gitignoreSource dir) sourceDirs;
-
-        in
-          # {};
-          # TODO disable checks for ou packages
-              (final.lib.composeManyExtensions [
-                (final.haskell.lib.packageSourceOverrides srcPackages ) 
-                (import ./ghc94-overrides.nix { pkgs = final; inputs = self.inputs; })
-                # ) // 
-                # ( hfinal hprev);
-
-
+            callHackage = pname: newVersion: args:
+              let
+                oldVersion = hprev.${pname}.version;
+                pkg = hprev.callHackage pname newVersion args;
+              in
+              if builtins.compareVersions oldVersion newVersion == 1
+              then traceDebug (pname + ": version " + newVersion + " is older than " + oldVersion) pkg
+              else pkg;
         # (pkgs.frameHaskellOverlay-921 hfinal hprev) //
         # ((final.haskell.lib.packageSourceOverrides srcPackages) hfinal hprev) //
-        # (hfinal: hprev:  {
-        # # Override for all derivation
-        # # If they are considered as broken, we just disable jailbreak and hope for the best
-        # mkDerivation = args:
-        #   hprev.mkDerivation (args // (if args.broken or false then
-        #     traceDebug ("Jailbreaking " + args.pname)
-        #       {
-        #         jailbreak = true;
-        #         broken = false;
-        #         # doCheck = false;
-        #       } else {
-        #         # jailbreak = true;
-        #     }));
 
         # # This version of callHackage compare the version we want to override
         # # with the one available in nixpkgs and prints a debug (if debug is
         # # enabled) if we force to an older version that what is inside nixpkgs.
         # # Most of the time it means that we may use the nixpkgs version.
-        # callHackage = pname: newVersion: args:
-        #   let
-        #     oldVersion = hprev.${pname}.version;
-        #     pkg = hprev.callHackage pname newVersion args;
-        #   in
-        #   if builtins.compareVersions oldVersion newVersion == 1
-        #   then traceDebug (pname + ": version " + newVersion + " is older than " + oldVersion) pkg
-        #   else pkg;
 
 
         # # # this repo software
@@ -350,6 +325,15 @@
         # # # mptcp-pm = self.packages.${system}.mptcp-pm;
         # # # mptcpanalyzer = self.packages.${system}.mptcpanalyzer;
         # })
+
+          };
+      mptcpHaskellOverlay =           # mptcpSources =
+          # TODO disable checks for ou packages
+          (final.lib.composeManyExtensions [
+            (final.haskell.lib.packageSourceOverrides srcPackages ) 
+            (import ./ghc94-overrides.nix { pkgs = final; inputs = self.inputs; })
+
+
       ]);
 
       };
