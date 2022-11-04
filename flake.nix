@@ -276,7 +276,6 @@
 
       overlays.default = final: prev: with final.haskell.lib;
         let
-          # chart-src = self.inputs.haskell-chart;
 
           # Change this to get debugging informations about Haskell packages.
           # thanks guibou

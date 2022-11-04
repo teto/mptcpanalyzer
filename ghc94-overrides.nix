@@ -1,5 +1,8 @@
 { pkgs, inputs }:
 hfinal: hprev:
+let 
+    chart-src = inputs.haskell-chart;
+in
 with pkgs.haskell.lib;
 {
         # TODO override Frames
@@ -128,6 +131,7 @@ with pkgs.haskell.lib;
         ];
 
         Chart-diagrams = doJailbreak hprev.Chart-diagrams;
+
         Chart-cairo = let 
           newCairo = hfinal.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
         in
@@ -201,7 +205,7 @@ with pkgs.haskell.lib;
             sha256 = "sha256-k91zTn1okIkvKQwOmZ+GFE0MfI6uSrPLPEhx0oDEONc=";
         }) {};
 
-        inherit gtk2hs-buildtools ;
+        # inherit gtk2hs-buildtools ;
 
         # TODO see https://github.com/gtk2hs/gtk2hs/pull/310  and his fix at k0001/fix-cabal-3.6.0.0
         # use my fork instead
