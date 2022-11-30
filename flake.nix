@@ -114,7 +114,7 @@
         mptcp-pm = ./mptcp-pm;
         mptcpanalyzer = ./mptcpanalyzer;
       };
-      compilerVersion = "942";
+      compilerVersion = "943";
     in
 
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let

@@ -31,7 +31,7 @@ with pkgs.haskell.lib;
         primitive = hfinal.callHackage "primitive" "0.7.4.0" {};
 
         zigzag = doJailbreak hprev.zigzag;
-        doctest = dontCheck (overrideSrc hprev.doctest_0_20_0 { src = inputs.doctest; }); # doJailbreak hprev.doctest_0_20_0;
+        doctest = dontCheck (overrideSrc hprev.doctest_0_20_1 { src = inputs.doctest; }); # doJailbreak hprev.doctest_0_20_0;
         ChasingBottoms = dontCheck (doJailbreak hprev.ChasingBottoms);
         singleton-bool =  doJailbreak hprev.singleton-bool;
         # tests create an infinite recursion with hspec -> primitive
