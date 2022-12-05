@@ -1,33 +1,21 @@
 { pkgs, inputs }:
 hfinal: hprev:
-let 
-    chart-src = inputs.haskell-chart;
-in
+# let 
+  # chart-src = inputs.haskell-chart;
+# in
 with pkgs.haskell.lib;
 {
         # TODO override Frames
         Frames = doJailbreak hprev.Frames;
         aeson = hfinal.callHackage "aeson" "2.1.1.0" {};
         ip = hfinal.callHackage "ip" "1.7.6" {};
-         # 1.7.6
-        # ip = let
-         #    newIp = (overrideSrc hprev.ip { src = inputs.haskell-ip; });
-        # in 
-         #  # addBuildDepend newIp hfinal.word-compat
-         #  doJailbreak (dontCheck (newIp) );
-        # circuithub:master
-        # bytebuild = unmarkBroken (dontCheck hprev.bytebuild);
         bytebuild = doJailbreak (overrideSrc hprev.bytebuild { src = inputs.bytebuild; });
         bytesmith = overrideSrc hprev.bytesmith { src = inputs.bytesmith; };
-        #  doJailbreak hprev.base-compat; 
         tasty-hedgehog = doJailbreak (hfinal.callHackage "tasty-hedgehog" "1.4.0.0" {});
-        # hedgehog 1.2
         hedgehog = dontHaddock (doJailbreak hprev.hedgehog); 
         base-compat = doJailbreak (hfinal.callHackage "base-compat" "0.12.2" {});
         base-compat-batteries = doJailbreak (hfinal.callHackage "base-compat-batteries" "0.12.2" {});
 
-        # primitive = builtins.trace "toto" hprev.primitive_0_7_4_0;
-        # primitive = builtins.trace "toto" (doJailbreak hprev.primitive);
         primitive = hfinal.callHackage "primitive" "0.7.4.0" {};
 
         zigzag = doJailbreak hprev.zigzag;
@@ -79,70 +67,77 @@ with pkgs.haskell.lib;
         # 0.1.3.0 should be fine
         size-based = hprev.callHackage "size-based" "0.1.3.1" {};
         ghc-tcplugins-extra = hprev.callHackage "ghc-tcplugins-extra" "0.4.3" {};
-        # ghc-typelits-natnormalise = hprev.callHackage "ghc-typelits-natnormalise" "0.7.6" {};
 
         # see https://github.com/clash-lang/ghc-typelits-natnormalise/pull/64 for ghc 9.4
         ghc-typelits-natnormalise = doJailbreak (overrideSrc hprev.ghc-typelits-natnormalise { src = inputs.ghc-typelits-natnormalise; });
         ghc-typelits-knownnat = doJailbreak (overrideSrc hprev.ghc-typelits-knownnat { src = inputs.ghc-typelits-knownnat; });
-          # doJailbreak (hprev.ghc-typelits-natnormalise.overrideAttrs(oa: {
         pipes-safe = doJailbreak hprev.pipes-safe;
 
-        #
         primitive-unaligned = hprev.callHackage "primitive-unaligned" "0.1.1.2" {};
         hspec-discover = hprev.callHackage "hspec-discover" "2.10.6" {};
         hspec-core = hprev.callHackage "hspec-core" "2.10.6" {};
         hspec-contrib = dontCheck (hprev.callHackage "hspec-contrib" "0.5.1" {});
         hspec = hprev.callHackage "hspec" "2.10.6" {};
         incipit-core = doJailbreak hprev.incipit-core;
-
-          # patches = [ ./toto.patch ];
-
         # }));
 
-          # (addBuildDepend hprev.ghc-bignum hprev.ghc-typelits-natnormalise);
-        # ghc-bignum = hfinal.ghc-bignum_1_3;
-
-        # size-based = overrideSrc (hprev.size-based.overrideAttrs (oa: {
-        #   patches = [];
-        # # })) {
-        #   src = pkgs.fetchFromGitHub {
-        #     # owner = "byorgey";
-        #     # rev = "fe6bf78a1b97ff7429630d0e8974c9bc40945dcf";
-        #     owner = "teto";
-        #     repo = "sized-functors";
-        #     rev = "98f884032c1830f0b7046fac5e8e5e73ebf5facf";
-        #     sha256 = "sha256-rQzO67AMP0Q95/aTKk76lalrV44RKqOs9g+W+Xd4W/M=";
-        #   };
-        # };
-          # https://github.com/byorgey/sized-functors.git
-        # semirings = doJailbreak (hprev.semirings.overrideAttrs(oa: { propagatedBuildInputs = [ hfinal.base-compat-batteries ]; }));
-
         relude = hprev.relude_1_0_0_1;
+
+        # TODO see https://github.com/gtk2hs/gtk2hs/pull/310  and his fix at k0001/fix-cabal-3.6.0.0
+        # use my fork instead
+        cairo = let newCairo = hfinal.callCabal2nix "cairo" "${inputs.gtk2hs}/cairo"  { cairo = pkgs.cairo; };
+        in 
+          newCairo;
+          # addPkgconfigDepend newCairo pkgs.pcre.dev;
+
+        # cairo = let 
+        #   newCairo = (hfinal.callPackage
+        #     ({ mkDerivation, array, base, bytestring, Cabal, cairo
+        #     , gtk2hs-buildtools, mtl, text, utf8-string
+        #     }:
+        #     hfinal.mkDerivation {
+        #       pname = "cairo";
+        #       version = "0.13.8.2";
+        #       sha256 = "1sq2imy359vnbny610n7655a4z5a8fgdxanys4f5nw84246hc2yl";
+        #       enableSeparateDataOutput = true;
+        #       setupHaskellDepends = [ base Cabal gtk2hs-buildtools ];
+        #       libraryHaskellDepends = [
+        #         array base bytestring mtl text utf8-string
+        #       ];
+        #       libraryPkgconfigDepends = [ pkgs.cairo pkgs.pcre ];
+        #       description = "Binding to the Cairo library";
+        #       license = pkgs.lib.licenses.bsd3;
+        #     }) {inherit (pkgs) cairo;});
+        # in
+        #   overrideSrc newCairo { 
+        #     src = "toito";
+        #     # inputs.gtk2hs;
+        #   };
 
         # TODO double check
         Chart = pkgs.lib.pipe hprev.Chart [ 
           (doJailbreak)
-          (addBuildDepend hfinal.lens)
-          # (overrideCabal (old: {
-          #   libraryHaskellDepends = old.libraryHaskellDepends ++ [
-          #     hfinal.lens
+        #   (addBuildDepend hfinal.lens)
+        #   # (overrideCabal (old: {
+        #   #   libraryHaskellDepends = old.libraryHaskellDepends ++ [
+        #   #     hfinal.lens
           #   ];
-          # }))
+        #   # }))
         ];
 
-        Chart-diagrams = doJailbreak hprev.Chart-diagrams;
+        # Chart-diagrams = doJailbreak hprev.Chart-diagrams;
 
-        Chart-cairo = let 
-          newCairo = hfinal.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
-        in
-          # newCairo;
-          # doJailbreak (newCairo.overrideAttrs(oa: { propagatedBuildInputs = [ hfinal.Chart ]; }));
-        # overrideCabal newCairo (old: { libraryHaskellDepends  = old.libraryHaskellDepends  ++ [ hfinal.Chart ]; }) ;
-          # newCairo;
-          pkgs.lib.pipe (newCairo) [ 
-            # (addExtraLibrary hfinal.cairo )
-            (addSetupDepend hfinal.cairo)
-            ];
+        # Chart-cairo = let 
+        #   newCairo = hfinal.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {};
+        # in
+        #   # newCairo;
+        #   # doJailbreak (newCairo.overrideAttrs(oa: { propagatedBuildInputs = [ hfinal.Chart ]; }));
+        # # overrideCabal newCairo (old: { libraryHaskellDepends  = old.libraryHaskellDepends  ++ [ hfinal.Chart ]; }) ;
+        #   # newCairo;
+        #   pkgs.lib.pipe (newCairo) [ 
+        #     # (addExtraLibrary hfinal.cairo )
+        #     (addSetupDepend hfinal.cairo)
+        #     ];
 
         # Chart-cairo = doJailbreak (hfinal.callCabal2nix "Chart-cairo" "${chart-src}/chart-cairo" {}) ;
 
@@ -174,21 +169,22 @@ with pkgs.haskell.lib;
         } ;
 
         # callCabal2nix
-        invariant = doJailbreak  (hprev.invariant);
-        polysemy-plugin = doJailbreak  (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}/polysemy-plugin" {});
-        polysemy = doJailbreak  (hfinal.callCabal2nix "polysemy" "${inputs.polysemy}" {});
+        invariant = doJailbreak hprev.invariant;
+        polysemy-plugin = doJailbreak (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}/polysemy-plugin" {});
+        polysemy = doJailbreak (hfinal.callCabal2nix "polysemy" "${inputs.polysemy}" {});
         # polysemy-plugin = hfinal.polysemy-plugin_0_4_3_1;
-        polysemy-conc = dontHaddock (hfinal.callHackage "polysemy-conc" "0.10.0.0" {});
+        # polysemy-conc = (hfinal.callHackage "polysemy-conc" "0.11.0.0" {});
+        
+# polysemy-conc/packages/conc/
+
+        polysemy-conc = (hfinal.callCabal2nix "polysemy-conc" "${inputs.polysemy-conc}/packages/conc" {});
         # co-log-polysemy = doJailbreak (hprev.co-log-polysemy);
 
         polysemy-log = dontHaddock hprev.polysemy-log;
+        polysemy-log-co = dontHaddock (doJailbreak (unmarkBroken hprev.polysemy-log-co));
+# (hfinal.callCabal2nix "polysemy-conc" "${inputs.polysemy-conc}/packages/conc" {});
 
         co-log-polysemy = doJailbreak  (overrideSrc hprev.co-log-polysemy {
-          # src = builtins.fetchGit {
-          #   # url = https://github.com/ongy/netlink-hs;
-          #   url = https://github.com/teto/netlink-hs;
-          # };
-          # version = "1.1.2.0";
           src = pkgs.fetchFromGitHub {
             # //tree/ghc-9.2
             owner = "alaendle";
@@ -197,6 +193,7 @@ with pkgs.haskell.lib;
             sha256 = "sha256-QFjNzRSr/pb1nw4UBsg8uWBOkO+7ffpuYrUfLUuashM=";
           };
         });
+
         co-log-core = doJailbreak hprev.co-log-core;
 
         # I think this can go away
@@ -207,9 +204,6 @@ with pkgs.haskell.lib;
 
         # inherit gtk2hs-buildtools ;
 
-        # TODO see https://github.com/gtk2hs/gtk2hs/pull/310  and his fix at k0001/fix-cabal-3.6.0.0
-        # use my fork instead
-        # cairo = hfinal.callCabal2nix "cairo" "${gtk2hs-src}/cairo"  {};
         # cairo = doJailbreak (hfinal.callPackage ({ mkDerivation, array, base, bytestring, Cabal, cairo
         # , gtk2hs-buildtools, lib, mtl, text, utf8-string
         # }:
@@ -236,19 +230,8 @@ with pkgs.haskell.lib;
         # }; in "${src}/packages/polysemy-test") {};
 
         type-errors = dontCheck hprev.type-errors;
-        # type-errors = hprev.callCabal2nix "type-errors" (pkgs.fetchzip {
-        #     url = "https://github.com/isovector/type-errors/archive/c73bd09eb7d1a7a6b5c61bd640c983496d0a9f8.tar.gz";
-        #     sha256 = "sha256-Q5SxA+fazW/e60uPqJ3krBt2optFK37OoAxy00lEbw8=";
-        # }) {};
-
-        # chronos = hprev.chronos_1_1_3;
-        # polysemy-test = hprev.callHackage "polysemy-test" "0.5.0.0" {};
 
         netlink = overrideSrc hprev.netlink {
-          # src = builtins.fetchGit {
-          #   # url = https://github.com/ongy/netlink-hs;
-          #   url = https://github.com/teto/netlink-hs;
-          # };
           version = "1.1.2.0";
           src = pkgs.fetchFromGitHub {
             owner = "teto";
@@ -275,7 +258,5 @@ with pkgs.haskell.lib;
             sha256 = "sha256-S3V0jSjXkAQxV0Zppgf6bkewf4mlQa5rkIWFbJ0eTBo=";
         }) {};
 
-        # 
         word-compat = (doJailbreak (dontCheck (overrideSrc hprev.word-compat { src = inputs.word-compat; })));
-
 }

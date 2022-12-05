@@ -72,7 +72,7 @@ common shared-properties
       , Cabal
       , Chart >= 1.5
       -- , Chart-cairo
-      , Chart-diagrams
+      -- , Chart-diagrams
       , Frames
       , bytestring
       , bitwise-enum
@@ -217,8 +217,8 @@ library
         , MptcpAnalyzer.Utils.Text
         -- , Connection
     build-depends:
-        Chart
-        , Chart-cairo
+        -- Chart
+        -- , Chart-cairo
         , transformers
     hs-source-dirs: src/
     -- ghc-options:

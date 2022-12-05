@@ -14,72 +14,31 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     replica.url = "github:ReplicaTest/REPLica";
     ihaskell.url = "github:gibiansky/IHaskell";
-
     flake-utils.url = "github:numtide/flake-utils";
-
     hls.url = "github:haskell/haskell-language-server";
-
     frames.url = "github:acowley/Frames";
 
-    gtk2hs = {
-      url = "github:teto/gtk2hs/ghc92";
-      flake = false;
-    };
+    gtk2hs = { url = "github:teto/gtk2hs/ghc92"; flake = false; };
 
-    ghc-typelits-natnormalise = {
-      url = "github:clash-lang/ghc-typelits-natnormalise";
-      flake = false;
-    };
-
-    ghc-typelits-knownnat = {
-      url = "github:clash-lang/ghc-typelits-knownnat";
-      flake = false;
-    };
-
-    double-conversion = {
-      url = "github:haskell/double-conversion";
-      flake = false;
-    };
-
-    haskell-chart = {
+    ghc-typelits-natnormalise = { url = "github:clash-lang/ghc-typelits-natnormalise"; flake = false; };
+    ghc-typelits-knownnat = { url = "github:clash-lang/ghc-typelits-knownnat"; flake = false; };
+    double-conversion = { url = "github:haskell/double-conversion"; flake = false; };
+    haskell-chart = { 
       url = "github:teto/haskell-chart/ghc92";
-      # url = "github:timbod7/haskell-chart";
+      # url = "github:timbod7/haskell-chart"; 
       flake = false;
     };
 
-    bytebuild = {
-      url = "github:parsonsmatt/bytebuild?ref=matt/support-ghc94";
-      # url = "github:teto/bytebuild";
-      flake = false;
+    bytebuild = { url = "github:parsonsmatt/bytebuild?ref=matt/support-ghc94"; 
+    # url = "github:teto/bytebuild"; flake = false; 
     };
-    bytesmith = {
-      url = "github:parsonsmatt/bytesmith?ref=matt/support-ghc94";
-      # url = "github:teto/bytesmith/ghc92";
-      flake = false;
-    };
-    haskell-ip = {
-      url = "github:andrewthad/haskell-ip";
-      flake = false;
-    };
-    word-compat = {
-      # bf20ee95b82414d96eb83863f50212e6c31b8930
-      url = "github:fumieval/word-compat";
-      flake = false;
-    };
-    readable = {
-      # url = "github:teto/readable/ghc921";
-      url = "github:istathar/readable/bump";
-      flake = false;
-    };
-    doctest = {
-      url = "github:sol/doctest/ghc-9.4";
-      flake = false;
-    };
-
-    wide-word = {
-      url = "github:parsonsmatt/wide-word?ref=matt/support-ghc94";
-      flake = false;
-    };
+    bytesmith = { url = "github:parsonsmatt/bytesmith?ref=matt/support-ghc94"; flake = false; };
+    haskell-ip = { url = "github:andrewthad/haskell-ip"; flake = false; };
+    # bf20ee95b82414d96eb83863f50212e6c31b8930
+    word-compat = { url = "github:fumieval/word-compat"; flake = false; };
+    readable = { url = "github:istathar/readable/bump"; flake = false; };
+    doctest = { url = "github:sol/doctest/ghc-9.4"; flake = false; };
+    wide-word = { url = "github:parsonsmatt/wide-word?ref=matt/support-ghc94"; flake = false; };
 
     # cabal hashes contains all the version for different haskell packages, to update:
     # nix flake lock --update-input all-cabal-hashes-unpacked
@@ -89,20 +48,17 @@
     };
 
     polysemy = {
-      # url = "github:polysemy-research/polysemy";
+    # url = "github:polysemy-research/polysemy";
       url = "github:teto/polysemy/ghc94";
       flake = false;
     };
 
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
+    polysemy-conc = { url = "github:tek/polysemy-conc"; flake = false; };
+    polysemy-log-co = { url = "github:tek/polysemy-log-co"; flake = false; };
 
-    typerep-map = {
-      url = "github:parsonsmatt/typerep-map/?ref=matt/support-ghc-94";
-      flake = false;
-    };
+    flake-compat = { url = "github:edolstra/flake-compat"; flake = false; };
+
+    typerep-map = { url = "github:parsonsmatt/typerep-map/?ref=matt/support-ghc-94"; flake = false; };
     
   };
 
@@ -218,16 +174,7 @@
     in {
       packages = {
 
-        # pkgs.haskell.lib.doJailbreak
-        # Chart-cairo = hsPkgs.Chart-cairo;
-        # ghc-type = hsPkgs.Chart-cairo;
         inherit hsPkgs;
-        # .overrideAttrs(oa: {
-        #   # nativeBuildInputs = [ hsPkgs.Chart ];
-        #   # propagatedBuildInputs = [ hsPkgs.Chart ];
-        #   # buildInputs = [];
-        #   # buildInputs = oa.buildInputs ++ [ hsPkgs.Chart ];
-        # }));
 
         # basic library
         mptcp = mkPackage "mptcp";
@@ -313,10 +260,10 @@
         # (pkgs.frameHaskellOverlay-921 hfinal hprev) //
         # ((final.haskell.lib.packageSourceOverrides srcPackages) hfinal hprev) //
 
-        # # This version of callHackage compare the version we want to override
-        # # with the one available in nixpkgs and prints a debug (if debug is
-        # # enabled) if we force to an older version that what is inside nixpkgs.
-        # # Most of the time it means that we may use the nixpkgs version.
+        # This version of callHackage compare the version we want to override
+        # with the one available in nixpkgs and prints a debug (if debug is
+        # enabled) if we force to an older version that what is inside nixpkgs.
+        # Most of the time it means that we may use the nixpkgs version.
 
 
         # # # this repo software
@@ -325,16 +272,27 @@
         # # # mptcpanalyzer = self.packages.${system}.mptcpanalyzer;
         # })
 
-          };
-      mptcpHaskellOverlay =           # mptcpSources =
+         pcre = pcre.overrideAttrs(oa: {
+           # /nix/store/fd8dhphf8lcb03yxiakkvbcsv5j8w9mw-pcre-8.45-dev/lib/pkgconfig/libpcre.pc
+           preFixup = oa.preFixup + ''
+             cp $out/lib/pkgconfig/libpcre.pc $out/lib/pkgconfig/libpcre2-8.pc
+             '';
+           });
+  # postFixup = ''
+  #   moveToOutput bin/pcre-config "$dev"
+  # '' + optionalString (variant != null) ''
+  #   ln -sf -t "$out/lib/" '${pcre.out}'/lib/libpcre{,posix}.{so.*.*.*,*dylib,*a}
+  # '';
+
+
+      };
+
+      mptcpHaskellOverlay = 
           # TODO disable checks for ou packages
           (final.lib.composeManyExtensions [
-            (final.haskell.lib.packageSourceOverrides srcPackages ) 
+            (final.haskell.lib.packageSourceOverrides srcPackages) 
             (import ./ghc94-overrides.nix { pkgs = final; inputs = self.inputs; })
-
-
-      ]);
-
+          ]);
       };
     };
 }

@@ -3,11 +3,11 @@
     "all-cabal-hashes-unpacked": {
       "flake": false,
       "locked": {
-        "lastModified": 1669842966,
-        "narHash": "sha256-cqtIPWLmUaz0pqI1CHJLXxkDg1EnPaZAzvZqg89xO6E=",
+        "lastModified": 1670229189,
+        "narHash": "sha256-UgRpOrgb7CIhAblegMdyWMvLM08jODdFG5cbMvATVSA=",
         "owner": "commercialhaskell",
         "repo": "all-cabal-hashes",
-        "rev": "8133459e0b8d23985d29ba0e9a8537de7737833b",
+        "rev": "1b9f2d15375c38dbd9648fb6ce2e52af5171510d",
         "type": "github"
       },
       "original": {
@@ -503,11 +503,11 @@
     "gtk2hs": {
       "flake": false,
       "locked": {
-        "lastModified": 1648418043,
-        "narHash": "sha256-prwJvCTWViE1klaRvxYrTiqCxetVGoHfWSdYCZ34S5k=",
+        "lastModified": 1670177302,
+        "narHash": "sha256-4wkqtXshzK8RYvmKEyqN2A/umifriofWGX3gws5yRp8=",
         "owner": "teto",
         "repo": "gtk2hs",
-        "rev": "57a418615f0eb119a0d6af5c81e6d8f2c263716f",
+        "rev": "eba9887639a546d9ab570b1730083ead187bb377",
         "type": "github"
       },
       "original": {
@@ -996,6 +996,22 @@
         "type": "github"
       }
     },
+    "polysemy-conc": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1670245746,
+        "narHash": "sha256-I00lR9zOOryr6ElMoeeOHUmkTo/DX6BfLY0slGCwJ+U=",
+        "owner": "tek",
+        "repo": "polysemy-conc",
+        "rev": "43a48a717059b30381013b0f142585f5679bae6a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tek",
+        "repo": "polysemy-conc",
+        "type": "github"
+      }
+    },
     "pre-commit-hooks": {
       "inputs": {
         "flake-utils": "flake-utils_4",
@@ -1123,6 +1139,7 @@
         "nixpkgs": "nixpkgs_7",
         "poetry": "poetry",
         "polysemy": "polysemy",
+        "polysemy-conc": "polysemy-conc",
         "readable": "readable",
         "replica": "replica",
         "typerep-map": "typerep-map",
