@@ -1,7 +1,7 @@
-source-repository-package
-  type: git
-  location: https://github.com/Ongy/netlink-hs
-  tag: b0f3ab9a4766a3da7b26991e404695154ee74556
+-- source-repository-package
+--   type: git
+--   location: https://github.com/Ongy/netlink-hs
+--   tag: b0f3ab9a4766a3da7b26991e404695154ee74556
   --sha256:sha256-x3DqqNhevWHV13yRRcjIiBguCGst5olb7tQzPyshduE=
 
 source-repository-package
@@ -11,12 +11,12 @@ source-repository-package
   --sha256:sha256-x3DqqNhevWHV13yRRcjIiBguCGst5olb7tQzPyshduE=
 
 
-source-repository-package
-        type: git
-        location: https://github.com/teto/readable
-        tag: d235d2590d326d4a3c5736793993096f35d0ac76
+-- source-repository-package
+--         type: git
+--         location: https://github.com/teto/readable
+--         tag: d235d2590d326d4a3c5736793993096f35d0ac76
 
-index-state: 2022-08-10T23:35:05Z
+-- index-state: 2022-08-10T23:35:05Z
 
 -- https://input-output-hk.github.io/haskell.nix/tutorials/source-repository-hashes/#handling-git-repositories-in-projects
 -- source-repository-package
