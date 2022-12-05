@@ -180,8 +180,9 @@ with pkgs.haskell.lib;
         polysemy-conc = (hfinal.callCabal2nix "polysemy-conc" "${inputs.polysemy-conc}/packages/conc" {});
         # co-log-polysemy = doJailbreak (hprev.co-log-polysemy);
 
-        polysemy-log = dontHaddock hprev.polysemy-log;
-        polysemy-log-co = dontHaddock (doJailbreak (unmarkBroken hprev.polysemy-log-co));
+        polysemy-log = dontHaddock (hfinal.callCabal2nix "polysemy-log" "${inputs.polysemy-log}/packages/polysemy-log" {});
+        # polysemy-log-co = dontHaddock (doJailbreak (unmarkBroken hprev.polysemy-log-co));
+        polysemy-log-co = dontHaddock (hfinal.callCabal2nix "polysemy-log-co" "${inputs.polysemy-log}/packages/polysemy-log-co" {});
 # (hfinal.callCabal2nix "polysemy-conc" "${inputs.polysemy-conc}/packages/conc" {});
 
         co-log-polysemy = doJailbreak  (overrideSrc hprev.co-log-polysemy {
@@ -195,6 +196,7 @@ with pkgs.haskell.lib;
         });
 
         co-log-core = doJailbreak hprev.co-log-core;
+        co-log-concurrent = doJailbreak hprev.co-log-concurrent;
 
         # I think this can go away
         colourista = hprev.callCabal2nix "colourista" (pkgs.fetchzip {

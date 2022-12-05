@@ -54,7 +54,7 @@
     };
 
     polysemy-conc = { url = "github:tek/polysemy-conc"; flake = false; };
-    polysemy-log-co = { url = "github:tek/polysemy-log-co"; flake = false; };
+    polysemy-log = { url = "github:tek/polysemy-log"; flake = false; };
 
     flake-compat = { url = "github:edolstra/flake-compat"; flake = false; };
 

@@ -1012,6 +1012,22 @@
         "type": "github"
       }
     },
+    "polysemy-log": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1670199897,
+        "narHash": "sha256-CZIKx/tmCvPtjfgbLPSm8BjJthoNSsndv2P6ajAdYKE=",
+        "owner": "tek",
+        "repo": "polysemy-log",
+        "rev": "e4a8b494a88809b60b8298b3a345382f750a6ed4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tek",
+        "repo": "polysemy-log",
+        "type": "github"
+      }
+    },
     "pre-commit-hooks": {
       "inputs": {
         "flake-utils": "flake-utils_4",
@@ -1140,6 +1156,7 @@
         "poetry": "poetry",
         "polysemy": "polysemy",
         "polysemy-conc": "polysemy-conc",
+        "polysemy-log": "polysemy-log",
         "readable": "readable",
         "replica": "replica",
         "typerep-map": "typerep-map",
