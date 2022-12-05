@@ -1,8 +1,5 @@
 { pkgs, inputs }:
 hfinal: hprev:
-# let 
-# chart-src = inputs.haskell-chart;
-# in
 with pkgs.haskell.lib;
 {
   # TODO override Frames
@@ -164,10 +161,10 @@ with pkgs.haskell.lib;
 
   # readable = doJailbreak hprev.readable;
   # readable = throw "error";
-  readable = overrideSrc hprev.readable {
-    version = "matt";
-    src = inputs.readable;
-  };
+  # readable = overrideSrc hprev.readable {
+  #   version = "matt";
+  #   src = inputs.readable;
+  # };
 
   # callCabal2nix
   invariant = doJailbreak hprev.invariant;

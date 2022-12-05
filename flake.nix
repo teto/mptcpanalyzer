@@ -92,7 +92,7 @@
       pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            # frames.overlay
+            frames.overlay
             self.overlays.default
             (final: prev: {
               all-cabal-hashes = prev.runCommand "all-cabal-hashes.tar.gz"
@@ -177,18 +177,19 @@
         inherit hsPkgs;
 
         # basic library
-        mptcp = mkPackage "mptcp";
+        inherit (hsPkgs) mptcp mptcp-pm mptcpanalyzer;
+        # mptcp = mkPackage "mptcp";
 
         # path manager
-        mptcp-pm = mkPackage "mptcp-pm";
+        # mptcp-pm = mkPackage "mptcp-pm";
 
         # pcap analysis
-        mptcpanalyzer = let
-          pkg = mkPackage "mptcpanalyzer";
-        in
-          pkg.overrideAttrs(oa: {
-            nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [ pkgs.installShellFiles ];
-          });
+        # mptcpanalyzer = let
+        #   pkg = mkPackage "mptcpanalyzer";
+        # in
+        #   pkg.overrideAttrs(oa: {
+        #     nativeBuildInputs = (oa.nativeBuildInputs or []) ++ [ pkgs.installShellFiles ];
+        #   });
       };
 
       defaultPackage = self.packages.${system}.mptcpanalyzer;
@@ -290,8 +291,8 @@
       mptcpHaskellOverlay = 
           # TODO disable checks for ou packages
           (final.lib.composeManyExtensions [
-            (final.haskell.lib.packageSourceOverrides srcPackages) 
             (import ./ghc94-overrides.nix { pkgs = final; inputs = self.inputs; })
+            (final.haskell.lib.packageSourceOverrides srcPackages) 
           ]);
       };
     };

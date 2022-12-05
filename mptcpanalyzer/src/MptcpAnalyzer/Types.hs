@@ -161,9 +161,8 @@ instance (V.KnownField t, Hashable (V.Snd t), Hashable (F.Record rs), rs F.⊆ (
   hashWithSalt s r = s `Hash.hashWithSalt` F.rgetField @t r `Hash.hashWithSalt` F.rcast @rs r
   {-# INLINABLE hashWithSalt #-}
 
-deriving instance Hashable IP
-
-deriving instance Hashable IPv6
+-- deriving instance Hashable IP
+-- deriving instance Hashable IPv6
 
 -- shadow param
 -- @a@ be Tcp / Mptcp
