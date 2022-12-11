@@ -122,20 +122,20 @@ buildAFrameFromStreamIdTcp :: (Members [Log, Cache, Embed IO ] m)
     -> FilePath
     -> StreamId Tcp
     -> Sem m (Either String (FrameFiltered TcpConnection Packet))
-buildAFrameFromStreamIdTcp params pcapFilename streamId = do
+buildAFrameFromStreamIdTcp params pcapFilename streamId' = do
     res <- loadPcapIntoFrame params pcapFilename
     return $ case res of
       Left err -> Left err
-      Right frame -> buildTcpConnectionFromStreamId frame streamId
+      Right frame -> buildTcpConnectionFromStreamId frame streamId'
 
 buildAFrameFromStreamIdMptcp :: (Members [Log, Cache, Embed IO ] m)
     => TsharkParams
     -> FilePath
     -> StreamId Mptcp
     -> Sem m (Either String (FrameFiltered MptcpConnection Packet))
-buildAFrameFromStreamIdMptcp params pcapFilename streamId = do
-  Log.debug  ("Building frame for mptcp stream " <> tshow streamId)
+buildAFrameFromStreamIdMptcp params pcapFilename streamId' = do
+  Log.debug  ("Building frame for mptcp stream " <> tshow streamId')
   res <- loadPcapIntoFrame params pcapFilename
   return $ case res of
     Left err -> Left err
-    Right frame -> buildMptcpConnectionFromStreamId frame streamId
+    Right frame -> buildMptcpConnectionFromStreamId frame streamId'

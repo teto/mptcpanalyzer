@@ -27,6 +27,7 @@ import MptcpAnalyzer.Utils.Text
 import Net.Tcp.Connection
 
 import qualified Control.Foldl as L
+import Control.Lens hiding (argument)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import Data.Word (Word32, Word64)
@@ -209,7 +210,7 @@ getTcpStatsFromAFrame aframe dest =
       , tusReinjectedBytes = 0
     }
   where
-    frame = F.filterFrame (\x -> x ^. tcpDest == dest) (ffFrame aframe)
+    frame = F.filterFrame (\x -> x ^. tcpDest == dest) ( aframe.ffFrame)
 
     -- these return Maybes
     -- I need to find its id and add tcpSize afterwards

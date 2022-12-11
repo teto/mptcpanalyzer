@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-
 Module:  Tshark.Capture
 Description :  Description
@@ -69,7 +70,8 @@ tsharkLoopTcp lsConfig hout = do
 
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
-      (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
+      -- :: FrameRec HostCols
+      (frame ) <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
       -- liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       let frameWithDest = addTcpDestinationsToAFrame (FrameTcp (lsConnection lsConfig) frame)
@@ -101,13 +103,14 @@ tsharkLoopTcp lsConfig hout = do
 
     recEither = rtraverse getCompose
 
-updateMptcpStats ::
-  (
+updateMptcpStats :: (
    -- TcpDest F.∈ rs
-  MptcpDsn F.∈ rs, TcpSeq F.∈ rs, IpDest F.∈ rs, IpSource F.∈ rs
+    MptcpDsn F.∈ rs
+  , TcpSeq F.∈ rs, IpDest F.∈ rs, IpSource F.∈ rs
   , TcpLen F.∈ rs
   , PacketId F.∈ rs
-  , TcpDestPort F.∈ rs, MptcpRecvToken F.∈ rs
+  , TcpDestPort F.∈ rs
+  , MptcpRecvToken F.∈ rs
   , TcpFlags F.∈ rs, TcpSrcPort F.∈ rs, TcpStream F.∈ rs, RelTime F.∈ rs
   , rs F.⊆ HostCols
   , F.RecVec rs
@@ -127,12 +130,13 @@ tsharkLoopMptcp config hout = do
 
       -- (frame ::  FrameRec HostCols) <- lift ( inCoreAoS (pipeLines (try. T.hGetLine) hout  >-> pipeTableEitherOpt popts >-> P.map fromEither ))
       -- let x2 :: Text = "1633468309.759952583|eno1|2a01:cb14:11ac:8200:542:7cd1:4615:5e05||2606:4700:10::6814:14ec|||||||||||127|||21.118721618||794|1481|51210|0x00000018|31||3300|443|3||"
-      (frame :: FrameRec HostCols) <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
+      -- (:: FrameRec HostCols)
+      frame  <- liftIO $ inCoreAoS (yield (T.pack x) >-> pipeTableEitherOpt' popts >-> P.map fromEither )
       -- showFrame [csvDelimiter defaultTsharkPrefs] frame
       -- liftIO $ putStrLn $ showFrame [csvDelimiter defaultTsharkPrefs] frame
       -- if we have no master subflow yet, we should check against it
       -- so now we should
-      mptcpstats <- gets _lsmStats
+      mptcpstats <- gets stats
 
       -- TODO should be a fmap considering the complexity
       modify' (updateStatsFrame frame)
@@ -234,8 +238,8 @@ tsharkLoopMptcp config hout = do
                     (lstats {
                         -- TODO we should have stats in both direction !
                         -- _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
-                        _lsmStats = (lstats ^. lsmStats) <> newMptcpStats
-                      , _lsmSubflows = Map.insert (row ^. tcpStream) (subflowStats <> subflowUpdatedStats) (lstats ^. lsmSubflows)
+                        stats = (lstats ^. lsmStats) <> newMptcpStats
+                      , subflows = Map.insert (row ^. tcpStream) (subflowStats <> subflowUpdatedStats) (lstats ^. lsmSubflows)
                     })
       where
         tuple = (buildTcpConnectionTupleFromRecord row)
@@ -263,7 +267,7 @@ tsharkLoopMptcp config hout = do
             lstats {
                 client = mptcpConfig
               , master = finalizeLiveStatsMptcp mptcpConfig lstats.server
-              , _lsmSubflows = Map.singleton (row ^. tcpStream) (genLiveStatsTcp (FrameTcp (connection subflow) mempty))
+              , subflows = Map.singleton (row ^. tcpStream) (genLiveStatsTcp (FrameTcp (connection subflow) mempty))
               -- Set.fromList $ map ffCon (rights subflows)
               }
         else if isSynAck then

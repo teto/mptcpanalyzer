@@ -88,7 +88,7 @@ common shared-properties
       , hashable
       , haskeline >= 0.8.0.0
       , ip
-      -- , lens
+      , lens
       -- , mptcp-pm >= 0.0.4
       , mtl
       -- to talk with sharkd

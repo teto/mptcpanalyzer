@@ -1,5 +1,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE NoFieldSelectors #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-|
 Module: Tshark.Live
 Description : Load incrementally a PCAP into a frame
@@ -13,12 +19,11 @@ module Tshark.Live (
   , LiveStatsTcp
   , LiveStatsConfig(..)
   , LiveStatsMptcp(..)
-  , lsmMaster
-  , lsmSubflows
-  , lsmStats
   , mkLiveStatsMptcp
   , genLiveStatsMptcp
   , genLiveStatsTcp
+  , SomeStats(..)
+  -- , getMasterSubflow
   -- , CaptureSettingsMptcp
 )
 where
@@ -108,16 +113,16 @@ import MptcpAnalyzer.Utils.Text
 -- | Opens a file (in 'P.MonadSafe') and repeatedly applies the given
 -- function to the 'Handle' to obtain lines to yield. Adapted from the
 -- moribund pipes-text package.
-pipeLines :: P.MonadSafe m
-          => (Handle -> IO (Either IOException T.Text))
-          -> Handle
-          -> P.Producer T.Text m ()
-pipeLines pgetLine h =
-  let loop = do txt <- P.liftIO (pgetLine h)
-                case txt of
-                  Left _e -> return ()
-                  Right y -> P.yield y >> loop
-  in loop
+-- pipeLines :: P.MonadSafe m
+--           => (Handle -> IO (Either IOException T.Text))
+--           -> Handle
+--           -> P.Producer T.Text m ()
+-- pipeLines pgetLine h =
+--   let loop = do txt <- P.liftIO (pgetLine h)
+--                 case txt of
+--                   Left _e -> return ()
+--                   Right y -> P.yield y >> loop
+--   in loop
 
 -- | Produce lines of 'T.Text'.
 -- produceTextLines :: P.MonadSafe m => FilePath -> P.Producer T.Text m ()
@@ -137,11 +142,11 @@ data SomeStats where
 showLiveStatsTcp :: LiveStatsTcp -> Text
 showLiveStatsTcp  liveStats =
       T.unlines (
-           [ "Completed ?: " <> tshow (lsHasFinished liveStats) ]
+           [ "Completed ?: " <> tshow (liveStats.lsHasFinished) ]
         -- ++ if lsDestination liveStats == RoleServer then else []
-        ++ ["Showing towards server: ", showTcpUnidirectionalStats (lsForwardStats liveStats)]
+        ++ ["Showing towards server: ", showTcpUnidirectionalStats liveStats.lsForwardStats]
         -- ++ if lsDestination liveStats == RoleClient then else []
-        ++ ["Showing towards client: ", showTcpUnidirectionalStats (lsBackwardStats liveStats)]
+        ++ ["Showing towards client: ", showTcpUnidirectionalStats liveStats.lsBackwardStats]
         )
 
 
@@ -161,7 +166,7 @@ showLiveStatsTcp  liveStats =
 data LiveStatsConfig = LiveStatsConfig {
     lsConnection :: TcpConnection
   , lsDestination :: ConnectionRole
-  }
+  } deriving Show
 
 -- TODO should be instance of a Monoid !
 -- | for now unidirectional ?
@@ -177,15 +182,21 @@ data LiveStats stats packet = LiveStats {
   , lsHasFinished :: Bool
   -- ^ True once it sees a FIN
   -- , lsFrame :: FrameRec HostCols
-  } 
+  } deriving Show
+
+
+instance Show (Frame a) where
+  show _a = "toto TO IMPLEMENT"
+
+-- deriving instance forall stats packet . (Show stats,  Show (Frame packet)) => Show (LiveStats stats packet)
 
 instance Semigroup stats => Semigroup (LiveStats stats packets) where
   (<>) a b = LiveStats {
-        lsForwardStats = lsForwardStats a <> lsForwardStats b
-      , lsBackwardStats = lsBackwardStats a <> lsBackwardStats b
-      , lsPackets = lsPackets a + lsPackets b
-      , lsFrame = lsFrame a <> lsFrame b
-      , lsHasFinished = (lsHasFinished a) || (lsHasFinished b)
+        lsForwardStats =  a.lsForwardStats <>  b.lsForwardStats
+      , lsBackwardStats =  a.lsBackwardStats <>  b.lsBackwardStats
+      , lsPackets =  a.lsPackets +  b.lsPackets
+      , lsFrame =  a.lsFrame <>  b.lsFrame
+      , lsHasFinished = a.lsHasFinished || b.lsHasFinished
     }
 
 
@@ -199,7 +210,7 @@ instance Monoid stats => Monoid (LiveStats stats packets) where
     , lsFrame = mempty
     -- , lsFrame :: FrameFiltered con packet
     , lsHasFinished = False
-    }
+    } 
 
 type LiveStatsTcp = LiveStats TcpUnidirectionalStats Packet
 
@@ -223,25 +234,26 @@ data LiveStatsMptcp = LiveStatsMptcp {
   -- ^ TODO these should be subflow stats (dss/dsn)
   , stats :: LiveStats MptcpUnidirectionalStats Packet
   , finished :: Bool
-  } deriving (Generic, Show)
+  } deriving (Show)
+
 
 -- |Search for the master subflow
 -- TODO could
-getMasterSubflow :: [MptcpSubflow] -> Maybe MptcpSubflow
-getMasterSubflow l = case Prelude.filter (isNothing . joinToken) l of
-  [] -> Nothing
-  (x:_) -> Just x
+-- getMasterSubflow :: [MptcpSubflow] -> Maybe MptcpSubflow
+-- getMasterSubflow l = case Prelude.filter (isNothing . (.joinToken)) l of
+--   [] -> Nothing
+--   (x:_) -> Just x
 
 -- helper to create LiveStatsMptcp
 mkLiveStatsMptcp :: LiveStatsMptcp
-mkLiveStatsMptcp = LiveStatsMptcp {
+mkLiveStatsMptcp = LiveStatsMptcp{
           master = Nothing
         , client = Nothing
         , server = Nothing
-        , _lsmSubflows = mempty
-        , _lsmStats = mempty
-        , _lsmFinished = False
-        }
+        , subflows = mempty
+        , stats = mempty
+        , finished = False
+        } :: LiveStatsMptcp
 -- type CaptureSettingsMptcp = LiveStatsMptcp
 
 -- TODO 
@@ -264,25 +276,24 @@ genLiveStatsTcp frameWithDest@(FrameTcp _ frame) = let
 -- | Generate mptcp statistics from a frame
 genLiveStatsMptcp :: FrameFiltered MptcpConnection Packet -> LiveStats MptcpUnidirectionalStats Packet
 genLiveStatsMptcp mptcpAframe =  (mempty :: LiveStats MptcpUnidirectionalStats Packet) {
-    lsPackets = frameLength $ ffFrame mptcpAframe
-  , lsFrame = ffFrame mptcpAframe
+    lsPackets = frameLength mptcpAframe.ffFrame
+  , lsFrame =  mptcpAframe.ffFrame
   , lsForwardStats = getMptcpStats mptcpAframe RoleServer
   , lsBackwardStats = getMptcpStats mptcpAframe RoleClient
   }
 
 
 showLiveStatsMptcp :: LiveStatsMptcp -> Text
-showLiveStatsMptcp stats = T.unlines [
-      "Forward: "  <> showMptcpUnidirectionalStats (lsForwardStats $ stats ^. lsmStats)
-    , "Backward: " <> showMptcpUnidirectionalStats (lsBackwardStats $ stats ^. lsmStats)
+showLiveStatsMptcp mpstats = T.unlines [
+      "Forward: "  <> showMptcpUnidirectionalStats mpstats.stats.lsForwardStats
+    , "Backward: " <> showMptcpUnidirectionalStats mpstats.stats.lsBackwardStats 
     ]
 
-showLiveStats :: SomeStats -> Text
-showLiveStats (SomeStats liveStats) =
-  T.unlines [
-    "Number of packets: " <> tshow (lsPackets liveStats)
-  ]
-
+-- showLiveStats :: SomeStats -> Text
+-- showLiveStats (SomeStats liveStats) =
+--   T.unlines [
+--     "Number of packets: " <> tshow liveStats.lsPackets
+--   ]
 
 -- tsharkProducer :: Handle -> Producer Text TsharkMonad ()
 -- tsharkProducer hout = do

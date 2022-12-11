@@ -101,6 +101,7 @@ declarePrefixedColumns "" baseFields
 -- declarePrefixedColumns "test" baseFields
 declarePrefixedColumns "" baseFieldsHost2
 declarePrefixedColumns "" baseFieldsSender
+-- declarePrefixedColumns "snd_" baseFields
 declarePrefixedColumns "" baseFieldsReceiver
 
 -- todo declare it from ArtificialFields ?
@@ -172,14 +173,14 @@ type PcapFrame a = Frame Packet
 -- | TODO adapt / rename to AFrame ? AdvancedFrames ?
 -- GADT ?
 data FrameFiltered a rs = FrameTcp {
-    ffCon :: a
+      ffCon :: a
     -- Frame of sthg maybe even bigger with TcpDest / MptcpDest
     , ffFrame :: Frame rs
   } deriving Functor
 
 
 aframeLength :: FrameFiltered a rs -> Int
-aframeLength = frameLength . ffFrame
+aframeLength = frameLength . (.ffFrame)
 
 
 -- Helper to pass information across functions

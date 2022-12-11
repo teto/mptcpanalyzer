@@ -138,8 +138,8 @@ generateCsvCommand fieldNames source tsharkParams =
         readFilter :: [String]
         readFilter = case tsharkReadFilter tsharkParams of
             Just x  -> (case source of
-              Right pcapFilename -> ["-2", "-R"]
-              Left ifname  -> ["-Y"]) ++ [x]
+              Right _pcapFilename -> ["-2", "-R"]
+              Left _ifname  -> ["-Y"]) ++ [x]
             Nothing -> []
 
         fields :: [T.Text]

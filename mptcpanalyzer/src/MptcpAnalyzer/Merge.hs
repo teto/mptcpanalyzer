@@ -66,7 +66,7 @@ import Net.IP (IP)
 import Net.Tcp
 
 
-import Control.Lens
+-- import Control.Lens
 import Data.Either (fromRight)
 import Data.Foldable (toList)
 import Data.Hashable
@@ -163,7 +163,7 @@ addHash aframe =
   -- addHashToFrame (ffFrame aframe)
   fmap addHash'  frame
   where
-    frame = fmap toHashablePacket (ffFrame aframe)
+    frame = fmap toHashablePacket (aframe.ffFrame)
     addHash' row = Col (hash row) :& RNil
 
 addHashToFrame :: Frame Packet -> Frame (Record '[PacketHash] )
@@ -254,13 +254,13 @@ mergeMptcpConnectionsFromKnownStreams (FrameTcp con1 frame1) (FrameTcp con2 fram
 
     -- mergeSubflow :: (MptcpSubflow, [(MptcpSubflow, Int)]) -> MergedPcap
     mergeSubflow (sf1, scores) = do
-      Log.debug $ "Merging pcap1 " <> tshow streamId1 <> " (" <> tshow (frameLength $ ffFrame aframe1)
-          <> " packets) and " <> tshow streamId2 <> " (" <> tshow (frameLength $ ffFrame aframe2) <> " packets)"
+      Log.debug $ "Merging pcap1 " <> tshow streamId1 <> " (" <> tshow (frameLength aframe1.ffFrame)
+          <> " packets) and " <> tshow streamId2 <> " (" <> tshow (frameLength aframe2.ffFrame ) <> " packets)"
 
       -- TODO add MptcpDest and recast to senderDest
       -- addMptcpDestToSubflowFrame
       mergedSf <- mergeTcpSubflowFromKnownStreams
-            (FrameTcp (ffCon aframe1) (zipFrames aframe1Dest (ffFrame aframe1)))
+            (FrameTcp aframe1.ffCon (zipFrames aframe1Dest aframe1.ffFrame))
             aframe2
       -- TODO print justRecs /
       -- let
@@ -274,9 +274,9 @@ mergeMptcpConnectionsFromKnownStreams (FrameTcp con1 frame1) (FrameTcp con2 fram
 
       return mergedSf
       where
-        streamId1 = streamId $ connection sf1
+        streamId1 = streamId $  sf1.connection
         -- here we assume it's ordered but it might not be the case
-        streamId2 = streamId $ connection $ fst (head scores)
+        streamId2 = streamId $ (fst (head scores)).connection
 
         aframe1 = fromRight undefined (buildFrameFromStreamId frame1 streamId1)
         aframe2 = fromRight undefined (buildFrameFromStreamId frame2 streamId2)
@@ -313,7 +313,7 @@ validateMergedRes ::
   (Members '[Log, P.Embed IO] r)
   => MergedPcap
   -> Sem r Bool
-validateMergedRes l = do
+validateMergedRes _l = do
   Log.debug "validating mergedRes"
   -- rows = Pipes.toList (F.mapM_ (Pipes.yield . show ) mergedPcap)
   -- return $ L.nub (view packetId <$> l) /= length l
@@ -328,8 +328,8 @@ mergeTcpSubflowFromKnownStreams ::
   -> FrameFiltered MptcpSubflow Packet
   -> Sem r MergedFrame
 mergeTcpSubflowFromKnownStreams (FrameTcp sfcon1 frame1) (FrameTcp sfcon2 frame2) =
-  mergeTcpConnectionsFromKnownStreams (FrameTcp (connection sfcon1) frame1)
-      (FrameTcp (connection sfcon2) frame2)
+  mergeTcpConnectionsFromKnownStreams (FrameTcp sfcon1.connection frame1)
+      (FrameTcp sfcon2.connection frame2)
 
 -- | Merge 2 pcaps
 mergeTcpConnectionsFromKnownStreams ::
@@ -339,7 +339,7 @@ mergeTcpConnectionsFromKnownStreams ::
   -> Sem r MergedFrame
 -- these are from host1 / host2
 mergeTcpConnectionsFromKnownStreams aframe1 aframe2 = do
-  Log.debug $ "Merging stream " <> showConnectionText (ffCon aframe1) <> " with stream "
+  Log.debug $ "Merging stream " <> showConnectionText (aframe1.ffCon) <> " with stream "
   -- Ziggy Marley
   embed $ writeDSV defaultParserOptions out1 hframe1
   embed $ writeDSV defaultParserOptions out2 hframe2
@@ -347,10 +347,10 @@ mergeTcpConnectionsFromKnownStreams aframe1 aframe2 = do
   return $ (fst . mergedPcapToFrame) mergedRes
   where
     -- frame1withDest = addTcpDestToFrame (ffFrame aframe1) (ffCon aframe1)
-    frame1withDest = ffFrame aframe1
+    frame1withDest =  aframe1.ffFrame
 
-    out1 = "merge-tcp-1-stream-" ++ show ((streamId . ffCon) aframe1) ++ ".tsv"
-    out2 = "merge-tcp-2-stream-" ++ show (streamId $ ffCon aframe2) ++ ".tsv"
+    out1 = "merge-tcp-1-stream-" ++ show aframe1.ffCon.streamId ++ ".tsv"
+    out2 = "merge-tcp-2-stream-" ++ show aframe2.ffCon.streamId ++ ".tsv"
 
     -- we want an outerJoin , maybe with a status column like in panda
     -- outerJoin returns a list of [Rec (Maybe :. ElField) ors]
@@ -359,7 +359,7 @@ mergeTcpConnectionsFromKnownStreams aframe1 aframe2 = do
 
     -- (rcast @HostCols )
     -- hframe1 = zipFrames (addHash $ fmap (rcast @Packet) (ffFrame aframe1)) (ffFrame aframe1)
-    hframe1 = zipFrames (addHashToFrame $ fmap (rcast @HostCols) (ffFrame aframe1)) (ffFrame aframe1)
+    hframe1 = zipFrames (addHashToFrame $ fmap (rcast @HostCols) aframe1.ffFrame) aframe1.ffFrame
     hframe1dest = hframe1
     -- hframe1dest = addTcpDestinationsToAFrame hframe1
     hframe2 :: Frame (Record ('[PacketHash] ++ HostColsPrefixed))

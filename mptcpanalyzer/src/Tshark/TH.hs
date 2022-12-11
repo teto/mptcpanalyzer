@@ -40,7 +40,6 @@ declarePrefixedColumns :: Text -> FieldDescriptions -> DecsQ
 declarePrefixedColumns prefix fields = do
   foldM toto mempty (toList fields)
   where
-    -- acc ++
     toto acc (colName, field) = do
       -- Note: Frames.declarePrefixedColumn doesn't prefix the colName but the accessors !
       -- expects colName lensPrefix type
@@ -51,7 +50,6 @@ declarePrefixedColumns prefix fields = do
 -- Generates a '[ ]
 -- la solution est dans tableTypesText'
 -- Generate a FieldRec
--- TODO rename
 genRecordFrom :: String -> FieldDescriptions -> DecsQ
 genRecordFrom  = genRecordFromHeaders ""
 
@@ -67,7 +65,7 @@ genRecordFromHeaders tablePrefix rowTypeName fields = genExplicitRecord tablePre
 -- tablePrefix here consists in the lenses but not the actual column names
 genExplicitRecord :: String -> String -> [(Text, Name)] -> Q [Dec]
 genExplicitRecord tablePrefix rowTypeName fields = do
-  (colTypes, colDecs) <- second concat . unzip
+  (colTypes, _colDecs) <- second concat . unzip
                         <$> mapM (uncurry mkColDecs) headers
   -- let recTy = TySynD (mkName rowTypeName) [] (recDec colTypes)
   let recTy = TySynD (mkName rowTypeName) [] (qqDec colTypes)
