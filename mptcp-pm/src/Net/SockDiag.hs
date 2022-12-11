@@ -199,20 +199,20 @@ connectionFromDiag msg =
   let 
     sockid = idiag_sockid msg
     con = TcpConnection {
-        conTcpClientIp = fromRight (error "no default for srcIp") (getIPFromByteString (idiag_family msg) (idiag_src sockid))
-      , conTcpServerIp = fromRight (error "no default for destIp") (getIPFromByteString (idiag_family msg) (idiag_dst sockid))
-      , conTcpClientPort = idiag_sport sockid
-      , conTcpServerPort = idiag_dport sockid
-      , conTcpStreamId = StreamId 0
+        clientIp = fromRight (error "no default for srcIp") (getIPFromByteString (idiag_family msg) (idiag_src sockid))
+      , serverIp = fromRight (error "no default for destIp") (getIPFromByteString (idiag_family msg) (idiag_dst sockid))
+      , conclientPort = idiag_sport sockid
+      , serverPort = idiag_dport sockid
+      , streamId = StreamId 0
     }
   in
   MptcpSubflow {
-      sfConn = con
-    , sfJoinToken = Nothing
-    , sfPriority = Nothing
-    , sfLocalId = 0
-    , sfRemoteId = 0
-    , sfInterface = Nothing
+      connection = con
+    , joinToken = Nothing
+    , priority = Nothing
+    , localId = 0
+    , remoteId = 0
+    , interface = Nothing
   }
 
 -- | Serialize SockDiagMsg
@@ -488,13 +488,13 @@ genQueryPacket selector tcpStatesFilter requestedInfo = let
         InetDiagSockId 0 0 bstr bstr 0 cookie
 
     Right sf -> let
-        con = sfConn sf
-        ipSrc = runPut $ putIPAddress $ conTcpClientIp con
-        ipDst = runPut $ putIPAddress $ conTcpServerIp con
-        ifIndex = sfInterface sf
+        con = connection sf
+        ipSrc = runPut $ putIPAddress $ con.clientIp
+        ipDst = runPut $ putIPAddress $ con.serverIp
+        ifIndex = interface sf
         _cookie = 0 :: Word64
       in
-        InetDiagSockId (conTcpClientPort con) (conTcpServerPort con) ipSrc ipDst (fromJust ifIndex) _cookie
+        InetDiagSockId (con.clientPort) (con.serverPort) ipSrc ipDst (fromJust ifIndex) _cookie
 
   custom = SockDiagRequest eAF_INET eIPPROTO_TCP requestedInfo tcpStatesFilter diag_req
   in

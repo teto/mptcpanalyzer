@@ -208,14 +208,14 @@ subflowAttrs :: MptcpSubflow -> [MptcpAttribute]
 subflowAttrs (MptcpSubflow con _ prio localId remoteId mbIf) = [
     LocalLocatorId $ localId
     , RemoteLocatorId $ remoteId
-    , SubflowFamily $ getAddressFamily (conTcpServerIp con)
-    , SubflowDestAddress $ conTcpServerIp con
-    , SubflowDestPort $ conTcpServerPort con
+    , SubflowFamily $ getAddressFamily (con.serverIp)
+    , SubflowDestAddress $ con.serverIp
+    , SubflowDestPort $ con.serverPort
     -- should fail if doesn't exist
     , SubflowInterface $ fromJust $ mbIf
     -- https://github.com/multipath-tcp/mptcp/issues/338
-    , SubflowSourceAddress $ conTcpClientIp con
-    , SubflowSourcePort $ conTcpClientPort con
+    , SubflowSourceAddress $ con.clientIp
+    , SubflowSourcePort $ con.clientPort
   ]
 
 -- |Generate a request to create a new subflow

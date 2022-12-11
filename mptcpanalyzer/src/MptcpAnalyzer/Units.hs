@@ -32,7 +32,8 @@ newtype Bytes = Bytes Word64
   deriving stock  Show
   deriving newtype (Num, Ord, Eq, Real, Enum, Integral)
 
-data TimeUnit = Second | MilliSecond | NanoSecond
+-- data TimeUnit = Second | MilliSecond | NanoSecond
+
 -- TimeUnit
 -- TODO pass unit
 data Timestamp  = Timestamp Double deriving (Show, Eq, Ord)

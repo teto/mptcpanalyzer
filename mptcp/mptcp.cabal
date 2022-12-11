@@ -33,7 +33,9 @@ library
       include-dirs:
         headers
     default-extensions:
-      DeriveGeneric
+        DeriveGeneric
+      , OverloadedRecordDot
+
     build-depends:
         base >= 4.12 && < 5.18
       , lens

@@ -161,8 +161,6 @@ instance (V.KnownField t, Hashable (V.Snd t), Hashable (F.Record rs), rs F.⊆ (
   hashWithSalt s r = s `Hash.hashWithSalt` F.rgetField @t r `Hash.hashWithSalt` F.rcast @rs r
   {-# INLINABLE hashWithSalt #-}
 
--- deriving instance Hashable IP
--- deriving instance Hashable IPv6
 
 -- shadow param
 -- @a@ be Tcp / Mptcp
@@ -291,13 +289,13 @@ instance ShowCSV [TcpFlag] where
   showCSV flagList = T.concat texts
     where
       texts = Prelude.map (T.pack . show . fromEnum) flagList
-      res = toRaw $ fromFoldable flagList
+      _res = toRaw $ fromFoldable flagList
 
 instance ShowCSV [Word64] where
   -- showCSV :: a -> Text
   showCSV seqs = T.intercalate "," texts
     where
-      texts = Prelude.map (T.pack . show .fromEnum) seqs
+      texts = Prelude.map (T.pack . show . fromEnum) seqs
 
 instance ShowCSV IP where
   showCSV = encode

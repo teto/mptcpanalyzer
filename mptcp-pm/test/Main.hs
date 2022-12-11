@@ -39,23 +39,23 @@ testComboReverse = TestCase $ assertEqual
 
 iperfConnection = let 
     con =  TcpConnection {
-          conTcpClientIp = (fromIPv4 localhost)
-        , conTcpServerIp = fromIPv4 localhost
-        , conTcpClientPort = 5000
-        , conTcpServerPort = 1000
-        , conTcpStreamId = (StreamId 0)
+          clientIp = (fromIPv4 localhost)
+        , serverIp = fromIPv4 localhost
+        , conclientPort = 5000
+        , serverPort = 1000
+        , streamId = (StreamId 0)
       }
   in MptcpSubflow {
-          sfConn = con
+          connection = con
         -- placeholder values
-        , sfJoinToken = Just 0
-        , sfPriority = Nothing
-        , sfInterface = Nothing
-        , sfLocalId = 0
-        , sfRemoteId = 0
+        , joinToken = Just 0
+        , priority = Nothing
+        , interface = Nothing
+        , localId = 0
+        , remoteId = 0
     }
 
-modifiedConnection = iperfConnection { sfInterface = Just 0 }
+modifiedConnection = iperfConnection { interface = Just 0 }
 
 filteredConnections :: [MptcpSubflow]
 filteredConnections = [ iperfConnection ]

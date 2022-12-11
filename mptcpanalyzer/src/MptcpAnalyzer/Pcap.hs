@@ -268,11 +268,11 @@ buildTcpConnectionFromRecord :: (
   ) => Record rs -> TcpConnection
 buildTcpConnectionFromRecord r =
   TcpConnection {
-      conTcpClientIp = r ^. ipSource
-    , conTcpServerIp = r ^. ipDest
-    , conTcpClientPort = r ^. tcpSrcPort
-    , conTcpServerPort = r ^. tcpDestPort
-    , conTcpStreamId = r ^. tcpStream
+      clientIp = r ^. ipSource
+    , serverIp = r ^. ipDest
+    , conclientPort = r ^. tcpSrcPort
+    , serverPort = r ^. tcpDestPort
+    , streamId = r ^. tcpStream
   }
 
 buildTcpConnectionTupleFromRecord :: (
@@ -284,7 +284,7 @@ buildTcpConnectionTupleFromRecord r =
     , conTcpDestinationIp = r ^. ipDest
     , conTcpSourcePort = r ^. tcpSrcPort
     , conTcpDestinationPort = r ^. tcpDestPort
-    -- , conTcpStreamId = r ^. tcpStream
+    -- , streamId = r ^. tcpStream
   }
 
 {- Builds a Tcp connection from a non filtered frame
@@ -313,15 +313,15 @@ buildTcpConnectionFromStreamId frame streamId =
 buildSubflowFromRecord :: Packet -> MptcpSubflow
 buildSubflowFromRecord row =
   MptcpSubflow {
-          sfConn = sfCon
+          connection = sfCon
         -- TODO ignore if it's master token
-        , sfJoinToken = row ^. mptcpRecvToken
-        , sfPriority = Nothing
+        , joinToken = row ^. mptcpRecvToken
+        , priority = Nothing
         -- TODO
-        , sfLocalId = 0
-        , sfRemoteId = 0
+        , localId = 0
+        , remoteId = 0
         -- todo load it from row
-        , sfInterface = Nothing
+        , interface = Nothing
       }
   where
       sfCon = buildTcpConnectionFromRecord row
@@ -350,13 +350,13 @@ buildSubflowFromTcpStreamId frame streamId =
       sfCon = buildTcpConnectionFromRecord syn0
       -- rcvToken
       sf = MptcpSubflow {
-        sfConn = sfCon
+        connection = sfCon
         -- TODO ignore if it's master token
-        , sfJoinToken = syn0 ^. mptcpRecvToken
-        , sfPriority = Nothing
-        , sfLocalId = 0
-        , sfRemoteId = 0
-        , sfInterface = Nothing
+        , joinToken = syn0 ^. mptcpRecvToken
+        , priority = Nothing
+        , localId = 0
+        , remoteId = 0
+        , interface = Nothing
       }
 
 -- | Sets mptcp role column
@@ -382,7 +382,7 @@ addMptcpDest frame con =
 
       subflowFrames = map addDestsToSubflowFrames subflows
 
-      addDestsToSubflowFrames sf = addMptcpDestToFrame' (addTcpDestToFrame frame (sfConn sf)) sf
+      addDestsToSubflowFrames sf = addMptcpDestToFrame' (addTcpDestToFrame frame (connection sf)) sf
 
       addMptcpDest' role x = Col role :& x
 
@@ -392,7 +392,7 @@ addMptcpDest frame con =
       setTempDests :: Record rs -> Record ( MptcpDest ': TcpDest ': rs)
       setTempDests x = Col RoleClient :& Col RoleClient :& x
       addMptcpDestToRec x role = Col role :& x
-      subflows = Set.toList $ _mpconSubflows con
+      subflows = Set.toList $ subflows con
 
 addMptcpDestToFrame :: MptcpConnection -> FrameFiltered MptcpSubflow Packet -> FrameRec '[MptcpDest]
 addMptcpDestToFrame mpcon (FrameTcp sf frame) = fmap (addMptcpDest' (getMptcpDest mpcon sf)) frame
@@ -401,10 +401,10 @@ addMptcpDestToFrame mpcon (FrameTcp sf frame) = fmap (addMptcpDest' (getMptcpDes
 
 
 getMptcpDest :: MptcpConnection -> MptcpSubflow -> ConnectionRole
-getMptcpDest mptcpCon sf = case sfJoinToken sf of
+getMptcpDest mptcpCon sf = case sf.joinToken  of
   -- master subflow, dest is by definition the server
   Nothing -> RoleServer
-  Just token -> if token == (_mecToken . _mpconServerConfig) mptcpCon then
+  Just token -> if token == mptcpCon.serverConfig.token then
     RoleServer
   else
     RoleClient
@@ -445,7 +445,7 @@ genTcpDestFrame :: (
     -> FrameRec '[TcpDest]
 genTcpDestFrame frame con = fmap (\x -> Col (computeTcpDest x con) :& RNil) streamFrame
     where
-      streamFrame = filterFrame  (\x -> rgetField @TcpStream x == conTcpStreamId con) frame
+      streamFrame = filterFrame  (\x -> rgetField @TcpStream x == streamId con) frame
 
 genTcpDestFrameFromAFrame :: (
   I.RecVec rs
@@ -465,13 +465,13 @@ computeTcpDest :: (
   , TcpDestPort ∈ rs
   ) => Record rs
   -> TcpConnection -> ConnectionRole
-computeTcpDest x con  = if rgetField @IpSource x == conTcpClientIp con
-                && rgetField @IpDest x == conTcpServerIp con
-                && rgetField @TcpSrcPort x == conTcpClientPort con
-                && rgetField @TcpDestPort x == conTcpServerPort con
-                && rgetField @TcpDestPort x == conTcpServerPort con
+computeTcpDest x con  = if rgetField @IpSource x == con.clientIp
+                && rgetField @IpDest x == con.serverIp
+                && rgetField @TcpSrcPort x == con.clientPort
+                && rgetField @TcpDestPort x == con.serverPort
+                && rgetField @TcpDestPort x == con.serverPort
                 -- TODO should error if not the same streamId
-                -- && (rgetField @TcpStream x) == (conTcpStreamId con)
+                -- && (rgetField @TcpStream x) == (streamId con)
         then RoleServer else RoleClient
 
 
@@ -554,11 +554,11 @@ buildMptcpConnectionFromStreamId frame streamId = do
       tempMptcpConn clientConfig = MptcpConnection {
             mpconStreamId = streamId
           -- kinda risky, assumes we have the server key always
-          , _mpconServerConfig = fromJust mbServerConfig
-          , _mpconClientConfig = fromJust clientConfig
+          , serverConfig = fromJust mbServerConfig
+          , clientConfig = fromJust clientConfig
           -- , mptcpNegotiatedVersion = fromIntegral $ fromJust clientMptcpVersion :: Word8
 
-          , _mpconSubflows = Set.fromList $ map ffCon (rights subflows)
+          , subflows = Set.fromList $ map ffCon (rights subflows)
         }
       -- suppose tcpflags is a list of flags, check if it is in the list
       -- of type FrameRec [(Symbol, *)]
@@ -609,10 +609,10 @@ scoreTcpCon con1 con2 =
   -- TODO also match on isn in case ports got reused
 
   foldl (\acc toAdd -> acc + 10 * fromEnum toAdd) (0 :: Int) [
-      conTcpClientIp con1 == conTcpClientIp con2
-    , conTcpClientPort con1 == conTcpClientPort con2
-    , conTcpServerIp con1 == conTcpServerIp con2
-    , conTcpServerPort con1 == conTcpServerPort con2
+      con.clientIp1 == con.clientIp2
+    , con.clientPort1 == con.clientPort2
+    , con.serverIp1 == con.serverIp2
+    , con.serverPort1 == con.serverPort2
   ]
 
 
@@ -648,14 +648,14 @@ instance StreamConnection MptcpSubflow where
   showConnectionText = showMptcpSubflowText
   buildFrameFromStreamId = buildSubflowFromTcpStreamId
   -- TODO use score as well
-  similarityScore sf1 sf2 = similarityScore (sfConn sf1) (sfConn sf2)
+  similarityScore sf1 sf2 = similarityScore (connection sf1) (connection sf2)
 
 
 -- |Show the subflow (ids)
 showMptcpSubflowText :: MptcpSubflow -> Text
 showMptcpSubflowText sf =
-  showConnectionText (sfConn sf) <> " (Local/Remote ids: " <> tshow (sfLocalId sf)
-      <> "/" <> tshow (sfRemoteId sf) <> ", token " <> tshow (sfJoinToken sf) <> ")"
+  showConnectionText (connection sf) <> " (Local/Remote ids: " <> tshow (localId sf)
+      <> "/" <> tshow (remoteId sf) <> ", token " <> tshow (joinToken sf) <> ")"
 
 -- TODO add sthg in case it's the master subflow ?
 showConnection :: StreamConnection a => a -> String

@@ -30,7 +30,7 @@ showRow :: (RecMapMethod Show ElField a, RecordToList a)
 showRow row = intercalate "\t" $ showFields row
 
 showHeader :: forall a . (ColumnHeaders a) => Frame (Record a) -> String
-showHeader frame = intercalate "\t" $ columnHeaders (Proxy :: Proxy (Record a))
+showHeader _frame = intercalate "\t" $ columnHeaders (Proxy :: Proxy (Record a))
 
 viewFrame :: (RecMapMethod Show ElField a, RecordToList a, ColumnHeaders a)
           => Frame (Record a) -> IO ()

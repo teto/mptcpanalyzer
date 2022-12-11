@@ -36,8 +36,8 @@ import System.Console.Haskeline.Completion (listFiles)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Posix (fileExist, getFileStatus, isRegularFile)
 
-defaultCompleteFunc :: CompletionFunc IO
-defaultCompleteFunc = completeFilename
+-- defaultCompleteFunc :: CompletionFunc IO
+-- defaultCompleteFunc = completeFilename
 
 
 -- | We use unsafePerformIO to work around optparse-applicative limitation

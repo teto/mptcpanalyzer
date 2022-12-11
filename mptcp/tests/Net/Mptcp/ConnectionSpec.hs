@@ -10,9 +10,9 @@ import Net.Mptcp.Connection
 example0 :: MptcpConnection
 example0 = MptcpConnection {
     mpconStreamId = StreamId 0
-  , _mpconServerConfig = MptcpEndpointConfiguration 1 32 0
-  , _mpconClientConfig = MptcpEndpointConfiguration 4 65 0
-  , _mpconSubflows = mempty
+  , serverConfig = MptcpEndpointConfiguration 1 32 0
+  , clientConfig = MptcpEndpointConfiguration 4 65 0
+  , subflows = mempty
   }
 
 

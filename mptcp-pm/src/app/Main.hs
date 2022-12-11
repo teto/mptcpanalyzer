@@ -342,7 +342,7 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
     -- let _masterSf = Set.elemAt 0 (subflows mptcpConn)
 
     -- Get updated metrics
-    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ _mpconSubflows mptcpConn)
+    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ subflows mptcpConn)
     let filename = tmpdir ++ "/" ++ "mptcp_" ++ show (mptcpConn ^. mpconClientConfig ^. mecToken) ++ "_" ++ show elapsed ++ ".json"
     -- logStatistics filename elapsed mptcpConn lastMetrics
 
@@ -390,7 +390,7 @@ getCapsForConnection :: FilePath     -- ^Statistics file
                         -> IO (Maybe [Word32])
 getCapsForConnection filename prog mptcpConn metrics = do
 
-    let subflowCount = length $ _mpconSubflows mptcpConn
+    let subflowCount = length $ mptcpConn.subflows 
 
     -- Data.ByteString.Lazy.writeFile filename jsonBs
 
@@ -479,15 +479,15 @@ registerMptcpConnection :: MptcpToken -> MptcpSubflow -> StateT MyState IO ()
 registerMptcpConnection token subflow = (do
     oldState <- get
     let (MyState mptcpSock conns cliArgs filtered) = oldState
-    if acceptConnection (sfConn subflow) filtered == False
+    if acceptConnection (connection subflow) filtered == False
     then do
         -- infoM "main" $ "filtered out connection:" ++ show subflow
         return ()
     else (do
         -- putStrLn $ "accepted connection :" ++ show subflow
         -- should we add the subflow yet ? it doesn't have the correct interface idx
-        mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (conTcpClientIp $ sfConn subflow)
-        let fixedSubflow = subflow { sfInterface = mappedInterface }
+        mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (clientIp $ connection subflow)
+        let fixedSubflow = subflow { interface = mappedInterface }
         let mptcpCon = MptcpConnection (StreamId 0) (MptcpEndpointConfiguration 0 token 0) (MptcpEndpointConfiguration 0 0 0) Set.empty
         let newMptcpConn = mptcpConnAddSubflow (mptcpCon) fixedSubflow
 
@@ -851,13 +851,13 @@ instance ToJSON SockDiagMetrics where
   toJSON (SockDiagMetrics msg metrics) = let
 
       sf = connectionFromDiag msg
-      con = sfConn sf
+      con = connection sf
       tcpState = toEnum $ fromIntegral ( idiag_state msg) :: TcpStateLinux
       initialValue = object [
-            "srcIp" .= toJSON (conTcpClientIp con)
-          , "dstIp" .= toJSON (conTcpServerIp con)
-          , "srcPort" .= toJSON (conTcpClientPort con)
-          , "dstPort" .= toJSON (conTcpServerPort con)
+            "srcIp" .= toJSON (con.clientIp)
+          , "dstIp" .= toJSON (con.serverIp)
+          , "srcPort" .= toJSON (con.clientPort)
+          , "dstPort" .= toJSON (con.serverPort)
           -- doesnt work as subflow id
           -- , "subflow_id" .= idiag_uid msg
           ]

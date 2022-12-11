@@ -6,13 +6,12 @@ License     : GPL-3
 -}
 {-# LANGUAGE TemplateHaskell, DerivingStrategies, DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoFieldSelectors #-}
 module Net.Mptcp.Connection (
   -- * Types
     MptcpConnection(..)
-  , mpconSubflows, mpconServerConfig, mpconClientConfig
   , MptcpSubflow(..)
   , MptcpEndpointConfiguration(..)
-  , mecKey, mecToken, mecVersion
   , showMptcpConnectionText
 
   , mptcpConnAddSubflow
@@ -37,10 +36,10 @@ import Data.Word (Word16, Word32, Word64, Word8)
 
 data MptcpEndpointConfiguration = MptcpEndpointConfiguration {
   -- |key exchanged during the handshake
-    _mecKey :: Word64
-  , _mecToken :: Word32
+    key :: Word64
+  , token :: Word32
   -- ^Hash of the server key
-  , _mecVersion :: Int -- ^ 0 or 1 at least for now
+  , version :: Int -- ^ 0 or 1 at least for now
   -- , mecIdsn :: Word64
   -- ^ Initial data sequence number
   } deriving (Show, Eq)
@@ -55,12 +54,12 @@ data MptcpConnection = MptcpConnection {
   -- |The wireshark mptcp.stream identifier (a number)
     mpconStreamId :: StreamIdMptcp
   -- |Server key exchanged during the handshake
-  , _mpconServerConfig :: MptcpEndpointConfiguration
-  , _mpconClientConfig :: MptcpEndpointConfiguration
+  , serverConfig :: MptcpEndpointConfiguration
+  , clientConfig :: MptcpEndpointConfiguration
   -- | Mptcp version negotiated during the handshake Not implemented yet ?
   -- , mptcpNegotiatedVersion :: Word8  -- ^ 0 or 1 at least for now
   -- ^ List of past/present/future subflows seen during communication
-  , _mpconSubflows :: Set.Set MptcpSubflow
+  , subflows :: Set.Set MptcpSubflow
 
 -- Ord to be able to use fromList
 } deriving (Show, Eq)
@@ -70,25 +69,25 @@ data MptcpConnection = MptcpConnection {
 -- master subflow has implicit addrid 0
 -- TODO add start/end dates ?
 data MptcpSubflow = MptcpSubflow {
-        sfConn :: TcpConnection
+        connection :: TcpConnection
       -- shall keep token instead ? or as a boolean ?
       -- Todo token
       -- , sfMptcpDest :: ConnectionRole -- ^ Destination
-      , sfJoinToken :: Maybe Word32 -- ^ token of sendkey to authentify itself, Nothing -> Master subflow
-      , sfPriority :: Maybe Word8 -- ^subflow priority
-      , sfLocalId :: Word8  -- ^ Convert to AddressFamily
-      , sfRemoteId :: Word8
+      , joinToken :: Maybe Word32 -- ^ token of sendkey to authentify itself, Nothing -> Master subflow
+      , priority :: Maybe Word8 -- ^subflow priority
+      , localId :: Word8  -- ^ Convert to AddressFamily
+      , remoteId :: Word8
       --conTcp TODO remove could be deduced from srcIp / dstIp ?
       -- allow
-      , sfInterface :: Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
+      , interface :: Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
       -- Maybe Word32 -- ^Interface of Maybe ? why a maybe ?
     } deriving (Show, Eq)
     -- deriving Ord via TcpConnection
 
 instance Ord MptcpSubflow where
-  con1 `compare` con2 = (sfConn con1) `compare` (sfConn con2)
+  con1 `compare` con2 = con1.connection `compare` con2.connection 
 
-makeLenses ''MptcpConnection
+-- makeLenses ''MptcpConnection
 
 tshow :: Show a => a -> TS.Text
 tshow = TS.pack . Prelude.show
@@ -97,18 +96,18 @@ tshow = TS.pack . Prelude.show
 showMptcpConnectionText :: MptcpConnection -> Text
 showMptcpConnectionText con =
   -- showIp (srcIp con) <> ":" <> tshow (srcPort con) <> " -> " <> showIp (dstIp con) <> ":" <> tshow (dstPort con)
-  tpl <> "\nSubflows:\n" <> TS.unlines (Prelude.map (showTcpConnectionText . sfConn) (Set.toList $ _mpconSubflows con))
+  tpl <> "\nSubflows:\n" <> TS.unlines (Prelude.map (showTcpConnectionText . (.connection)) (Set.toList $  con.subflows))
   where
     -- todo show version
     tpl :: Text
     tpl = TS.unlines [
-        "Server key/token: " <> tshow (con ^. mpconServerConfig ^. mecKey) <> "/" <> tshow (con ^. mpconServerConfig ^. mecToken)
-      , "Client key/token: " <> tshow (con ^. mpconClientConfig ^. mecKey) <> "/" <> tshow (con ^. mpconClientConfig ^. mecToken)
+        "Server key/token: " <> tshow (con.serverConfig.key) <> "/" <> tshow (con.serverConfig.token)
+      , "Client key/token: " <> tshow (con.clientConfig.key) <> "/" <> tshow (con.clientConfig.token)
       ]
 
 ---- add a maybe ?
 getMasterSubflow :: MptcpConnection -> Maybe MptcpSubflow
-getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.toList $ _mpconSubflows mptcpCon) of
+getMasterSubflow mptcpCon = case Prelude.filter (\sf ->  sf.localId == 0) (Set.toList mptcpCon.subflows) of
   [] -> Nothing
   [x] -> Just x
   (_:_) -> error "There can be only one master subflow"
@@ -116,16 +115,16 @@ getMasterSubflow mptcpCon = case Prelude.filter (\sf -> sfLocalId sf == 0) (Set.
 
 getSubflowFromStreamId :: MptcpConnection -> StreamIdTcp -> Maybe MptcpSubflow
 getSubflowFromStreamId con streamId = 
-  case Prelude.filter (\sf -> (conTcpStreamId . sfConn) sf == streamId) (Set.toList $ _mpconSubflows con) of 
+  case Prelude.filter (\sf -> sf.connection.streamId == streamId) (Set.toList con.subflows) of 
     [] -> Nothing
     (x:_) -> Just x
 
 -- TODO test
 tokenBelongToConnection :: Word32 -> MptcpConnection -> Bool
 tokenBelongToConnection rcvToken con =
-  if rcvToken == con ^. mpconClientConfig ^. mecToken then
+  if rcvToken == con.clientConfig.token then
     True
-  else if rcvToken == con ^. mpconServerConfig ^. mecToken then
+  else if rcvToken == con.serverConfig.token then
     True
   else
     False
@@ -136,13 +135,13 @@ tokenBelongToConnection rcvToken con =
 mptcpConnAddSubflow :: MptcpConnection -> MptcpSubflow -> MptcpConnection
 mptcpConnAddSubflow mptcpConn sf =
   -- TODO check that there are no duplicates / only one master etc
-  (mptcpConn { _mpconSubflows = Set.insert sf (_mpconSubflows mptcpConn) })
+  (mptcpConn { subflows = Set.insert sf mptcpConn.subflows })
 
 
 -- |Remove subflow from an MPTCP connection
 mptcpConnRemoveSubflow :: MptcpConnection -> MptcpSubflow -> MptcpConnection
 mptcpConnRemoveSubflow con sf = con {
-  _mpconSubflows = Set.delete sf (_mpconSubflows con)
+  subflows = Set.delete sf con.subflows
   -- TODO remove associated local/remote Id ?
 }
 

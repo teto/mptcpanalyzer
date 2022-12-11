@@ -69,13 +69,13 @@ runTests = do
 
 -- TODO this should be part of a golden test with tasty instead
 expectedMappings = [
-  (TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33782, conTcpServerPort = 5201, conTcpStreamId = StreamId 0},40)
-  ,(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33784, conTcpServerPort = 5201, conTcpStreamId = StreamId 1},30)
-  ,(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 54595, conTcpServerPort = 5201, conTcpStreamId = StreamId 2},20)
-  ,(TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 57491, conTcpServerPort = 5201, conTcpStreamId = StreamId 3},20)
-  ,(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 35589, conTcpServerPort = 5201, conTcpStreamId = StreamId 6},20)
-  ,(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 50007, conTcpServerPort = 5201, conTcpStreamId = StreamId 7},20)
-  ,(TcpConnection {conTcpClientIp = ipv4 11 0 0 1, conTcpServerIp = ipv4 11 0 0 2, conTcpClientPort = 50077, conTcpServerPort = 5201, conTcpStreamId = StreamId 5},10)]
+  (TcpConnection {clientIp = ipv4 10 0 0 1, serverIp = ipv4 10 0 0 2, conclientPort = 33782, serverPort = 5201, streamId = StreamId 0},40)
+  ,(TcpConnection {clientIp = ipv4 10 0 0 1, serverIp = ipv4 10 0 0 2, conclientPort = 33784, serverPort = 5201, streamId = StreamId 1},30)
+  ,(TcpConnection {clientIp = ipv4 10 0 0 1, serverIp = ipv4 11 0 0 2, conclientPort = 54595, serverPort = 5201, streamId = StreamId 2},20)
+  ,(TcpConnection {clientIp = ipv4 10 0 0 1, serverIp = ipv4 11 0 0 2, conclientPort = 57491, serverPort = 5201, streamId = StreamId 3},20)
+  ,(TcpConnection {clientIp = ipv4 11 0 0 1, serverIp = ipv4 10 0 0 2, conclientPort = 35589, serverPort = 5201, streamId = StreamId 6},20)
+  ,(TcpConnection {clientIp = ipv4 11 0 0 1, serverIp = ipv4 10 0 0 2, conclientPort = 50007, serverPort = 5201, streamId = StreamId 7},20)
+  ,(TcpConnection {clientIp = ipv4 11 0 0 1, serverIp = ipv4 11 0 0 2, conclientPort = 50077, serverPort = 5201, streamId = StreamId 5},10)]
 
 spec :: Spec
 spec = describe "Checking connection mapper" $ do

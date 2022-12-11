@@ -47,7 +47,7 @@ Source-repository head
 
 Flag WithPolysemy {
   Description: Add polysemy plugin
-  Default:     False
+  Default:     True
 }
 
 Flag Dev {
@@ -98,6 +98,7 @@ common shared-properties
       , pipes-parse
       , pipes-safe
       , polysemy
+      , polysemy-plugin
       , polysemy-log >= 0.2.2.4
       , polysemy-log-co
       , process
@@ -154,8 +155,9 @@ common shared-properties
         -- -fplugin=Polysemy.Plugin
     default-extensions:
           -- StrictData
-         DataKinds
+          DataKinds
         , LambdaCase
+        , OverloadedRecordDot
         -- , OverloadedStrings
         , RankNTypes
         -- , ScopedTypeVariables

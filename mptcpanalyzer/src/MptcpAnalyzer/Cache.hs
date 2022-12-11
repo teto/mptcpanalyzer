@@ -5,16 +5,18 @@ Maintainer  : matt
 License     : GPL-3
 -}
 
-{-# LANGUAGE AllowAmbiguousTypes #-}
+-- {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+
+-- needed for plugin
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 module MptcpAnalyzer.Cache (
     CacheId(..)
   , Cache(..)
@@ -46,7 +48,7 @@ import System.FilePath.Posix (takeBaseName)
 
 -- | Cache item identifier
 data CacheId = CacheId {
-  cacheDeps :: [FilePath]
+    cacheDeps :: [FilePath]
   , cachePrefix :: String
   , cacheSuffix :: String
 } deriving (Generic, Show, Eq, Hashable)
@@ -54,9 +56,9 @@ data CacheId = CacheId {
 -- | Cache config (this is a test)
 -- test
 data CacheConfig = CacheConfig {
-  -- | Folder where to store stuff
-  cacheFolder :: FilePath
-  -- | Whether the cachie is fixed
+    -- | Folder where to store stuff
+    cacheFolder :: FilePath
+    -- | Whether the cachie is fixed
   , cacheEnabled :: Bool
 } deriving Show
 
@@ -66,7 +68,7 @@ data CacheConfig = CacheConfig {
 
 -- TODO add a cacheConfig ?
 -- TODO this should be an effect
-data Cache m a where
+data Cache :: Effect where
     -- should maybe be a filepath
     PutCache :: Serialize res => CacheId -> res -> Cache m Bool
     GetCache :: Serialize res => CacheId -> Cache m (Either String res)

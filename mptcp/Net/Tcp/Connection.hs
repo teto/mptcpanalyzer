@@ -24,15 +24,15 @@ import Net.IP
 
 -- | Identifies a TCP connection
 data TcpConnection = TcpConnection {
-    conTcpClientIp :: IP -- ^Client ip
-  , conTcpServerIp :: IP -- ^Server ip
-  , conTcpClientPort :: Word16  -- ^Client port
-  , conTcpServerPort :: Word16  -- ^Server port
-  , conTcpStreamId :: StreamIdTcp -- ^ @tcp.stream@ in wireshark
+    clientIp :: IP -- ^Client ip
+  , serverIp :: IP -- ^Server ip
+  , clientPort :: Word16  -- ^Client port
+  , serverPort :: Word16  -- ^Server port
+  , streamId :: StreamIdTcp -- ^ @tcp.stream@ in wireshark
   } deriving (Show, Eq)
 
 instance Ord TcpConnection where
-  con1 `compare` con2 = (conTcpStreamId con1) `compare` (conTcpStreamId con2)
+  con1 `compare` con2 = (streamId con1) `compare` (streamId con2)
 
 -- | Used when you can't identify the server or client yet.
 -- See "tcpConnectionFromOriented"/"tcpConnectionToOriented"
@@ -59,11 +59,11 @@ tcpConnectionFromOriented ::
   -- ^ Source is the client
   -> TcpConnection
 tcpConnectionFromOriented tup = TcpConnection {
-    conTcpClientIp = conTcpSourceIp tup
-  , conTcpServerIp = conTcpDestinationIp tup
-  , conTcpClientPort = conTcpSourcePort tup
-  , conTcpServerPort = conTcpDestinationPort tup
-  , conTcpStreamId = StreamId 0
+    clientIp = conTcpSourceIp tup
+  , serverIp = conTcpDestinationIp tup
+  , clientPort = conTcpSourcePort tup
+  , serverPort = conTcpDestinationPort tup
+  , streamId = StreamId 0
   }
 
 tcpConnectionToOriented ::
@@ -72,10 +72,10 @@ tcpConnectionToOriented ::
   -> TcpConnectionOriented
 tcpConnectionToOriented con = TcpConnectionOriented {
 
-    conTcpSourceIp = conTcpClientIp con
-  , conTcpDestinationIp = conTcpServerIp con
-  , conTcpSourcePort = conTcpClientPort con
-  , conTcpDestinationPort = conTcpServerPort con
+    conTcpSourceIp = con.clientIp
+  , conTcpDestinationIp = con.serverIp
+  , conTcpSourcePort = con.clientPort
+  , conTcpDestinationPort = con.serverPort
   }
 
 tshow :: Show a => a -> TS.Text
@@ -84,8 +84,8 @@ tshow = TS.pack . Prelude.show
 -- | Pretty print
 showTcpConnectionText :: TcpConnection -> Text
 showTcpConnectionText con =
-  showIp (conTcpClientIp con) <> ":" <> tshow (conTcpClientPort con) <> " -> "
-      <> showIp (conTcpServerIp con) <> ":" <> tshow (conTcpServerPort con)
-      <> " (tcp.stream: " <> (TS.pack . showStream) (conTcpStreamId con) <> ")"
+  showIp (con.clientIp) <> ":" <> tshow (con.clientPort) <> " -> "
+      <> showIp (con.serverIp) <> ":" <> tshow (con.serverPort)
+      <> " (tcp.stream: " <> (TS.pack . showStream) con.streamId <> ")"
   where
     showIp = Net.IP.encode

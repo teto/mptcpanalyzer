@@ -218,11 +218,11 @@ cmdQualifyReinjections (PcapMapping pcap1 streamId1 pcap2 streamId2) destination
 --   => Record rs -> TcpConnection
 -- buildTcpConnectionFromRecord r =
 --   TcpConnection {
---     conTcpClientIp = r ^. sndIpSource
---     , conTcpServerIp = r ^. sndIpDest
---     , conTcpClientPort = r ^. sndTcpSrcPort
---     , conTcpServerPort = r ^. sndTcpDestPort
---     , conTcpStreamId = r ^. sndTcpStream
+--     clientIp = r ^. sndIpSource
+--     , serverIp = r ^. sndIpDest
+--     , conclientPort = r ^. sndTcpSrcPort
+--     , serverPort = r ^. sndTcpDestPort
+--     , streamId = r ^. sndTcpStream
 --   }
 
 

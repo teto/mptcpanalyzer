@@ -190,7 +190,7 @@ tsharkLoopMptcp config hout = do
               -- if token of client then subflow initiated by server
               if tokenBelongToConnection rcvToken main then
                 lstats {
-                  _lsmMaster =
+                  master =
 #ifdef DEBUG_CAPTURE
                       trace ("Adding new subflow " ++ show subflow)
 #endif
@@ -212,7 +212,7 @@ tsharkLoopMptcp config hout = do
               -- TODO update subflow stats and mptcp stats
                 -- subflow = master
                 tcpAframe :: FrameFiltered TcpConnection Packet
-                tcpAframe =  FrameTcp (sfConn subflow) frame
+                tcpAframe =  FrameTcp (connection subflow) frame
 
                 newMptcpStats :: LiveStats MptcpUnidirectionalStats Packet
                 newMptcpStats = genLiveStatsMptcp mptcpAframe
@@ -262,9 +262,9 @@ tsharkLoopMptcp config hout = do
             trace "SYN FOUND! retreiving client key"
 #endif
             lstats {
-                _lsmClient = mptcpConfig
-              , _lsmMaster = finalizeLiveStatsMptcp mptcpConfig (_lsmServer lstats)
-              , _lsmSubflows = Map.singleton (row ^. tcpStream) (genLiveStatsTcp (FrameTcp (sfConn subflow) mempty))
+                client = mptcpConfig
+              , master = finalizeLiveStatsMptcp mptcpConfig lstats.server
+              , _lsmSubflows = Map.singleton (row ^. tcpStream) (genLiveStatsTcp (FrameTcp (connection subflow) mempty))
               -- Set.fromList $ map ffCon (rights subflows)
               }
         else if isSynAck then
@@ -273,8 +273,8 @@ tsharkLoopMptcp config hout = do
               trace "SYNACK FOUND! retreiving server key"
 #endif
               lstats {
-                _lsmServer = mptcpConfig
-              , _lsmMaster = finalizeLiveStatsMptcp (_lsmClient lstats) mptcpConfig
+                server = mptcpConfig
+              , master = finalizeLiveStatsMptcp (client lstats) mptcpConfig
               }
         else
 #ifdef DEBUG_CAPTURE
@@ -303,10 +303,10 @@ tsharkLoopMptcp config hout = do
                 -- get it from map.singleton
                 mpconStreamId = fromJust $ mympconStreamId
               -- fromJust $ synAckPacket ^. mptcpSendKey
-              , _mpconServerConfig = serverCfg
-              , _mpconClientConfig = clientCfg
+              , serverConfig = serverCfg
+              , clientConfig = clientCfg
               -- , mptcpNegotiatedVersion = mptcpVersion (serverCfg) -- TODO fix
               -- , mpconSubflows = Set.fromList $ map ffCon (rights subflows)
-              , _mpconSubflows = Set.singleton subflow
+              , subflows = Set.singleton subflow
             })
           _ -> Nothing

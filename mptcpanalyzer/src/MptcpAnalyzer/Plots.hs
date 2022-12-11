@@ -10,9 +10,9 @@ import MptcpAnalyzer.Types
 
 -- connectionToLabel :: Connection -> String
 -- connectionToLabel con@TcpConnection{} =
---   showIp (conTcpClientIp con) <> ":" <> tshow (conTcpClientPort con) <> " -> "
---       <> showIp (conTcpServerIp con) <> ":" <> tshow (conTcpServerPort con)
---       <> "  (tcp.stream: " <> tshow (conTcpStreamId con) <> ")"
+--   showIp (con.clientIp) <> ":" <> tshow (con.clientPort) <> " -> "
+--       <> showIp (con.serverIp) <> ":" <> tshow (con.serverPort)
+--       <> "  (tcp.stream: " <> tshow (streamId con) <> ")"
 --   where
 --     showIp = Net.IP.encode
 

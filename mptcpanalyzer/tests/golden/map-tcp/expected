@@ -20,7 +20,7 @@ Command run: RawCommand "tshark" ["-r","examples/server_2_filtered.pcapng","-E",
 [32m[debug][0m [M.Loader#52] exported to file "/tmp/mptcp712917-1.csv"
 [32m[debug][0m [M.Loader#54] Number of rows after loading 4321
 [34m[info] [0m [M.Loader#58] Saved into cache
-[34m[info] [0m [M.C.Map#98] Best match for TcpConnection {conTcpClientIp = ipv4 10 0 0 1, conTcpServerIp = ipv4 10 0 0 2, conTcpClientPort = 33782, conTcpServerPort = 5201, conTcpStreamId = StreamId 0} is 
+[34m[info] [0m [M.C.Map#98] Best match for TcpConnection {clientIp = ipv4 10 0 0 1, serverIp = ipv4 10 0 0 2, conclientPort = 33782, serverPort = 5201, streamId = StreamId 0} is 
 [34m[info] [0m [M.C.Map#99] Comparing with stream [StreamId 0,StreamId 1,StreamId 2,StreamId 3,StreamId 4,StreamId 5,StreamId 6,StreamId 7]
 Score for connection 10.0.0.1:33782 -> 10.0.0.2:5201 (tcp.stream: 0): [91m40[0m
 Score for connection 10.0.0.1:33784 -> 10.0.0.2:5201 (tcp.stream: 1): [91m30[0m

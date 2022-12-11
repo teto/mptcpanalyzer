@@ -13,7 +13,9 @@ module Tshark.Live (
   , LiveStatsTcp
   , LiveStatsConfig(..)
   , LiveStatsMptcp(..)
-  , lsmMaster, lsmSubflows, lsmStats
+  , lsmMaster
+  , lsmSubflows
+  , lsmStats
   , mkLiveStatsMptcp
   , genLiveStatsMptcp
   , genLiveStatsTcp
@@ -25,6 +27,7 @@ where
 import Tshark.Main (csvDelimiter, defaultTsharkPrefs)
 import Net.Stream
 import Net.Mptcp.Stats
+import GHC.Generics
 
 import Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -210,34 +213,34 @@ type LiveStatsTcp = LiveStats TcpUnidirectionalStats Packet
 -- should be richer
 data LiveStatsMptcp = LiveStatsMptcp {
     -- tcpStreamId
-    _lsmMaster :: Maybe MptcpConnection
+    master :: Maybe MptcpConnection
 
-  , _lsmClient :: Maybe MptcpEndpointConfiguration
+  , client :: Maybe MptcpEndpointConfiguration
   -- ^ Key / Token
-  , _lsmServer :: Maybe MptcpEndpointConfiguration
+  , server :: Maybe MptcpEndpointConfiguration
   -- ^ (Key, Token)
-  , _lsmSubflows :: Map.Map StreamIdTcp LiveStatsTcp
+  , subflows :: Map.Map StreamIdTcp LiveStatsTcp
         -- (TcpSubflowUnidirectionalStats, TcpSubflowUnidirectionalStats)
   -- ^ TODO these should be subflow stats (dss/dsn)
-  , _lsmStats :: LiveStats MptcpUnidirectionalStats Packet
-  , _lsmFinished :: Bool
-  }
+  , stats :: LiveStats MptcpUnidirectionalStats Packet
+  , finished :: Bool
+  } deriving (Generic, Show)
 
-makeLenses ''LiveStatsMptcp
+-- makeLenses ''LiveStatsMptcp
 
 -- |Search for the master subflow
 -- TODO could
 getMasterSubflow :: [MptcpSubflow] -> Maybe MptcpSubflow
-getMasterSubflow l = case Prelude.filter (isNothing . sfJoinToken) l of
+getMasterSubflow l = case Prelude.filter (isNothing . joinToken) l of
   [] -> Nothing
   (x:_) -> Just x
 
 -- helper to create LiveStatsMptcp
 mkLiveStatsMptcp :: LiveStatsMptcp
 mkLiveStatsMptcp = LiveStatsMptcp {
-          _lsmMaster = Nothing
-        , _lsmClient = Nothing
-        , _lsmServer = Nothing
+          master = Nothing
+        , client = Nothing
+        , server = Nothing
         , _lsmSubflows = mempty
         , _lsmStats = mempty
         , _lsmFinished = False

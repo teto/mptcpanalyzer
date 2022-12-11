@@ -45,6 +45,7 @@ import System.IO.Unsafe (unsafePerformIO)
 -- newtype Test a = FrameRec a
 -- TODO here we want to put a bytestring
 -- 
+-- V.RecMapMethod Show ElField rs,
 instance (ColumnHeaders rs, V.RecMapMethod Show ElField rs,  V.RecordToList rs) =>  Serialize (Frame (Record rs)) where
   -- putByteString
   put f = do

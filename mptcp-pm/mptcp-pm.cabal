@@ -63,19 +63,20 @@ common shared-properties
       , polysemy-log-co
 
     default-extensions:
-          FlexibleContexts
-        , StrictData
-        , DataKinds
-        , FlexibleContexts
-        , GADTs
-        , LambdaCase
-        , PolyKinds
-        , RankNTypes
-        , ScopedTypeVariables
-        , TemplateHaskell
-        , TypeApplications
-        , TypeOperators
-        , TypeFamilies
+        FlexibleContexts
+      , StrictData
+      , DataKinds
+      , FlexibleContexts
+      , GADTs
+      , LambdaCase
+      , PolyKinds
+      , RankNTypes
+      , ScopedTypeVariables
+      , TemplateHaskell
+      , TypeApplications
+      , TypeOperators
+      , TypeFamilies
+      , OverloadedRecordDot
 
     if flag(WithPolysemy)
         ghc-options: -fplugin=Polysemy.Plugin

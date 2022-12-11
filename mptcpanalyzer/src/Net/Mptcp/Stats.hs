@@ -134,7 +134,7 @@ getSubflowStats aframe role = TcpSubflowUnidirectionalStats {
       , tssMaxDsn = 0
     }
     where
-      aframe' = FrameTcp (sfConn $ ffCon aframe) (ffFrame aframe)
+      aframe' = FrameTcp (connection $ ffCon aframe) (ffFrame aframe)
 
 
 -- | Generates Stats for one direction only
@@ -161,13 +161,13 @@ getMptcpStats (FrameTcp mptcpConn frame) dest =
     -- assume packet order has not been messed with
     , musTime = F.frameRow frame (F.frameLength frame - 1) ^. relTime
     -- we need the stream id / FrameFiltered MptcpSubflow (Record rs)
-    , musSubflowStats = Map.fromList $ map (\sf -> (sf, getStats dest sf))  (toList $ _mpconSubflows mptcpConn)
+    , musSubflowStats = Map.fromList $ map (\sf -> (sf, getStats dest sf))  (toList $ subflows mptcpConn)
   }
   where
     -- buildTcpConnectionFromStreamId :: SomeFrame -> StreamId Tcp -> Either String (FrameFiltered TcpConnection Packet)
     -- traverse a set
     getStats role sf = let
-        sfFrame = fromRight (error "could not build sfFrame") (buildSubflowFromTcpStreamId frame (conTcpStreamId $ sfConn sf))
+        sfFrame = fromRight (error "could not build sfFrame") (buildSubflowFromTcpStreamId frame (streamId $ connection sf))
         -- sfFrame' = addTcpDestinationsToAFrame sfFrame
       in
         getSubflowStats sfFrame role

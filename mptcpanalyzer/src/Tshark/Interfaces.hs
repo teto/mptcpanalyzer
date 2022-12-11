@@ -28,7 +28,7 @@ listInterfaces =
       createProc :: CreateProcess
       createProc = (proc bin args) { std_out = CreatePipe }
     in do
-      (_, mbHout, mbHerr, ph) <- createProcess_ "error" createProc
+      (_, mbHout, _mbHerr, ph) <- createProcess_ "error" createProc
       exitCode <- waitForProcess ph
       -- TODO do it only in case of error ?
       case mbHout of

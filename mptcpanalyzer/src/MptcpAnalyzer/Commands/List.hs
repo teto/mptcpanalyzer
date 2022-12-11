@@ -253,7 +253,7 @@ showMptcpStats s = unlines [
           tcpStats = tssStats sfStats
           seqRange = getTcpSeqRange tcpStats
           totalApplicationBytes = musApplicativeBytes s
-        in "stream " ++ showStream (conTcpStreamId (sfConn sf))
+        in "stream " ++ showStream (streamId (connection sf))
           ++ ": transferred " ++ show seqRange ++ " out of " ++ showBytes totalApplicationBytes
           ++ " between "
           ++ show (tusStartTime tcpStats) ++ " end time: " ++ show (tusEndTime $ tssStats sfStats)

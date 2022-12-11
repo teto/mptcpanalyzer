@@ -42,7 +42,7 @@ nportsOnMasterEstablishement mptcpSock mptcpCon paths = do
     generatedCon port = let
         master = fromJust (getMasterSubflow mptcpCon)
       in
-        master { sfConn = (sfConn master) { conTcpClientPort = port } }
+        master { connection = master.connection  { conclientPort = port } }
     newSublowPacketFromPort port = newSubflowPkt mptcpSock mptcpCon (generatedCon port)
 
   -- TODO create #X subflows
@@ -62,26 +62,26 @@ meshPathManager = PathManager {
 meshGenPkt :: MptcpSocket -> MptcpConnection -> NetworkInterface -> [MptcpPacket] -> [MptcpPacket]
 meshGenPkt mptcpSock mptcpCon intf pkts =
 
-    if traceShow (intf) (interfaceId intf == (fromJust $ sfInterface masterSf)) then
+    if traceShow (intf) (interfaceId intf == (fromJust $ interface masterSf)) then
         pkts
     else
         pkts ++ [newSubflowPkt mptcpSock mptcpCon generatedSf]
     where
         generatedSf = MptcpSubflow {
-            sfConn = generatedCon
-          , sfJoinToken = Nothing
-          , sfPriority = Nothing
+            connection = generatedCon
+          , joinToken = Nothing
+          , priority = Nothing
           -- TODO fix this
-          , sfLocalId = fromIntegral $ interfaceId intf    -- how to get it ? or do I generate it ?
-          , sfRemoteId = sfRemoteId masterSf
-          , sfInterface = Just $ interfaceId intf
+          , localId = fromIntegral $ interfaceId intf    -- how to get it ? or do I generate it ?
+          , remoteId = remoteId masterSf
+          , interface = Just $ interfaceId intf
         }
-        generatedCon = (sfConn masterSf) {
-            conTcpClientPort = 0  -- let the kernel handle it
-          -- , conTcpServerPort = (conTcpServerPort . sfConn) masterSf
-          , conTcpClientIp = ipAddress intf
-          -- , conTcpServerIp =  (conTcpServerIp . sfConn) masterSf  -- same as master
-          , conTcpStreamId = StreamId 0
+        generatedCon = (connection masterSf) {
+            conclientPort = 0  -- let the kernel handle it
+          -- , serverPort = (serverPort . connection) masterSf
+          , clientIp = ipAddress intf
+          -- , serverIp =  (serverIp . connection) masterSf  -- same as master
+          , streamId = StreamId 0
           }
 
         masterSf = (fromJust . getMasterSubflow) mptcpCon

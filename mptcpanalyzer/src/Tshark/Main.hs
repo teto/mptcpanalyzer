@@ -70,16 +70,16 @@ genReadFilterFromTcpConnection con dest =
   case dest of
     Just RoleClient ->
       -- TODO should depend on destination
-      "tcp and ip.src==" ++ (showIP . conTcpClientIp) con ++ " and ip.dst==" ++ (showIP . conTcpServerIp) con
-        ++ " and tcp.srcport==" ++ show (conTcpClientPort con) ++ " and tcp.dstport==" ++ show (conTcpServerPort con)
+      "tcp and ip.src==" ++ (showIP . clientIp) con ++ " and ip.dst==" ++ (showIP . serverIp) con
+        ++ " and tcp.srcport==" ++ show (con.clientPort) ++ " and tcp.dstport==" ++ show (con.serverPort)
     Just RoleServer ->
-      "tcp and ip.src==" ++ (showIP . conTcpServerIp) con ++ " and ip.dst==" ++ (showIP . conTcpClientIp) con
-        ++ " and tcp.srcport==" ++ show (conTcpServerPort con) ++ " and tcp.dstport==" ++ show (conTcpClientPort con)
+      "tcp and ip.src==" ++ (showIP . serverIp) con ++ " and ip.dst==" ++ (showIP . clientIp) con
+        ++ " and tcp.srcport==" ++ show (con.serverPort) ++ " and tcp.dstport==" ++ show (con.clientPort)
 
         -- error "not implemented"
     -- TODO 2 requretes srcport dstport puis alterne
-    _nodestination -> "tcp and ip.addr==" ++ (showIP . conTcpClientIp) con ++ " and ip.addr==" ++ (showIP . conTcpServerIp) con
-        ++ " and tcp.port==" ++ show (conTcpServerPort con) ++ " and tcp.port==" ++ show (conTcpClientPort con)
+    _nodestination -> "tcp and ip.addr==" ++ (showIP . clientIp) con ++ " and ip.addr==" ++ (showIP . serverIp) con
+        ++ " and tcp.port==" ++ show (con.serverPort) ++ " and tcp.port==" ++ show (con.clientPort)
 
 -- |Create a tshark read filter from a 'MptcpConnection'
 -- genReadFilterFromMptcpConnection :: MptcpConnection -> String

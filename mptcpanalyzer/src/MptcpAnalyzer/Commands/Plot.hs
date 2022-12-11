@@ -407,7 +407,7 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
       layout_title .= "MPTCP " ++ field
       -- TODO generate for mptcp plot
       -- for each subflow, plot the MptcpDest
-      mapM_ plotAttr ( [ (dest, con) | dest <- destinations , con <- Set.toList $ _mpconSubflows $ ffCon aFrame ])
+      mapM_ plotAttr ( [ (dest, con) | dest <- destinations , con <- Set.toList $ subflows $ ffCon aFrame ])
       -- mapM_ plotAttr destinations
 
   return Continue
@@ -422,10 +422,10 @@ cmdPlotMptcpAttribute field tempPath destinations aFrame = do
           -- strip down
           frameData = getData unidirectionalFrame field
           -- show sf
-          lineLabel = "subflow " ++ show (conTcpStreamId (sfConn sf))  ++ " seq (" ++ show dest ++ ")"
+          lineLabel = "subflow " ++ show (streamId (connection sf))  ++ " seq (" ++ show dest ++ ")"
           -- frameDest = frame2
           unidirectionalFrame = filterFrame (\x -> x ^. mptcpDest == dest
-                    && x ^. tcpStream == conTcpStreamId (sfConn sf) ) frameDest
+                    && x ^. tcpStream == (connection sf).streamId) frameDest
 
           -- seqData :: [Double]
           -- seqData = map fromIntegral (F.toList $ view tcpSeq <$> unidirectionalFrame)

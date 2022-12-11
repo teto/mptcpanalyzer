@@ -4,7 +4,7 @@ Description : Load pcap/csv into a @Frame@
 Maintainer  : matt
 License     : GPL-3
 -}
-{-# LANGUAGE FlexibleContexts #-}
+-- {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 module MptcpAnalyzer.Loader
 (
@@ -65,24 +65,26 @@ loadPcapIntoFrameNoCache params path = do
 
 -- TODO return an Either or Maybe ?
 -- return an either instead
-loadPcapIntoFrame ::
+loadPcapIntoFrame :: forall m a.
     (Frames.InCore.RecVec a
     , Frames.CSV.ReadRec a
     , ColumnHeaders a
-    , V.RecMapMethod Show ElField a, V.RecordToList a
+    -- , V.RecMapMethod Show ElField a
+    -- , V.RecordToList a
     , Members [Log, Cache, Embed IO ] m)
     => TsharkParams
     -> FilePath
     -> Sem m (Either String (FrameRec a))
 loadPcapIntoFrame params path = do
     Log.info $ "Start loading pcap " <> tshow path
-    x <- getCache cacheId
+    -- x <- getCache cacheId
+    let x = Left "none"
     case x of
       Right frame -> do
           Log.debug $ tshow cacheId <> " in cache"
           return $ Right frame
       Left err -> do
-          Log.debug $ "cache miss: " <> tshow  err
+          Log.debug $ "cache miss: " <> tshow err
           Log.debug "Calling tshark"
           (tempPath , exitCode, stdErr) <- liftIO $ do
             withTempFileEx opts "/tmp" "mptcp.csv" $ \tmpPath handle -> do

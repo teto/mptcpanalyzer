@@ -274,9 +274,9 @@ mergeMptcpConnectionsFromKnownStreams (FrameTcp con1 frame1) (FrameTcp con2 fram
 
       return mergedSf
       where
-        streamId1 = conTcpStreamId $ sfConn sf1
+        streamId1 = streamId $ connection sf1
         -- here we assume it's ordered but it might not be the case
-        streamId2 = conTcpStreamId $ sfConn $ fst (head scores)
+        streamId2 = streamId $ connection $ fst (head scores)
 
         aframe1 = fromRight undefined (buildFrameFromStreamId frame1 streamId1)
         aframe2 = fromRight undefined (buildFrameFromStreamId frame2 streamId2)
@@ -293,18 +293,18 @@ mergeMptcpConnectionsFromKnownStreams (FrameTcp con1 frame1) (FrameTcp con2 fram
 --     mappedSubflows = mapSubflows con1 con2
 --     mergedFrames = map mergeSubflow mappedSubflows
 
---     -- aframeSf1 = buildFrameFromStreamId frame1 (conTcpStreamId $ sfConn con1)
---     -- aframeSf1 = buildFrameFromStreamId frame2 (conTcpStreamId $ sfConn con1)
+--     -- aframeSf1 = buildFrameFromStreamId frame1 (streamId $ connection con1)
+--     -- aframeSf1 = buildFrameFromStreamId frame2 (streamId $ connection con1)
 --     -- sf1 = buildTcpConnectionFromStreamId (
 
 --     -- :: MptcpSubflow ->
 --     mergeSubflow :: (MptcpSubflow, [(MptcpSubflow, Int)]) -> MergedPcap
 --     mergeSubflow (sf1, scores) = mergeTcpConnectionsFromKnownStreams' aframe1 aframe2
 --       where
---         aframe1 = fromRight undefined (buildFrameFromStreamId frame1 (conTcpStreamId $ sfConn sf1) )
---         aframe2 = fromRight undefined (buildFrameFromStreamId frame2 (conTcpStreamId $ sfConn $ fst (head scores ) ))
---                                     -- (FrameFiltered (sfConn sf) frame1)
---                                     -- (FrameFiltered (sfConn sf) frame2)
+--         aframe1 = fromRight undefined (buildFrameFromStreamId frame1 (streamId $ connection sf1) )
+--         aframe2 = fromRight undefined (buildFrameFromStreamId frame2 (streamId $ connection $ fst (head scores ) ))
+--                                     -- (FrameFiltered (connection sf) frame1)
+--                                     -- (FrameFiltered (connection sf) frame2)
 --   in
 --     mconcat mergedFrames
 
@@ -328,8 +328,8 @@ mergeTcpSubflowFromKnownStreams ::
   -> FrameFiltered MptcpSubflow Packet
   -> Sem r MergedFrame
 mergeTcpSubflowFromKnownStreams (FrameTcp sfcon1 frame1) (FrameTcp sfcon2 frame2) =
-  mergeTcpConnectionsFromKnownStreams (FrameTcp (sfConn sfcon1) frame1)
-      (FrameTcp (sfConn sfcon2) frame2)
+  mergeTcpConnectionsFromKnownStreams (FrameTcp (connection sfcon1) frame1)
+      (FrameTcp (connection sfcon2) frame2)
 
 -- | Merge 2 pcaps
 mergeTcpConnectionsFromKnownStreams ::
@@ -349,8 +349,8 @@ mergeTcpConnectionsFromKnownStreams aframe1 aframe2 = do
     -- frame1withDest = addTcpDestToFrame (ffFrame aframe1) (ffCon aframe1)
     frame1withDest = ffFrame aframe1
 
-    out1 = "merge-tcp-1-stream-" ++ show ((conTcpStreamId . ffCon) aframe1) ++ ".tsv"
-    out2 = "merge-tcp-2-stream-" ++ show (conTcpStreamId $ ffCon aframe2) ++ ".tsv"
+    out1 = "merge-tcp-1-stream-" ++ show ((streamId . ffCon) aframe1) ++ ".tsv"
+    out2 = "merge-tcp-2-stream-" ++ show (streamId $ ffCon aframe2) ++ ".tsv"
 
     -- we want an outerJoin , maybe with a status column like in panda
     -- outerJoin returns a list of [Rec (Maybe :. ElField) ors]
