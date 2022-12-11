@@ -31,7 +31,6 @@ import GHC.Generics
 
 import Data.Text as T
 import qualified Data.Map.Strict as Map
-import Control.Lens
 
 import GHC.IO.Handle
 import Pipes ((>->))
@@ -225,8 +224,6 @@ data LiveStatsMptcp = LiveStatsMptcp {
   , stats :: LiveStats MptcpUnidirectionalStats Packet
   , finished :: Bool
   } deriving (Generic, Show)
-
--- makeLenses ''LiveStatsMptcp
 
 -- |Search for the master subflow
 -- TODO could

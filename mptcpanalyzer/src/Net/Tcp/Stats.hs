@@ -27,11 +27,9 @@ import MptcpAnalyzer.Utils.Text
 import Net.Tcp.Connection
 
 import qualified Control.Foldl as L
-import Control.Lens hiding (argument)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import Data.Word (Word32, Word64)
--- import Data.ByteUnits
 
 import qualified Data.Foldable as F
 import Data.Ord (comparing)

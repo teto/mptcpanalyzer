@@ -38,6 +38,7 @@ with pkgs.haskell.lib;
   active = doJailbreak hprev.active;
   some = doJailbreak hprev.some;
   incipit-base = doJailbreak hprev.incipit-base;
+  incipit-core = doJailbreak hprev.incipit-core;
   #  hfinal.callHackage "typerep-map" "0.5.0.0" {}
   typerep-map = doJailbreak (overrideSrc hprev.typerep-map { src = inputs.typerep-map; });
 
@@ -75,7 +76,8 @@ with pkgs.haskell.lib;
   hspec-core = hprev.callHackage "hspec-core" "2.10.6" { };
   hspec-contrib = dontCheck (hprev.callHackage "hspec-contrib" "0.5.1" { });
   hspec = hprev.callHackage "hspec" "2.10.6" { };
-  incipit-core = doJailbreak hprev.incipit-core;
+
+
   # }));
 
   relude = hprev.relude_1_0_0_1;
@@ -170,6 +172,7 @@ with pkgs.haskell.lib;
   invariant = doJailbreak hprev.invariant;
   polysemy-plugin = doJailbreak (hfinal.callCabal2nix "polysemy-plugin" "${inputs.polysemy}/polysemy-plugin" { });
   polysemy = doJailbreak (hfinal.callCabal2nix "polysemy" "${inputs.polysemy}" { });
+  polysemy-time = doJailbreak hprev.polysemy-time;
   # polysemy-plugin = hfinal.polysemy-plugin_0_4_3_1;
   # polysemy-conc = (hfinal.callHackage "polysemy-conc" "0.11.0.0" {});
 
@@ -180,7 +183,7 @@ with pkgs.haskell.lib;
 
   polysemy-log = dontHaddock (hfinal.callCabal2nix "polysemy-log" "${inputs.polysemy-log}/packages/polysemy-log" { });
   # polysemy-log-co = dontHaddock (doJailbreak (unmarkBroken hprev.polysemy-log-co));
-  polysemy-log-co = dontHaddock (hfinal.callCabal2nix "polysemy-log-co" "${inputs.polysemy-log}/packages/polysemy-log-co" { });
+  polysemy-log-co = (dontHaddock (hfinal.callCabal2nix "polysemy-log-co" "${inputs.polysemy-log}/packages/polysemy-log-co" { }));
   # (hfinal.callCabal2nix "polysemy-conc" "${inputs.polysemy-conc}/packages/conc" {});
 
   co-log-polysemy = doJailbreak (overrideSrc hprev.co-log-polysemy {

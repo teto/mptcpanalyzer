@@ -40,7 +40,6 @@ import Debug.Trace (trace, traceShow, traceShowId)
 import System.Console.ANSI
 import Data.Vinyl.Functor (getCompose)
 import qualified Control.Foldl                 as Foldl
-import Control.Lens ((^.), (.~))
 import qualified Data.Set as Set
 import Data.Maybe (fromJust)
 import Data.Either (rights)

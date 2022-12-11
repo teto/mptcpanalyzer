@@ -12,6 +12,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NoFieldSelectors #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module MptcpAnalyzer.Types
 -- (
@@ -60,7 +61,7 @@ import Language.Haskell.TH
 import Numeric (readHex)
 import qualified Text.Read as T
 -- import GHC.TypeLits
-import Control.Lens
+-- import Control.Lens
 import Control.Monad (MonadPlus, liftM, mzero)
 import qualified Data.Set as Set
 import qualified Data.Text as TS
@@ -183,13 +184,13 @@ aframeLength = frameLength . ffFrame
 
 -- Helper to pass information across functions
 data MyState = MyState {
-    _stateCacheFolder :: FilePath
-  , _loadedFile   :: Maybe (FrameRec HostCols)  -- ^ cached loaded pcap
-  , _prompt   :: String  -- ^ Prompt entry
-  , _sharkdHandle   :: Maybe ProcessHandle -- ^ sharkd process handle
+    stateCacheFolder :: FilePath
+  , loadedFile   :: Maybe (FrameRec HostCols)  -- ^ cached loaded pcap
+  , prompt   :: String  -- ^ Prompt entry
+  , sharkdHandle   :: Maybe ProcessHandle -- ^ sharkd process handle
 }
 
-makeLenses ''MyState
+-- makeLenses ''MyState
 
 
 

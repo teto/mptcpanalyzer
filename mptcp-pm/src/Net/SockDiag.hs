@@ -201,7 +201,7 @@ connectionFromDiag msg =
     con = TcpConnection {
         clientIp = fromRight (error "no default for srcIp") (getIPFromByteString (idiag_family msg) (idiag_src sockid))
       , serverIp = fromRight (error "no default for destIp") (getIPFromByteString (idiag_family msg) (idiag_dst sockid))
-      , conclientPort = idiag_sport sockid
+      , clientPort = idiag_sport sockid
       , serverPort = idiag_dport sockid
       , streamId = StreamId 0
     }
@@ -488,13 +488,13 @@ genQueryPacket selector tcpStatesFilter requestedInfo = let
         InetDiagSockId 0 0 bstr bstr 0 cookie
 
     Right sf -> let
-        con = connection sf
+        con =  sf.connection
         ipSrc = runPut $ putIPAddress $ con.clientIp
         ipDst = runPut $ putIPAddress $ con.serverIp
-        ifIndex = interface sf
+        ifIndex =  sf.interface
         _cookie = 0 :: Word64
       in
-        InetDiagSockId (con.clientPort) (con.serverPort) ipSrc ipDst (fromJust ifIndex) _cookie
+        InetDiagSockId con.clientPort con.serverPort ipSrc ipDst (fromJust ifIndex) _cookie
 
   custom = SockDiagRequest eAF_INET eIPPROTO_TCP requestedInfo tcpStatesFilter diag_req
   in

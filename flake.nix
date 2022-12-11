@@ -174,14 +174,11 @@
     in {
       packages = {
 
+        # for debug
         inherit hsPkgs;
 
         # basic library
         inherit (hsPkgs) mptcp mptcp-pm mptcpanalyzer;
-        # mptcp = mkPackage "mptcp";
-
-        # path manager
-        # mptcp-pm = mkPackage "mptcp-pm";
 
         # pcap analysis
         # mptcpanalyzer = let
@@ -201,6 +198,7 @@
         # envFunc { withHoogle }
         mptcp = mkDevShell "mptcp";
         mptcp-pm = mkDevShell "mptcp-pm";
+        mptcpanalyzer = mkDevShell "mptcpanalyzer";
 
         # nix provides libraries in its environment
         mptcp-nix = mkDevShellWithNix "mptcp"; # self.packages.${system}.mptcp.envFunc {};

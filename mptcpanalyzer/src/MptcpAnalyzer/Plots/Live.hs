@@ -43,7 +43,6 @@ import System.IO (stdout)
 import Tshark.Fields
 import Tshark.Capture
 import Net.Mptcp.Connection
-import Control.Lens ((^.))
 
 configureLivePlotTcp :: Members '[Log, P.Trace, P.Embed IO] r
   => LivePlotTcpSettings

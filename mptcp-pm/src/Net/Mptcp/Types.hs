@@ -9,7 +9,6 @@ import Data.Word
 import Data.Aeson
 import Net.IP
 import Net.Mptcp.Connection
-import Control.Lens ((^.))
 
 --type MptcpToken = Word32
 --type LocId    = Word8
@@ -32,7 +31,7 @@ data RemoteId = RemoteId {
 -- toJSON :: MptcpConnection -> Value
 instance ToJSON MptcpConnection where
   toJSON mptcpConn = object
-    [ "name" .= toJSON (show $ mptcpConn ^. mpconClientConfig ^. mecToken)
+    [ "name" .= toJSON (show $ mptcpConn.clientConfig.token)
     , "sender" .= object [
           -- TODO here we could read from sysctl ? or use another SockDiagExtension
           "snd_buffer" .= toJSON (40 :: Int)

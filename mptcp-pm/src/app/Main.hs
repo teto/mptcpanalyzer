@@ -47,7 +47,6 @@ import Netlink.Route
 
 
 -- hackage
-import Control.Lens ((^.))
 import Control.Monad (foldM)
 import Control.Monad.Trans (liftIO)
 -- import           Control.Monad.Trans                    (liftIO)
@@ -342,8 +341,8 @@ startMonitorConnection cliArgs elapsed mptcpSock sockMetrics mConn = do
     -- let _masterSf = Set.elemAt 0 (subflows mptcpConn)
 
     -- Get updated metrics
-    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList $ subflows mptcpConn)
-    let filename = tmpdir ++ "/" ++ "mptcp_" ++ show (mptcpConn ^. mpconClientConfig ^. mecToken) ++ "_" ++ show elapsed ++ ".json"
+    lastMetrics <- embed $ mapM (updateSubflowMetrics sockMetrics) (Set.toList mptcpConn.subflows)
+    let filename = tmpdir ++ "/" ++ "mptcp_" ++ show (mptcpConn.clientConfig.token) ++ "_" ++ show elapsed ++ ".json"
     -- logStatistics filename elapsed mptcpConn lastMetrics
 
     duration <- case cliOptimizer cliArgs of
@@ -479,14 +478,14 @@ registerMptcpConnection :: MptcpToken -> MptcpSubflow -> StateT MyState IO ()
 registerMptcpConnection token subflow = (do
     oldState <- get
     let (MyState mptcpSock conns cliArgs filtered) = oldState
-    if acceptConnection (connection subflow) filtered == False
+    if acceptConnection subflow.connection filtered == False
     then do
         -- infoM "main" $ "filtered out connection:" ++ show subflow
         return ()
     else (do
         -- putStrLn $ "accepted connection :" ++ show subflow
         -- should we add the subflow yet ? it doesn't have the correct interface idx
-        mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (clientIp $ connection subflow)
+        mappedInterface <- liftIO $ mapSubflowToInterfaceIdx (clientIp subflow.connection)
         let fixedSubflow = subflow { interface = mappedInterface }
         let mptcpCon = MptcpConnection (StreamId 0) (MptcpEndpointConfiguration 0 token 0) (MptcpEndpointConfiguration 0 0 0) Set.empty
         let newMptcpConn = mptcpConnAddSubflow (mptcpCon) fixedSubflow
@@ -518,7 +517,7 @@ dispatchPacketForKnownConnection :: MptcpSocket
                                     -> ExistingInterfaces
                                     -> (Maybe MptcpConnection, [MptcpPacket])
 dispatchPacketForKnownConnection mptcpSock con event attributes existingInterfaces = let
-        token =  con ^. mpconClientConfig ^. mecToken
+        token = con.clientConfig.token
         subflow = CMD.subflowFromAttributes attributes
     in
     case event of
@@ -851,8 +850,8 @@ instance ToJSON SockDiagMetrics where
   toJSON (SockDiagMetrics msg metrics) = let
 
       sf = connectionFromDiag msg
-      con = connection sf
-      tcpState = toEnum $ fromIntegral ( idiag_state msg) :: TcpStateLinux
+      con =  sf.connection
+      tcpState = toEnum $ fromIntegral (idiag_state msg) :: TcpStateLinux
       initialValue = object [
             "srcIp" .= toJSON (con.clientIp)
           , "dstIp" .= toJSON (con.serverIp)

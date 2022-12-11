@@ -28,7 +28,6 @@ import Net.Tcp
 import Net.Stream
 
 -- import MptcpAnalyzer.Arti
-import Control.Lens
 import qualified Data.Set as Set
 import Data.Text as TS
 import Data.Word (Word16, Word32, Word64, Word8)
@@ -43,8 +42,6 @@ data MptcpEndpointConfiguration = MptcpEndpointConfiguration {
   -- , mecIdsn :: Word64
   -- ^ Initial data sequence number
   } deriving (Show, Eq)
-
-makeLenses ''MptcpEndpointConfiguration
 
 
 -- | Holds all necessary information about a multipath TCP connection
@@ -87,7 +84,6 @@ data MptcpSubflow = MptcpSubflow {
 instance Ord MptcpSubflow where
   con1 `compare` con2 = con1.connection `compare` con2.connection 
 
--- makeLenses ''MptcpConnection
 
 tshow :: Show a => a -> TS.Text
 tshow = TS.pack . Prelude.show

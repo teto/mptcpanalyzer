@@ -23,7 +23,6 @@ import Net.Stream
 
 -- hackage
 -- import Control.Exception (assert)
-import Control.Lens ((^.))
 import Data.Word (Word16, Word8, Word32)
 import Data.Serialize.Get
 import Data.Serialize.Put
@@ -201,7 +200,7 @@ resetConnectionPkt (MptcpSocket _sock fid) attrs =
 
 -- connectionToken
 connectionAttrs :: MptcpConnection -> [MptcpAttribute]
-connectionAttrs con = [ MptcpAttrToken $ (con ^. mpconServerConfig ^. mecToken) ]
+connectionAttrs con = [ MptcpAttrToken $ (con.serverConfig.token) ]
 
 -- pass token ?
 subflowAttrs :: MptcpSubflow -> [MptcpAttribute]
@@ -314,6 +313,8 @@ subflowFromAttributes attrs =
     RemoteLocatorId rid = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_REM_ID attrs
     SubflowInterface intfId = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_IF_IDX attrs
     SubflowFamily family = fromJust $ makeAttributeFromMaybe MPTCP_ATTR_FAMILY attrs
+    MptcpAttrToken _ = error "not handled"
+
 
     -- sfFamily = getPort $ fromJust (Map.lookup (fromEnum MPTCP_ATTR_FAMILY) attrs)
     prio = Nothing   -- (SubflowPriority N)

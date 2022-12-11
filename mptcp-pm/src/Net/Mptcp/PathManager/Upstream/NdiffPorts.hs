@@ -42,7 +42,7 @@ nportsOnMasterEstablishement mptcpSock mptcpCon paths = do
     generatedCon port = let
         master = fromJust (getMasterSubflow mptcpCon)
       in
-        master { connection = master.connection  { conclientPort = port } }
+        master { connection = master.connection  { clientPort = port } }
     newSublowPacketFromPort port = newSubflowPkt mptcpSock mptcpCon (generatedCon port)
 
   -- TODO create #X subflows
@@ -62,7 +62,7 @@ meshPathManager = PathManager {
 meshGenPkt :: MptcpSocket -> MptcpConnection -> NetworkInterface -> [MptcpPacket] -> [MptcpPacket]
 meshGenPkt mptcpSock mptcpCon intf pkts =
 
-    if traceShow (intf) (interfaceId intf == (fromJust $ interface masterSf)) then
+    if traceShow (intf) (interfaceId intf == (fromJust masterSf.interface)) then
         pkts
     else
         pkts ++ [newSubflowPkt mptcpSock mptcpCon generatedSf]
@@ -73,11 +73,11 @@ meshGenPkt mptcpSock mptcpCon intf pkts =
           , priority = Nothing
           -- TODO fix this
           , localId = fromIntegral $ interfaceId intf    -- how to get it ? or do I generate it ?
-          , remoteId = remoteId masterSf
+          , remoteId =  masterSf.remoteId
           , interface = Just $ interfaceId intf
         }
-        generatedCon = (connection masterSf) {
-            conclientPort = 0  -- let the kernel handle it
+        generatedCon = masterSf.connection {
+            clientPort = 0  -- let the kernel handle it
           -- , serverPort = (serverPort . connection) masterSf
           , clientIp = ipAddress intf
           -- , serverIp =  (serverIp . connection) masterSf  -- same as master
