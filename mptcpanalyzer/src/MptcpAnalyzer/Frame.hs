@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-|
 Description :
 Maintainer  : matt
@@ -41,10 +42,10 @@ import System.IO.Unsafe (unsafePerformIO)
 --       bs <- P.runSafeT . P.runEffect $ produceDSV defaultParserOptions f >-> P.map BLU.fromString
 --       return bs
 
-newtype Test a = FrameRec a
-
+-- newtype Test a = FrameRec a
 -- TODO here we want to put a bytestring
-instance (ColumnHeaders rs, V.RecMapMethod Show ElField rs, V.RecordToList rs) => Serialize (Frame (Record rs)) where
+-- 
+instance (ColumnHeaders rs, V.RecMapMethod Show ElField rs,  V.RecordToList rs) =>  Serialize (Frame (Record rs)) where
   -- putByteString
   put f = do
       -- (csvDelimiter defaultTsharkPrefs)

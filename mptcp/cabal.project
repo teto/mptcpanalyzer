@@ -1,1 +1,7 @@
 packages: ./*.cabal
+
+
+source-repository-package
+        type: git
+        location: https://github.com/teto/readable
+        tag: d235d2590d326d4a3c5736793993096f35d0ac76

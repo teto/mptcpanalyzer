@@ -7,6 +7,7 @@ Maintainer  : matt
 WIRESHARK_CONFIG_DIR'
 
 -}
+{-# LANGUAGE OverloadedStrings #-}
 module Tshark.Main (
   TsharkParams(csvDelimiter, tsharkReadFilter)
   , generateCsvCommand
@@ -18,6 +19,7 @@ module Tshark.Main (
 where
 
 import Data.List (intercalate)
+import Data.Text (Text)
 import qualified Data.Text as T
 import MptcpAnalyzer.ArtificialFields (ConnectionRole(RoleClient, RoleServer))
 import qualified Net.IP
@@ -142,4 +144,4 @@ generateCsvCommand fieldNames source tsharkParams =
 
         fields :: [T.Text]
         fields = ["-T", "fields"]
-            ++ Prelude.foldr (\fieldName l -> ["-e", fieldName] ++ l) [] fieldNames
+            ++ Prelude.foldr (\fieldName l -> ["-e" :: Text, fieldName] ++ l) [] fieldNames

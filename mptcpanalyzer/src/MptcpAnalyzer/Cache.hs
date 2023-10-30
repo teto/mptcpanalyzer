@@ -10,8 +10,13 @@ License     : GPL-3
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module MptcpAnalyzer.Cache (
-  CacheId(..)
+    CacheId(..)
   , Cache(..)
   , CacheConfig(..)
   , runMockCache

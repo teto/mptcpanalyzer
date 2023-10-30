@@ -7,10 +7,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PackageImports #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module MptcpAnalyzer.Types
 -- (
@@ -162,10 +163,6 @@ instance (V.KnownField t, Hashable (V.Snd t), Hashable (F.Record rs), rs F.⊆ (
 
 deriving instance Hashable IP
 
--- IPv6 is Word128
-deriving instance Generic IPv6
-
-deriving instance Hashable Word128
 deriving instance Hashable IPv6
 
 -- shadow param

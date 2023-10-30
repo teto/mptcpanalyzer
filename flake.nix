@@ -13,10 +13,50 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     replica.url = "github:ReplicaTest/REPLica";
+    # ihaskell.url = "github:gibiansky/IHaskell";
+    # ihaskell.url = "github:teto/IHaskell/ghc2-pr-nova";
 
     flake-utils.url = "github:numtide/flake-utils";
 
     hls.url = "github:haskell/haskell-language-server";
+
+    frames.url = "github:acowley/Frames";
+
+    gtk2hs = {
+      url = "github:teto/gtk2hs/ghc92";
+      flake = false;
+    };
+
+    haskell-chart = {
+      url = "github:teto/haskell-chart/ghc92";
+      # url = "github:timbod7/haskell-chart";
+      flake = false;
+    };
+
+    # bytebuild = {
+    #   url = "github:teto/bytebuild";
+    #   flake = false;
+    # };
+    # bytesmith = {
+    #   url = "github:teto/bytesmith/ghc92";
+    #   flake = false;
+    # };
+    # haskell-ip = {
+    #   url = "github:andrewthad/haskell-ip/ghc-9-2-3";
+    #   flake = false;
+    # };
+    # word-compat = {
+    #   # bf20ee95b82414d96eb83863f50212e6c31b8930
+    #   url = "github:fumieval/word-compat/bf20ee95b82414d96eb83863f50212e6c31b8930";
+    #   flake = false;
+    # };
+
+    # cabal hashes contains all the version for different haskell packages, to update:
+    # nix flake lock --update-input all-cabal-hashes-unpacked
+    all-cabal-hashes-unpacked = {
+      url = "github:commercialhaskell/all-cabal-hashes/current-hackage";
+      flake = false;
+    };
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -24,70 +64,68 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, poetry, replica, hls, ... }:
-    flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
+  # hls, 
+  outputs = { self, all-cabal-hashes-unpacked, nixpkgs, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (system: let
 
-      compilerVersion = "8107";
-      # compilerVersion = "901";
+      compilerVersion = "96";
 
-      haskellOverlay = hnew: hold: with pkgs.haskell.lib; {
+      haskellOverlay = hnew: hold: with pkgs.haskell.lib;
+        let
+          gtk2hs-src = self.inputs.gtk2hs;
+          gtk2hs-buildtools = hnew.callCabal2nix "gtk2hs-buildtools" "${gtk2hs-src}/tools" {};
+          chart-src = self.inputs.haskell-chart;
 
-        # TODO override Frames
-        ip = unmarkBroken (dontCheck hold.ip);
-        bytebuild = unmarkBroken (dontCheck hold.bytebuild);
+        in
+        # (pkgs.frameHaskellOverlay-921 hnew hold) 
+        # //
+        (pkgs.callPackage ./overlay-96.nix { inherit self; } hnew hold)
+        // {
 
-        relude = hold.relude_1_0_0_1;
-
-        # may not be needed anymore ?
-        wide-word = unmarkBroken (dontCheck hold.wide-word);
-        polysemy = hnew.polysemy_1_7_1_0;
-        co-log-polysemy = doJailbreak (hold.co-log-polysemy);
-        polysemy-plugin = hnew.polysemy-plugin_0_4_3_0;
-
-        netlink = (overrideSrc hold.netlink {
-          # src = builtins.fetchGit {
-          #   # url = https://github.com/ongy/netlink-hs;
-          #   url = https://github.com/teto/netlink-hs;
-          # };
-          version = "1.1.2.0";
-          src = pkgs.fetchFromGitHub {
-            owner = "teto";
-            repo = "netlink-hs";
-            rev = "090a48ebdbc35171529c7db1bd420d227c19b76d";
-            sha256 = "sha256-qopa1ED4Bqk185b1AXZ32BG2s80SHDSkCODyoZfnft0=";
-          };
-        });
-
-        # self-reference to build mptcpanalyzer/mptcp-pm
-        mptcp = self.packages."${system}".mptcp;
+        # this repo software
+        mptcp = self.packages.${system}.mptcp;
+        mptcp-pm = self.packages.${system}.mptcp-pm;
+        mptcpanalyzer = self.packages.${system}.mptcpanalyzer;
       };
 
       pkgs = import nixpkgs {
           inherit system;
-          # overlays = pkgs.lib.attrValues (self.overlays);
+          overlays = [
+            # self.overlay
+            (final: prev: {
+              all-cabal-hashes = prev.runCommand "all-cabal-hashes.tar.gz"
+                { }
+                ''
+                  cd ${all-cabal-hashes-unpacked}
+                  cd ..
+                  tar czf $out $(basename ${all-cabal-hashes-unpacked})
+                '';
+            })
+          ];
           config = { allowUnfree = false; allowBroken = true;};
         };
 
-      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}";
+      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}".extend( haskellOverlay );
 
       # modifier used in haskellPackages.developPackage
       myModifier = drv:
         pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
           cabal-install
-          replica.packages.${system}.build
-          hls.packages.${system}."haskell-language-server-${compilerVersion}"
+          self.inputs.replica.packages.${system}.replica
+          # hls.packages.${system}."haskell-language-server-${compilerVersion}"
+          # ihaskell.packages.${system}."ihaskell-${compilerVersion}"
           # not available
           # hls.packages.${system}."hie-bios-${compilerVersion}"
-          cairo # for chart-cairo
-          dhall  # for the repl
+          # cairo # for chart-cairo
+          # dhall  # for the repl
           pkgs.dhall-json  # for dhall-to-json
-          glib
+          # glib
           hasktags
-          stan
+          # stan
           # pkg-config
           zlib
-          pkgs.dhall-lsp-server
-          pkgs.stylish-haskell
+          # pkgs.dhall-lsp-server # broken
+          # pkgs.stylish-haskell
 
           # we need the mptcp.h in mptcp-pm
           # pkgs.linuxHeaders
@@ -97,7 +135,7 @@
 
       mkPackage = name:
           hsPkgs.developPackage {
-            root =  pkgs.lib.cleanSource (builtins.toPath ./. + "/${name}");
+            root =  ./. + "/${name}";
             name = name;
             returnShellEnv = false;
             withHoogle = true;
@@ -105,8 +143,37 @@
             modifier = myModifier;
           };
 
+      mkDevShell = name: self.packages.${system}."${name}".envFunc {};
+
+      # provides a dev shell with libraries built by nix
+      mkDevShellWithNix = name:
+        # self.packages.${system}."${name}".envFunc {};
+        # Returns a derivation whose environment contains a GHC with only
+        hsPkgs.shellFor {
+            packages = p:
+              [p."${name}"];
+              # map (name: p.${name}) (attrNames
+              # # Disable dependencies should not be part of the shell.
+              # (removeAttrs hlsSources ));
+
+            # src = null;
+          };
+
     in {
+
+      legacyPackages.mptcpHaskellPkgs = hsPkgs;
       packages = {
+        default = self.packages.${system}.mptcpanalyzer;
+
+        # pkgs.haskell.lib.doJailbreak
+        Chart-cairo = hsPkgs.Chart-cairo;
+        # .overrideAttrs(oa: {
+        #   # nativeBuildInputs = [ hsPkgs.Chart ];
+        #   # propagatedBuildInputs = [ hsPkgs.Chart ];
+        #   # buildInputs = [];
+        #   # buildInputs = oa.buildInputs ++ [ hsPkgs.Chart ];
+
+        # }));
 
         # basic library
         mptcp = mkPackage "mptcp";
@@ -123,24 +190,36 @@
           });
       };
 
-      defaultPackage = self.packages.${system}.mptcpanalyzer;
+      # TODO add a shellFor (for all 3 packages)
+      devShells = rec {
 
-      devShells = {
-        mptcp = self.packages.${system}.mptcp.envFunc {};
-        mptcp-pm = self.packages.${system}.mptcp-pm.envFunc {};
+        default = mptcp;
+        # cabal will provide the libraries
+        # envFunc { withHoogle }
+        mptcp = mkDevShell "mptcp";
+        mptcp-pm = mkDevShell "mptcp-pm";
 
-        mptcpanalyzer = let 
-          shell = self.packages.${system}.mptcpanalyzer.envFunc {};
-        in shell.overrideAttrs(oa: {
-          postShellHook = ''
-              cd mptcpanalyzer
-              set -x
-              result=$(cabal list-bin exe:mptcpanalyzer)
-              if [ $? -eq 0 ]; then
-                export PATH="$(dirname $result):$PATH"
-              fi
-            '';
-          });
+        # nix provides libraries in its environment
+        mptcp-nix = mkDevShellWithNix "mptcp"; # self.packages.${system}.mptcp.envFunc {};
+        mptcp-pm-nix = mkDevShellWithNix "mptcp-pm";
+
+        mptcpanalyzer-nix = mkDevShellWithNix "mptcpanalyzer";
+        # mptcpanalyzer = let
+        #   shell = self.packages.${system}.mptcpanalyzer.envFunc {};
+        # in shell.overrideAttrs(oa: {
+        #   postShellHook = ''
+        #       cd mptcpanalyzer
+        #       set -x
+        #       result=$(cabal list-bin exe:mptcpanalyzer)
+        #       if [ $? -eq 0 ]; then
+        #         export PATH="$(dirname $result):$PATH"
+        #       fi
+        #     '';
+        #   });
       };
-    });
+    }) // {
+
+      overlay = final: prev: {
+      };
+    };
 }

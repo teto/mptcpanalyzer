@@ -13,6 +13,7 @@ using "Frames" to load the resulting data into a frame.
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Tshark.Fields
 where
 import Net.Stream
